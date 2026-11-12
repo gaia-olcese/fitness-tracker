@@ -761,7 +761,7 @@
       <span class="icon">🛡️</span>
       Admin
     </button>
-    <button onclick="switchTab('ai', this)">
+    <button id="aiNavBtn" style="display: none;" onclick="switchTab('ai', this)">
       <span class="icon">🎙️</span>
       AI Log
     </button>
@@ -866,10 +866,14 @@
         avatarEl.textContent = (profile.name || "?").charAt(0).toUpperCase();
       }
 
-      // Show/Hide Admin Nav Button
+      // Show/Hide Admin Nav Button & AI Nav Button
       const adminBtn = document.getElementById('adminNavBtn');
       if (adminBtn) {
         adminBtn.style.display = isAdmin ? 'flex' : 'none';
+      }
+      const aiNavBtn = document.getElementById('aiNavBtn');
+      if (aiNavBtn) {
+        aiNavBtn.style.display = (currentUser === 'gaia') ? 'flex' : 'none';
       }
     }
 
