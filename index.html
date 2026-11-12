@@ -1305,14 +1305,14 @@
         workoutListEl.innerHTML = '<div class="empty-state">No sets logged today yet.</div>';
       } else {
         workoutListEl.innerHTML = todayWorkouts.map(w => `
-          <div class="log-item">
-            <div>
-              <div style="font-weight:600; font-size:0.9rem;">${w.exercise} (Set ${w.setNum})</div>
-              <div style="font-size:0.8rem; color:var(--text-muted);">${w.weight} kg × ${w.reps} reps</div>
-            </div>
-            <button class="delete-btn" onclick="deleteWorkout(${w.id})">✕</button>
-          </div>
-        `).join('');
+           <div class="log-item">
+           <div>
+             <div style="font-weight:600; font-size:0.9rem;">${w.exercise} (Set ${w.setNum})</div>
+             <div style="font-size:0.8rem; color:var(--text-muted);">${w.weight} kg × ${w.reps} reps</div>
+           </div>
+           <button class="delete-btn" onclick="deleteWorkout('${w.id}')">✕</button>
+         </div>
+       `).join('');
       }
 
       const todayFood = state.nutrition.filter(f => f.date === today);
