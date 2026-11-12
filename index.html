@@ -797,4 +797,723 @@
     let pendingAvatarData = "";
 
     function getUserProfile() {
-      if
+      if (!currentUser) return { name: "Guest", avatar: "" };
+      const allProfiles = JSON.parse(localStorage.getItem('fitlog_profiles')) || {};
+      if (allProfiles[currentUser]) return allProfiles[currentUser];
+      return { name: currentUser.charAt(0).toUpperCase() + currentUser.slice(1), avatar: "" };
+    }
+
+    function renderProfileBadge() {
+      const profile = getUserProfile();
+      const nameEl = document.getElementById('headerUserName');
+      const avatarEl = document.getElementById('headerAvatar');
+
+      nameEl.textContent = profile.name || "User";
+
+      if (profile.avatar && profile.avatar.startsWith('data:image')) {
+        avatarEl.innerHTML = `<img src="${profile.avatar}" alt="${profile.name}" />`;
+      } else if (profile.avatar) {
+        avatarEl.textContent = profile.avatar;
+      } else {
+        avatarEl.textContent = (profile.name || "?").charAt(0).toUpperCase();
+      }
+
+      // Show/Hide Admin Nav Button
+      const adminBtn = document.getElementById('adminNavBtn');
+      if (adminBtn) {
+        adminBtn.style.display = isAdmin ? 'flex' : 'none';
+      }
+    }
+
+    function openProfileModal() {
+      if (!currentUser) return;
+      const profile = getUserProfile();
+      document.getElementById('profileNameInput').value = profile.name;
+      pendingAvatarData = profile.avatar || "";
+      updateProfilePreview();
+      document.getElementById('profileModal').style.display = 'flex';
+    }
+
+    function closeProfileModal() {
+      document.getElementById('profileModal').style.display = 'none';
+    }
+
+    function updateProfilePreview() {
+      const previewEl = document.getElementById('profilePreviewAvatar');
+      const nameVal = document.getElementById('profileNameInput').value.trim() || "?";
+
+      if (pendingAvatarData && pendingAvatarData.startsWith('data:image')) {
+        previewEl.innerHTML = `<img src="${pendingAvatarData}" alt="Preview" />`;
+      } else if (pendingAvatarData) {
+        previewEl.textContent = pendingAvatarData;
+      } else {
+        previewEl.textContent = nameVal.charAt(0).toUpperCase();
+      }
+    }
+
+    function selectPresetAvatar(emoji) {
+      pendingAvatarData = emoji;
+      updateProfilePreview();
+    }
+
+    function clearCustomAvatar() {
+      pendingAvatarData = "";
+      document.getElementById('avatarFileInput').value = "";
+      updateProfilePreview();
+    }
+
+    function handleAvatarUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+          const canvas = document.createElement('canvas');
+          const size = 128;
+          canvas.width = size;
+          canvas.height = size;
+          const ctx = canvas.getContext('2d');
+
+          const minSide = Math.min(img.width, img.height);
+          const sx = (img.width - minSide) / 2;
+          const sy = (img.height - minSide) / 2;
+          ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, size, size);
+
+          pendingAvatarData = canvas.toDataURL('image/jpeg', 0.8);
+          updateProfilePreview();
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function saveProfile() {
+      if (!currentUser) return;
+      const newName = document.getElementById('profileNameInput').value.trim();
+      if (!newName) {
+        alert("Please enter a display name.");
+        return;
+      }
+
+      const allProfiles = JSON.parse(localStorage.getItem('fitlog_profiles')) || {};
+      allProfiles[currentUser] = {
+        name: newName,
+        avatar: pendingAvatarData
+      };
+      localStorage.setItem('fitlog_profiles', JSON.stringify(allProfiles));
+      renderProfileBadge();
+      closeProfileModal();
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('profileNameInput').addEventListener('input', () => {
+        if (!pendingAvatarData) updateProfilePreview();
+      });
+
+      if (!currentUser || !currentPassword) {
+        document.getElementById('loginModal').style.display = 'flex';
+      } else {
+        renderProfileBadge();
+        syncWithCloud();
+      }
+      renderAll();
+    });
+
+    async function handleLogin() {
+      const username = document.getElementById('loginUsername').value.trim().toLowerCase();
+      const password = document.getElementById('loginPassword').value.trim();
+      if (!username || !password) {
+        alert("Please enter both username and password.");
+        return;
+      }
+
+      try {
+        const response = await fetch(`${WORKER_URL}/api/login`, {
+          method: 'POST',
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password })
+        });
+
+        if (!response.ok) {
+          alert('Invalid username or password.');
+          return;
+        }
+
+        const data = await response.json();
+        currentUser = data.username;
+        currentPassword = password;
+        isAdmin = data.is_admin;
+
+        localStorage.setItem('fitlog_user', currentUser);
+        localStorage.setItem('fitlog_pass', currentPassword);
+        localStorage.setItem('fitlog_is_admin', isAdmin ? 'true' : 'false');
+
+        if (currentUser === 'gaia') state.routines = GAIA_ROUTINES;
+        else if (currentUser === 'adam') state.routines = ADAM_ROUTINES;
+        else state.routines = {};
+
+        renderProfileBadge();
+        document.getElementById('loginModal').style.display = 'none';
+        await syncWithCloud();
+      } catch (err) {
+        alert('Login failed. Check your network connection.');
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem('fitlog_user');
+      localStorage.removeItem('fitlog_pass');
+      localStorage.removeItem('fitlog_is_admin');
+      localStorage.removeItem('fitlog_data');
+      currentUser = null;
+      currentPassword = null;
+      isAdmin = false;
+      renderProfileBadge();
+      document.getElementById('loginUsername').value = '';
+      document.getElementById('loginPassword').value = '';
+      document.getElementById('loginModal').style.display = 'flex';
+    }
+
+    async function syncWithCloud() {
+      if (!currentUser || !currentPassword) return;
+      const btn = document.getElementById('syncBtn');
+      if (btn) btn.textContent = '⏳ Syncing...';
+
+      try {
+        const response = await fetch(`${WORKER_URL}/api/data`, {
+          method: 'GET',
+          headers: {
+            "X-Username": currentUser,
+            "X-Password": currentPassword
+          }
+        });
+
+        if (!response.ok) {
+          if (response.status === 401) {
+            alert('Session expired. Please log in again.');
+            logout();
+            return;
+          }
+          throw new Error('Cloud fetch failed');
+        }
+
+        const cloudData = await response.json();
+        
+        if (cloudData.workouts.length === 0 && currentUser === 'gaia') {
+          try {
+            const seedRes = await fetch('fitlog_weeks1_5.json');
+            if (seedRes.ok) {
+              const seedData = await seedRes.json();
+              state.workouts = seedData.workouts;
+              await pushToCloud();
+            }
+          } catch (e) {}
+        } else {
+          state.workouts = cloudData.workouts || [];
+          state.nutrition = cloudData.nutrition || [];
+        }
+
+        if (!state.routines || Object.keys(state.routines).length === 0) {
+          if (currentUser === 'gaia') state.routines = GAIA_ROUTINES;
+          else if (currentUser === 'adam') state.routines = ADAM_ROUTINES;
+          else state.routines = {};
+        }
+
+        saveLocalState();
+        if (isAdmin) fetchAdminUsers();
+        if (btn) btn.textContent = '☁️ Synced';
+        setTimeout(() => { if (btn) btn.textContent = '☁️ Sync'; }, 2000);
+      } catch (err) {
+        if (!state.routines || Object.keys(state.routines).length === 0) {
+          if (currentUser === 'gaia') state.routines = GAIA_ROUTINES;
+          else if (currentUser === 'adam') state.routines = ADAM_ROUTINES;
+          else state.routines = {};
+        }
+        if (btn) btn.textContent = '⚠️ Offline';
+        renderAll();
+      }
+    }
+
+    async function pushToCloud() {
+      if (!currentUser || !currentPassword) return;
+      try {
+        await fetch(`${WORKER_URL}/api/sync`, {
+          method: 'POST',
+          headers: {
+            "Content-Type": "application/json",
+            "X-Username": currentUser,
+            "X-Password": currentPassword
+          },
+          body: JSON.stringify({
+            workouts: state.workouts,
+            nutrition: state.nutrition
+          })
+        });
+      } catch (err) {}
+    }
+
+    async function fetchAdminUsers() {
+      if (!isAdmin) return;
+      try {
+        const res = await fetch(`${WORKER_URL}/api/admin/users`, {
+          headers: { "X-Username": currentUser, "X-Password": currentPassword }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          renderAdminUserList(data.users);
+        }
+      } catch (e) {}
+    }
+
+    async function createNewUser() {
+      const newUsername = document.getElementById('newUsername').value.trim().toLowerCase();
+      const newPassword = document.getElementById('newPassword').value.trim();
+      const displayName = document.getElementById('newDisplayName').value.trim();
+
+      if (!newUsername || !newPassword) {
+        alert("Please enter a username and password.");
+        return;
+      }
+
+      try {
+        const res = await fetch(`${WORKER_URL}/api/admin/users`, {
+          method: 'POST',
+          headers: {
+            "Content-Type": "application/json",
+            "X-Username": currentUser,
+            "X-Password": currentPassword
+          },
+          body: JSON.stringify({ newUsername, newPassword, displayName })
+        });
+
+        if (!res.ok) {
+          const errData = await res.json();
+          alert(errData.error || "Failed to create user.");
+          return;
+        }
+
+        document.getElementById('newUsername').value = '';
+        document.getElementById('newPassword').value = '';
+        document.getElementById('newDisplayName').value = '';
+        alert("User created successfully!");
+        fetchAdminUsers();
+      } catch (e) {
+        alert("Error connecting to server.");
+      }
+    }
+
+    async function deleteUserAccount(targetUser) {
+      if (!confirm(`Are you sure you want to delete user "${targetUser}" and all their data?`)) return;
+
+      try {
+        const res = await fetch(`${WORKER_URL}/api/admin/users/${targetUser}`, {
+          method: 'DELETE',
+          headers: { "X-Username": currentUser, "X-Password": currentPassword }
+        });
+
+        if (!res.ok) {
+          const errData = await res.json();
+          alert(errData.error || "Failed to delete user.");
+          return;
+        }
+
+        fetchAdminUsers();
+      } catch (e) {
+        alert("Error connecting to server.");
+      }
+    }
+
+    function renderAdminUserList(users) {
+      const listEl = document.getElementById('adminUserList');
+      if (!listEl) return;
+
+      if (!users || users.length === 0) {
+        listEl.innerHTML = '<div class="empty-state">No users found.</div>';
+        return;
+      }
+
+      listEl.innerHTML = users.map(u => `
+        <div class="log-item">
+          <div>
+            <div style="font-weight:600; font-size:0.9rem;">${u.display_name} (${u.username}) ${u.is_admin ? '🛡️ [Admin]' : ''}</div>
+            <div style="font-size:0.75rem; color:var(--text-muted);">Created: ${u.created_at || 'N/A'}</div>
+          </div>
+          ${u.username !== currentUser ? `<button class="delete-btn" onclick="deleteUserAccount('${u.username}')">✕</button>` : ''}
+        </div>
+      `).join('');
+    }
+
+    function saveLocalState() {
+      localStorage.setItem('fitlog_data', JSON.stringify(state));
+      renderAll();
+      pushToCloud();
+    }
+
+    function getTodayStr() {
+      return new Date().toISOString().split('T')[0];
+    }
+
+    function switchTab(tabName, btn) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('nav button').forEach(el => el.classList.remove('active'));
+      document.getElementById('tab-' + tabName).classList.add('active');
+      btn.classList.add('active');
+      if (tabName === 'progress') {
+        renderChart();
+      }
+      if (tabName === 'admin' && isAdmin) {
+        fetchAdminUsers();
+      }
+    }
+
+    function selectRoutine(day) {
+      activeRoutineDay = day;
+      renderAll();
+    }
+
+    function deleteWorkout(id) {
+      state.workouts = state.workouts.filter(w => w.id !== id);
+      saveLocalState();
+    }
+
+    function getLastSetData(exerciseName, setNum) {
+      const today = getTodayStr();
+      const match = state.workouts.find(w => w.exercise === exerciseName && w.setNum === setNum && w.date !== today);
+      return match ? { weight: match.weight, reps: match.reps } : null;
+    }
+
+    function openAddRoutineModal() {
+      const name = prompt("Enter new workout day name (e.g. Wednesday, Legs, Push):");
+      if (!name) return;
+      const cleanName = name.trim();
+      if (state.routines[cleanName]) {
+        alert("A routine with this name already exists.");
+        return;
+      }
+      state.routines[cleanName] = [];
+      activeRoutineDay = cleanName;
+      saveLocalState();
+    }
+
+    function openRenameRoutineModal() {
+      const newName = prompt(`Rename routine "${activeRoutineDay}" to:`, activeRoutineDay);
+      if (!newName || newName.trim() === activeRoutineDay) return;
+      const cleanName = newName.trim();
+      if (state.routines[cleanName]) {
+        alert("A routine with this name already exists.");
+        return;
+      }
+      state.routines[cleanName] = state.routines[activeRoutineDay];
+      delete state.routines[activeRoutineDay];
+      activeRoutineDay = cleanName;
+      saveLocalState();
+    }
+
+    function deleteCurrentRoutine() {
+      const keys = Object.keys(state.routines);
+      if (keys.length <= 1) {
+        alert("You must keep at least one routine day.");
+        return;
+      }
+      if (confirm(`Delete the entire routine for "${activeRoutineDay}"?`)) {
+        delete state.routines[activeRoutineDay];
+        activeRoutineDay = Object.keys(state.routines)[0];
+        saveLocalState();
+      }
+    }
+
+    function openAddExerciseModal() {
+      const name = prompt(`Enter exercise name for ${activeRoutineDay}:`);
+      if (!name) return;
+      const targetReps = prompt("Enter target rep range (e.g. 8-12):", "8-12") || "8-12";
+      const sets = parseInt(prompt("Enter number of working sets:", "3")) || 3;
+
+      if (!state.routines[activeRoutineDay]) {
+        state.routines[activeRoutineDay] = [];
+      }
+
+      state.routines[activeRoutineDay].push({
+        name: name.trim(),
+        workingSets: sets,
+        targetReps: targetReps,
+        rest: 75
+      });
+
+      saveLocalState();
+    }
+
+    function editExercise(index) {
+      const ex = state.routines[activeRoutineDay][index];
+      const name = prompt("Edit exercise name:", ex.name);
+      if (!name) return;
+      const targetReps = prompt("Edit target rep range:", ex.targetReps) || ex.targetReps;
+      const sets = parseInt(prompt("Edit working sets:", ex.workingSets)) || ex.workingSets;
+
+      ex.name = name.trim();
+      ex.targetReps = targetReps;
+      ex.workingSets = sets;
+      saveLocalState();
+    }
+
+    function removeExerciseFromRoutine(index) {
+      if (confirm(`Remove this exercise from ${activeRoutineDay}?`)) {
+        state.routines[activeRoutineDay].splice(index, 1);
+        saveLocalState();
+      }
+    }
+
+    function renderChart() {
+      const ctx = document.getElementById('volumeChart');
+      if (!ctx) return;
+
+      const datesSet = new Set();
+      const exercisesSet = new Set();
+      const volumeMap = {};
+
+      state.workouts.forEach(w => {
+        datesSet.add(w.date);
+        exercisesSet.add(w.exercise);
+        if (!volumeMap[w.exercise]) volumeMap[w.exercise] = {};
+        const vol = (w.weight || 0) * (w.reps || 0);
+        volumeMap[w.exercise][w.date] = (volumeMap[w.exercise][w.date] || 0) + vol;
+      });
+
+      const sortedDates = Array.from(datesSet).sort();
+      const exercises = Array.from(exercisesSet);
+
+      const datasets = exercises.map((ex, idx) => {
+        const color = LINE_COLORS[idx % LINE_COLORS.length];
+        return {
+          label: ex,
+          data: sortedDates.map(d => volumeMap[ex][d] ? Math.round(volumeMap[ex][d] * 10) / 10 : null),
+          borderColor: color,
+          backgroundColor: color,
+          borderWidth: 2,
+          tension: 0.25,
+          spanGaps: true,
+          pointRadius: 4
+        };
+      });
+
+      if (volumeChartInstance) {
+        volumeChartInstance.destroy();
+      }
+
+      volumeChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: { labels: sortedDates, datasets: datasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'nearest', intersect: false },
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: { color: '#334155', boxWidth: 12, font: { size: 11 } }
+            }
+          },
+          scales: {
+            x: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { color: '#e2e8f0' } },
+            y: {
+              title: { display: true, text: 'Total Volume (kg)', color: '#64748b' },
+              ticks: { color: '#64748b', font: { size: 10 } },
+              grid: { color: '#e2e8f0' }
+            }
+          }
+        }
+      });
+    }
+
+    function addFood() {
+      const food = document.getElementById('foodName').value.trim();
+      const cal = parseFloat(document.getElementById('foodCal').value) || 0;
+      const pro = parseFloat(document.getElementById('foodPro').value) || 0;
+      const carb = parseFloat(document.getElementById('foodCarb').value) || 0;
+      const fat = parseFloat(document.getElementById('foodFat').value) || 0;
+
+      if (!food || cal <= 0) {
+        alert('Please enter a food name and calories.');
+        return;
+      }
+
+      state.nutrition.unshift({
+        id: 'n_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+        date: getTodayStr(),
+        food, cal, pro, carb, fat
+      });
+
+      document.getElementById('foodName').value = '';
+      document.getElementById('foodCal').value = '';
+      document.getElementById('foodPro').value = '';
+      document.getElementById('foodCarb').value = '';
+      document.getElementById('foodFat').value = '';
+      saveLocalState();
+    }
+
+    function deleteFood(id) {
+      state.nutrition = state.nutrition.filter(f => f.id !== id);
+      saveLocalState();
+    }
+
+    function editGoals() {
+      const cal = prompt('Daily Calorie Goal:', state.goals.cal);
+      const pro = prompt('Daily Protein Goal (g):', state.goals.pro);
+      const carb = prompt('Daily Carbs Goal (g):', state.goals.carb);
+      const fat = prompt('Daily Fat Goal (g):', state.goals.fat);
+      if (cal && pro && carb && fat) {
+        state.goals = { cal: Number(cal), pro: Number(pro), carb: Number(carb), fat: Number(fat) };
+        saveLocalState();
+      }
+    }
+
+    function renderRoutineSelector() {
+      const selectorEl = document.getElementById('routineSelector');
+      const keys = Object.keys(state.routines);
+      if (!keys.includes(activeRoutineDay) && keys.length > 0) {
+        activeRoutineDay = keys[0];
+      }
+
+      if (keys.length === 0) {
+        selectorEl.innerHTML = `<span style="font-size:0.8rem; color:var(--text-muted);">No routines defined. Tap "+ Add New Day" below.</span>`;
+        return;
+      }
+
+      selectorEl.innerHTML = keys.map(day => `
+        <button class="routine-btn ${day === activeRoutineDay ? 'active' : ''}" onclick="selectRoutine('${day}')">${day}</button>
+      `).join('');
+    }
+
+    function renderRoutine() {
+      renderRoutineSelector();
+      const container = document.getElementById('routineContainer');
+      const exercises = state.routines[activeRoutineDay] || [];
+
+      if (Object.keys(state.routines).length === 0) {
+        container.innerHTML = '<div class="empty-state">No workout routines yet. Tap "+ Add New Day" above to create your first routine!</div>';
+        return;
+      }
+
+      if (exercises.length === 0) {
+        container.innerHTML = '<div class="empty-state">No exercises in this routine yet. Tap "+ Add Exercise" above.</div>';
+        return;
+      }
+
+      container.innerHTML = exercises.map((ex, idx) => {
+        let setsHTML = '';
+        for (let s = 1; s <= ex.workingSets; s++) {
+          const lastSet = getLastSetData(ex.name, s);
+          const weightPlaceholder = lastSet ? `${lastSet.weight}kg` : 'kg';
+          const repsPlaceholder = lastSet ? `${lastSet.reps}r` : 'reps';
+
+          setsHTML += `
+            <div class="set-row">
+              <span class="set-label">Set ${s}</span>
+              <input type="number" step="0.5" id="w_${CSS.escape(ex.name)}_s${s}" placeholder="${weightPlaceholder}" inputmode="decimal" />
+              <input type="number" id="r_${CSS.escape(ex.name)}_s${s}" placeholder="${repsPlaceholder}" inputmode="numeric" />
+              <button class="btn-small" style="background:var(--primary); color:#ffffff; border:none;" onclick="saveSingleSet('${ex.name.replace(/'/g, "\\'")}', ${s})">✓</button>
+            </div>
+          `;
+        }
+
+        return `
+          <div class="exercise-card">
+            <div class="exercise-header">
+              <div>
+                <div class="exercise-title">${idx + 1}. ${ex.name}</div>
+                <div class="exercise-meta">Target: ${ex.workingSets} sets × ${ex.targetReps} reps • Rest: ${ex.rest}s</div>
+              </div>
+              <div class="exercise-tools">
+                <button onclick="editExercise(${idx})" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.85rem;" title="Edit exercise">✏️</button>
+                <button onclick="removeExerciseFromRoutine(${idx})" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.9rem;" title="Remove exercise">✕</button>
+              </div>
+            </div>
+            ${setsHTML}
+          </div>
+        `;
+      }).join('');
+    }
+
+    function saveSingleSet(exerciseName, setNum) {
+      const weight = parseFloat(document.getElementById(`w_${exerciseName}_s${setNum}`).value);
+      const reps = parseInt(document.getElementById(`r_${exerciseName}_s${setNum}`).value);
+
+      if (isNaN(weight) || isNaN(reps)) {
+        alert('Please enter both weight and reps for this set.');
+        return;
+      }
+
+      state.workouts.unshift({
+        id: 'w_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+        date: getTodayStr(),
+        exercise: exerciseName,
+        setNum: setNum,
+        weight,
+        reps
+      });
+
+      saveLocalState();
+    }
+
+    function renderAll() {
+      if (!state.routines) state.routines = {};
+      renderRoutine();
+      renderChart();
+
+      const today = getTodayStr();
+      const todayWorkouts = state.workouts.filter(w => w.date === today);
+      const workoutListEl = document.getElementById('workoutList');
+      if (todayWorkouts.length === 0) {
+        workoutListEl.innerHTML = '<div class="empty-state">No sets logged today yet.</div>';
+      } else {
+        workoutListEl.innerHTML = todayWorkouts.map(w => `
+          <div class="log-item">
+            <div>
+              <div style="font-weight:600; font-size:0.9rem;">${w.exercise} (Set ${w.setNum})</div>
+              <div style="font-size:0.8rem; color:var(--text-muted);">${w.weight} kg × ${w.reps} reps</div>
+            </div>
+            <button class="delete-btn" onclick="deleteWorkout('${w.id}')">✕</button>
+          </div>
+        `).join('');
+      }
+
+      const todayFood = state.nutrition.filter(f => f.date === today);
+      const totals = todayFood.reduce((acc, item) => ({
+        cal: acc.cal + item.cal,
+        pro: acc.pro + item.pro,
+        carb: acc.carb + item.carb,
+        fat: acc.fat + item.fat
+      }), { cal: 0, pro: 0, carb: 0, fat: 0 });
+
+      document.getElementById('sumCal').textContent = Math.round(totals.cal);
+      document.getElementById('sumPro').textContent = Math.round(totals.pro) + 'g';
+      document.getElementById('sumCarb').textContent = Math.round(totals.carb) + 'g';
+      document.getElementById('sumFat').textContent = Math.round(totals.fat) + 'g';
+
+      document.getElementById('goalCal').textContent = state.goals.cal;
+      document.getElementById('goalPro').textContent = state.goals.pro;
+      document.getElementById('goalCarb').textContent = state.goals.carb;
+      document.getElementById('goalFat').textContent = state.goals.fat;
+
+      const pct = Math.min(100, (totals.cal / state.goals.cal) * 100);
+      document.getElementById('calProgress').style.width = pct + '%';
+
+      const foodListEl = document.getElementById('foodList');
+      if (todayFood.length === 0) {
+        foodListEl.innerHTML = '<div class="empty-state">No food logged today yet.</div>';
+      } else {
+        foodListEl.innerHTML = todayFood.map(f => `
+          <div class="log-item">
+            <div>
+              <div style="font-weight:600; font-size:0.9rem;">${f.food}</div>
+              <div style="font-size:0.8rem; color:var(--text-muted);">${f.cal} kcal • ${f.pro}g P • ${f.carb}g C • ${f.fat}g F</div>
+            </div>
+            <button class="delete-btn" onclick="deleteFood('${f.id}')">✕</button>
+          </div>
+        `).join('');
+      }
+    }
+  </script>
+</body>
+</html>
