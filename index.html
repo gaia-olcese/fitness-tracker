@@ -1292,6 +1292,8 @@
       if (!name) return;
       const targetReps = prompt("Enter target rep range (e.g. 8-12):", "8-12") || "8-12";
       const sets = parseInt(prompt("Enter number of working sets:", "3")) || 3;
+      const defaultDesc = `${sets} sets × ${targetReps} reps • Rest: 75s`;
+      const desc = prompt("Enter exercise description / target notes:", defaultDesc) || defaultDesc;
 
       if (!state.routines[activeRoutineDay]) {
         state.routines[activeRoutineDay] = [];
@@ -1301,7 +1303,8 @@
         name: name.trim(),
         workingSets: sets,
         targetReps: targetReps,
-        rest: 75
+        rest: 75,
+        desc: desc.trim()
       });
 
       saveLocalState();
@@ -1313,10 +1316,13 @@
       if (!name) return;
       const targetReps = prompt("Edit target rep range:", ex.targetReps) || ex.targetReps;
       const sets = parseInt(prompt("Edit working sets:", ex.workingSets)) || ex.workingSets;
+      const currentDesc = ex.desc || `${ex.workingSets} sets × ${ex.targetReps} reps • Rest: ${ex.rest}s`;
+      const desc = prompt("Edit exercise description / target notes:", currentDesc) || currentDesc;
 
       ex.name = name.trim();
       ex.targetReps = targetReps;
       ex.workingSets = sets;
+      ex.desc = desc.trim();
       saveLocalState();
     }
 
@@ -1544,7 +1550,7 @@
             <div class="exercise-header">
               <div>
                 <div class="exercise-title">${idx + 1}. ${ex.name}</div>
-                <div class="exercise-meta">Target: ${ex.workingSets} sets × ${ex.targetReps} reps • Rest: ${ex.rest}s</div>
+                <div class="exercise-meta">${ex.desc || `${ex.workingSets} sets × ${ex.targetReps} reps • Rest: ${ex.rest}s`}</div>
               </div>
               <div class="exercise-tools">
                 <button onclick="editExercise(${idx})" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.85rem;" title="Edit exercise">✏️</button>
