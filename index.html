@@ -38,7 +38,7 @@
 
     header {
       background: var(--surface);
-      padding: 16px 20px;
+      padding: 12px 16px;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -47,22 +47,79 @@
       top: 0;
       z-index: 10;
       box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+      gap: 8px;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
     }
 
     header h1 {
-      font-size: 1.25rem;
+      font-size: 1.2rem;
       font-weight: 700;
       letter-spacing: -0.02em;
+      flex-shrink: 0;
     }
 
     header h1 span {
       color: var(--primary);
     }
 
+    .profile-pill {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      background: var(--surface-light);
+      border: 1px solid var(--border);
+      padding: 4px 10px 4px 5px;
+      border-radius: 999px;
+      cursor: pointer;
+      max-width: 155px;
+      transition: background 0.15s ease;
+    }
+
+    .profile-pill:active {
+      background: var(--border);
+    }
+
+    .profile-avatar {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: #ffffff;
+      font-size: 0.75rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .profile-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .profile-name {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
     .header-actions {
       display: flex;
-      gap: 8px;
+      gap: 6px;
       align-items: center;
+      flex-shrink: 0;
     }
 
     .btn-small {
@@ -314,7 +371,7 @@
       cursor: pointer;
     }
 
-    #loginModal {
+    .modal-overlay {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
       background: rgba(15, 23, 42, 0.6);
@@ -346,6 +403,51 @@
       color: var(--text-muted);
       font-size: 0.85rem;
       margin-bottom: 16px;
+    }
+
+    .avatar-preview-large {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: #ffffff;
+      font-size: 2rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 12px;
+      overflow: hidden;
+      border: 3px solid var(--surface-light);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    .avatar-preview-large img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .emoji-picker {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .emoji-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: var(--surface-light);
+      font-size: 1.1rem;
+      cursor: pointer;
+    }
+
+    .emoji-btn:active {
+      background: var(--border);
     }
 
     nav {
@@ -393,19 +495,63 @@
 </head>
 <body>
 
-  <div id="loginModal" style="display: none;">
+  <!-- Login Modal -->
+  <div id="loginModal" class="modal-overlay" style="display: none;">
     <div class="login-card">
       <h2>Welcome to Fit<span>Log</span></h2>
       <p>Enter your secret PIN to access your profile.</p>
       <div class="form-group">
-        <input type="password" id="pinInput" placeholder="Enter 4-digit PIN" inputmode="numeric" style="font-size: 1.1rem; letter-spacing: 2px;" />
+        <input type="password" id="pinInput" placeholder="Enter PIN" style="font-size: 1.1rem; letter-spacing: 2px;" />
       </div>
       <button class="btn-primary" onclick="handleLogin()">Login / Sync</button>
     </div>
   </div>
 
+  <!-- Profile Edit Modal -->
+  <div id="profileModal" class="modal-overlay" style="display: none;" onclick="if(event.target===this) closeProfileModal()">
+    <div class="login-card">
+      <h2>Edit Profile</h2>
+      <p>Customize your display name & avatar</p>
+
+      <div class="avatar-preview-large" id="profilePreviewAvatar">G</div>
+
+      <div class="emoji-picker">
+        <button type="button" class="emoji-btn" onclick="selectPresetAvatar('💪')">💪</button>
+        <button type="button" class="emoji-btn" onclick="selectPresetAvatar('🏋️')">🏋️</button>
+        <button type="button" class="emoji-btn" onclick="selectPresetAvatar('🐱')">🐱</button>
+        <button type="button" class="emoji-btn" onclick="selectPresetAvatar('🌱')">🌱</button>
+        <button type="button" class="emoji-btn" onclick="selectPresetAvatar('⚡')">⚡</button>
+        <button type="button" class="emoji-btn" onclick="selectPresetAvatar('🔥')">🔥</button>
+      </div>
+
+      <div class="form-group">
+        <label class="btn-small" style="display: inline-block; padding: 8px 14px; cursor: pointer;">
+          📷 Upload Photo
+          <input type="file" id="avatarFileInput" accept="image/*" style="display: none;" onchange="handleAvatarUpload(event)" />
+        </label>
+        <button type="button" class="btn-small" onclick="clearCustomAvatar()" style="margin-left: 6px;">Reset</button>
+      </div>
+
+      <div class="form-group" style="text-align: left; margin-top: 12px;">
+        <label for="profileNameInput">Display Name</label>
+        <input type="text" id="profileNameInput" placeholder="Your name" style="text-align: left;" />
+      </div>
+
+      <div style="display: flex; gap: 8px; margin-top: 14px;">
+        <button type="button" class="btn-small" style="flex: 1; padding: 12px;" onclick="closeProfileModal()">Cancel</button>
+        <button type="button" class="btn-primary" style="flex: 2; margin-top: 0; padding: 12px;" onclick="saveProfile()">Save</button>
+      </div>
+    </div>
+  </div>
+
   <header>
-    <h1>Fit<span>Log</span></h1>
+    <div class="brand-group">
+      <h1>Fit<span>Log</span></h1>
+      <div class="profile-pill" onclick="openProfileModal()" title="Tap to edit profile">
+        <div class="profile-avatar" id="headerAvatar">?</div>
+        <span class="profile-name" id="headerUserName">Guest</span>
+      </div>
+    </div>
     <div class="header-actions">
       <button class="btn-small" onclick="syncWithCloud()" id="syncBtn">☁️ Sync</button>
       <button class="btn-small" onclick="logout()">Logout</button>
@@ -542,7 +688,6 @@
   <script>
     const WORKER_URL = "https://fitlog-api.gaia-olcese.workers.dev";
 
-    // Gaia's specific routine templates with Barebell Hip Thrusts normalization
     const GAIA_ROUTINES = {
       "Monday": [
         { name: "Machine Chest Press", workingSets: 3, targetReps: "8-12", rest: 75 },
@@ -564,6 +709,32 @@
       ]
     };
 
+    const ADAM_ROUTINES = {
+      "Push & Core": [
+        { name: "Flat Dumbbell Press", workingSets: 3, targetReps: "6-8", rest: 120 },
+        { name: "Incline Dumbbell Press", workingSets: 3, targetReps: "6-8", rest: 120 },
+        { name: "Seated Dumbbell Overhead Press", workingSets: 3, targetReps: "6-8", rest: 120 },
+        { name: "Standing Dumbbell Lateral Raises", workingSets: 3, targetReps: "12-15", rest: 60 },
+        { name: "Standing Dumbbell Shrugs", workingSets: 3, targetReps: "10-12", rest: 60 },
+        { name: "Lying Dumbbell Triceps Extensions", workingSets: 3, targetReps: "8-10", rest: 60 },
+        { name: "Lying Bench Leg Raises", workingSets: 3, targetReps: "12-15", rest: 60 }
+      ],
+      "Pull Day": [
+        { name: "Romanian Deadlift (RDL)", workingSets: 3, targetReps: "6-8", rest: 150 },
+        { name: "Lat Pulldown (Overhand)", workingSets: 3, targetReps: "8-10", rest: 120 },
+        { name: "Chest-Supported Machine Row", workingSets: 3, targetReps: "8-10", rest: 120 },
+        { name: "Neutral-Grip Pulldown", workingSets: 3, targetReps: "10-12", rest: 90 },
+        { name: "Reverse Pec Deck", workingSets: 3, targetReps: "12-15", rest: 90 },
+        { name: "Preacher Curl", workingSets: 3, targetReps: "10-12", rest: 90 },
+        { name: "Dumbbell Hammer Curl", workingSets: 3, targetReps: "10-12", rest: 90 }
+      ]
+    };
+
+    const DEFAULT_PROFILES = {
+      "gaia1234": { name: "Gaia", avatar: "" },
+      "adam1234": { name: "Adam", avatar: "" }
+    };
+
     const LINE_COLORS = [
       '#0284c7', '#0d9488', '#d97706', '#db2777', '#7c3aed', '#0891b2',
       '#e11d48', '#65a30d', '#ca8a04', '#4f46e5', '#0d9488', '#f97316'
@@ -572,24 +743,141 @@
     const DEFAULT_GOALS = { cal: 2000, pro: 130, carb: 220, fat: 65 };
     
     let userPin = localStorage.getItem('fitlog_pin');
-    
-    // Check local storage safely and assign user-aware routines so data doesn't bleed across users on the same device
     let savedData = JSON.parse(localStorage.getItem('fitlog_data')) || {};
+    
+    function getInitialRoutines(pin) {
+      if (pin === 'gaia1234') return GAIA_ROUTINES;
+      if (pin === 'adam1234') return ADAM_ROUTINES;
+      return savedData.routines || {};
+    }
+
     let state = {
       workouts: savedData.workouts || [],
       nutrition: savedData.nutrition || [],
       goals: savedData.goals || DEFAULT_GOALS,
-      routines: (userPin === 'gaia1234') ? GAIA_ROUTINES : (savedData.routines || {})
+      routines: getInitialRoutines(userPin)
     };
 
     let routineKeys = Object.keys(state.routines);
-    let activeRoutineDay = routineKeys.length > 0 ? routineKeys[0] : "Monday";
+    let activeRoutineDay = routineKeys.length > 0 ? routineKeys[0] : "";
     let volumeChartInstance = null;
+    let pendingAvatarData = "";
+
+    function getUserProfile(pin) {
+      if (!pin) return { name: "Guest", avatar: "" };
+      const allProfiles = JSON.parse(localStorage.getItem('fitlog_profiles')) || {};
+      if (allProfiles[pin]) return allProfiles[pin];
+      if (DEFAULT_PROFILES[pin]) return DEFAULT_PROFILES[pin];
+      return { name: "Test User", avatar: "" };
+    }
+
+    function renderProfileBadge() {
+      const profile = getUserProfile(userPin);
+      const nameEl = document.getElementById('headerUserName');
+      const avatarEl = document.getElementById('headerAvatar');
+
+      nameEl.textContent = profile.name || "User";
+
+      if (profile.avatar && profile.avatar.startsWith('data:image')) {
+        avatarEl.innerHTML = `<img src="${profile.avatar}" alt="${profile.name}" />`;
+      } else if (profile.avatar) {
+        avatarEl.textContent = profile.avatar;
+      } else {
+        avatarEl.textContent = (profile.name || "?").charAt(0).toUpperCase();
+      }
+    }
+
+    function openProfileModal() {
+      if (!userPin) return;
+      const profile = getUserProfile(userPin);
+      document.getElementById('profileNameInput').value = profile.name;
+      pendingAvatarData = profile.avatar || "";
+      updateProfilePreview();
+      document.getElementById('profileModal').style.display = 'flex';
+    }
+
+    function closeProfileModal() {
+      document.getElementById('profileModal').style.display = 'none';
+    }
+
+    function updateProfilePreview() {
+      const previewEl = document.getElementById('profilePreviewAvatar');
+      const nameVal = document.getElementById('profileNameInput').value.trim() || "?";
+
+      if (pendingAvatarData && pendingAvatarData.startsWith('data:image')) {
+        previewEl.innerHTML = `<img src="${pendingAvatarData}" alt="Preview" />`;
+      } else if (pendingAvatarData) {
+        previewEl.textContent = pendingAvatarData;
+      } else {
+        previewEl.textContent = nameVal.charAt(0).toUpperCase();
+      }
+    }
+
+    function selectPresetAvatar(emoji) {
+      pendingAvatarData = emoji;
+      updateProfilePreview();
+    }
+
+    function clearCustomAvatar() {
+      pendingAvatarData = "";
+      document.getElementById('avatarFileInput').value = "";
+      updateProfilePreview();
+    }
+
+    function handleAvatarUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+          const canvas = document.createElement('canvas');
+          const size = 128;
+          canvas.width = size;
+          canvas.height = size;
+          const ctx = canvas.getContext('2d');
+
+          const minSide = Math.min(img.width, img.height);
+          const sx = (img.width - minSide) / 2;
+          const sy = (img.height - minSide) / 2;
+          ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, size, size);
+
+          pendingAvatarData = canvas.toDataURL('image/jpeg', 0.8);
+          updateProfilePreview();
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function saveProfile() {
+      if (!userPin) return;
+      const newName = document.getElementById('profileNameInput').value.trim();
+      if (!newName) {
+        alert("Please enter a display name.");
+        return;
+      }
+
+      const allProfiles = JSON.parse(localStorage.getItem('fitlog_profiles')) || {};
+      allProfiles[userPin] = {
+        name: newName,
+        avatar: pendingAvatarData
+      };
+      localStorage.setItem('fitlog_profiles', JSON.stringify(allProfiles));
+      renderProfileBadge();
+      closeProfileModal();
+    }
 
     window.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('profileNameInput').addEventListener('input', () => {
+        if (!pendingAvatarData) updateProfilePreview();
+      });
+
       if (!userPin) {
         document.getElementById('loginModal').style.display = 'flex';
       } else {
+        renderProfileBadge();
         syncWithCloud();
       }
       renderAll();
@@ -602,9 +890,15 @@
       userPin = pin;
       localStorage.setItem('fitlog_pin', userPin);
 
-      // Enforce correct routines based strictly on the PIN entered
-      state.routines = (userPin === 'gaia1234') ? GAIA_ROUTINES : {};
+      if (userPin === 'gaia1234') {
+        state.routines = GAIA_ROUTINES;
+      } else if (userPin === 'adam1234') {
+        state.routines = ADAM_ROUTINES;
+      } else {
+        state.routines = {}; // Brand new test users start completely empty
+      }
 
+      renderProfileBadge();
       document.getElementById('loginModal').style.display = 'none';
       await syncWithCloud();
     }
@@ -613,6 +907,7 @@
       localStorage.removeItem('fitlog_pin');
       localStorage.removeItem('fitlog_data');
       userPin = null;
+      renderProfileBadge();
       document.getElementById('pinInput').value = '';
       document.getElementById('loginModal').style.display = 'flex';
     }
@@ -653,9 +948,10 @@
           state.nutrition = cloudData.nutrition || [];
         }
 
-        // Re-verify user routine assignment after cloud sync
         if (!state.routines || Object.keys(state.routines).length === 0) {
-          state.routines = (userPin === 'gaia1234') ? GAIA_ROUTINES : {};
+          if (userPin === 'gaia1234') state.routines = GAIA_ROUTINES;
+          else if (userPin === 'adam1234') state.routines = ADAM_ROUTINES;
+          else state.routines = {};
         }
 
         saveLocalState();
@@ -663,7 +959,9 @@
         setTimeout(() => { if (btn) btn.textContent = '☁️ Sync'; }, 2000);
       } catch (err) {
         if (!state.routines || Object.keys(state.routines).length === 0) {
-          state.routines = (userPin === 'gaia1234') ? GAIA_ROUTINES : {};
+          if (userPin === 'gaia1234') state.routines = GAIA_ROUTINES;
+          else if (userPin === 'adam1234') state.routines = ADAM_ROUTINES;
+          else state.routines = {};
         }
         if (btn) btn.textContent = '⚠️ Offline';
         renderAll();
@@ -723,9 +1021,8 @@
       return match ? { weight: match.weight, reps: match.reps } : null;
     }
 
-    // Routine & Exercise Management
     function openAddRoutineModal() {
-      const name = prompt("Enter new workout day name (e.g. Wednesday, Push & Core, Pull Day):");
+      const name = prompt("Enter new workout day name (e.g. Wednesday, Legs, Push):");
       if (!name) return;
       const cleanName = name.trim();
       if (state.routines[cleanName]) {
