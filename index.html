@@ -6,6 +6,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <title>FitLog</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root {
       --bg: #0f172a;
@@ -74,7 +75,7 @@
     }
 
     .container {
-      max-width: 600px;
+      max-width: 650px;
       margin: 0 auto;
       padding: 16px;
     }
@@ -177,7 +178,7 @@
     }
 
     input::placeholder {
-      color: #475569; /* Soft grey for last session hints */
+      color: #64748b;
       font-size: 0.8rem;
     }
 
@@ -186,21 +187,11 @@
       border-color: var(--primary);
     }
 
-    .btn-primary {
+    /* Chart Container */
+    .chart-wrapper {
+      position: relative;
+      height: 360px;
       width: 100%;
-      padding: 14px;
-      background: var(--primary);
-      color: #052e16;
-      font-weight: 700;
-      font-size: 1rem;
-      border: none;
-      border-radius: 12px;
-      cursor: pointer;
-      margin-top: 4px;
-    }
-
-    .btn-primary:active {
-      background: var(--primary-hover);
     }
 
     /* Macro Summary */
@@ -263,6 +254,23 @@
       gap: 8px;
     }
 
+    .btn-primary {
+      width: 100%;
+      padding: 14px;
+      background: var(--primary);
+      color: #052e16;
+      font-weight: 700;
+      font-size: 1rem;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      margin-top: 4px;
+    }
+
+    .btn-primary:active {
+      background: var(--primary-hover);
+    }
+
     .log-item {
       display: flex;
       justify-content: space-between;
@@ -302,7 +310,7 @@
       background: none;
       border: none;
       color: var(--text-muted);
-      font-size: 0.8rem;
+      font-size: 0.75rem;
       font-weight: 600;
       display: flex;
       flex-direction: column;
@@ -316,7 +324,7 @@
     }
 
     nav button span.icon {
-      font-size: 1.3rem;
+      font-size: 1.25rem;
     }
 
     .empty-state {
@@ -357,7 +365,20 @@
       </div>
     </div>
 
-    <!-- TAB 2: NUTRITION -->
+    <!-- TAB 2: PROGRESS CHARTS -->
+    <div id="tab-progress" class="tab-content">
+      <div class="card">
+        <h2>Volume Progression (kg)</h2>
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">
+          Total volume (Weight × Reps) per session. Tap an exercise in the legend to toggle its line.
+        </p>
+        <div class="chart-wrapper">
+          <canvas id="volumeChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: NUTRITION -->
     <div id="tab-nutrition" class="tab-content">
       <div class="card">
         <h2>
@@ -420,12 +441,12 @@
       </div>
     </div>
 
-    <!-- TAB 3: AI & VOICE (PLACEHOLDER FOR STEP 4) -->
+    <!-- TAB 4: AI & VOICE -->
     <div id="tab-ai" class="tab-content">
       <div class="card">
         <h2>AI Voice & Chat Logger</h2>
         <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 14px;">
-          Coming in Step 4! Once we connect your Cloudflare Worker & Gemini free API key, you'll be able to tap the mic and log meals or workouts by voice.
+          Coming next! Once we connect your Cloudflare Worker & Gemini free API key, you'll be able to tap the mic and log meals or workouts by voice.
         </p>
       </div>
     </div>
@@ -436,6 +457,10 @@
     <button class="active" onclick="switchTab('workouts', this)">
       <span class="icon">🏋️</span>
       Workouts
+    </button>
+    <button onclick="switchTab('progress', this)">
+      <span class="icon">📈</span>
+      Progress
     </button>
     <button onclick="switchTab('nutrition', this)">
       <span class="icon">🥗</span>
@@ -469,6 +494,11 @@
       ]
     };
 
+    const LINE_COLORS = [
+      '#10b981', '#3b82f6', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4',
+      '#f43f5e', '#84cc16', '#eab308', '#6366f1', '#14b8a6', '#fb923c'
+    ];
+
     const DEFAULT_GOALS = { cal: 2000, pro: 130, carb: 220, fat: 65 };
     let state = JSON.parse(localStorage.getItem('fitlog_data')) || {
       workouts: [],
@@ -477,6 +507,7 @@
     };
 
     let activeRoutineDay = 'Monday';
+    let volumeChartInstance = null;
 
     function saveState() {
       localStorage.setItem('fitlog_data', JSON.stringify(state));
@@ -492,6 +523,9 @@
       document.querySelectorAll('nav button').forEach(el => el.classList.remove('active'));
       document.getElementById('tab-' + tabName).classList.add('active');
       btn.classList.add('active');
+      if (tabName === 'progress') {
+        renderChart();
+      }
     }
 
     function selectRoutine(day) {
@@ -506,12 +540,87 @@
       saveState();
     }
 
-    // Find the last recorded weight and reps for a specific exercise and set number
     function getLastSetData(exerciseName, setNum) {
       const today = getTodayStr();
-      // Look for previous sets matching this exercise and set number from a different day
       const match = state.workouts.find(w => w.exercise === exerciseName && w.setNum === setNum && w.date !== today);
       return match ? { weight: match.weight, reps: match.reps } : null;
+    }
+
+    // Chart Rendering
+    function renderChart() {
+      const ctx = document.getElementById('volumeChart');
+      if (!ctx) return;
+
+      // Group volume (weight * reps) by date and exercise
+      const datesSet = new Set();
+      const exercisesSet = new Set();
+      const volumeMap = {}; // { exercise: { date: totalVolume } }
+
+      state.workouts.forEach(w => {
+        datesSet.add(w.date);
+        exercisesSet.add(w.exercise);
+        if (!volumeMap[w.exercise]) volumeMap[w.exercise] = {};
+        const vol = (w.weight || 0) * (w.reps || 0);
+        volumeMap[w.exercise][w.date] = (volumeMap[w.exercise][w.date] || 0) + vol;
+      });
+
+      const sortedDates = Array.from(datesSet).sort();
+      const exercises = Array.from(exercisesSet);
+
+      const datasets = exercises.map((ex, idx) => {
+        const color = LINE_COLORS[idx % LINE_COLORS.length];
+        return {
+          label: ex,
+          data: sortedDates.map(d => volumeMap[ex][d] ? Math.round(volumeMap[ex][d] * 10) / 10 : null),
+          borderColor: color,
+          backgroundColor: color,
+          borderWidth: 2,
+          tension: 0.25,
+          spanGaps: true,
+          pointRadius: 4
+        };
+      });
+
+      if (volumeChartInstance) {
+        volumeChartInstance.destroy();
+      }
+
+      volumeChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: sortedDates,
+          datasets: datasets
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {
+            mode: 'nearest',
+            intersect: false
+          },
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                color: '#cbd5e1',
+                boxWidth: 12,
+                font: { size: 11 }
+              }
+            }
+          },
+          scales: {
+            x: {
+              ticks: { color: '#94a3b8', font: { size: 10 } },
+              grid: { color: '#334155' }
+            },
+            y: {
+              title: { display: true, text: 'Total Volume (kg)', color: '#94a3b8' },
+              ticks: { color: '#94a3b8', font: { size: 10 } },
+              grid: { color: '#334155' }
+            }
+          }
+        }
+      });
     }
 
     // Nutrition Logic
@@ -570,7 +679,6 @@
         let setsHTML = '';
         for (let s = 1; s <= ex.workingSets; s++) {
           const lastSet = getLastSetData(ex.name, s);
-          // Set intelligent placeholders based on previous session
           const weightPlaceholder = lastSet ? `${lastSet.weight}kg` : 'kg';
           const repsPlaceholder = lastSet ? `${lastSet.reps}r` : 'reps';
 
@@ -579,7 +687,7 @@
               <span class="set-label">Set ${s}</span>
               <input type="number" step="0.5" id="w_${ex.name}_s${s}" placeholder="${weightPlaceholder}" inputmode="decimal" />
               <input type="number" id="r_${ex.name}_s${s}" placeholder="${repsPlaceholder}" inputmode="numeric" />
-              <button class="btn-small" style="background:var(--primary); color:#052e16;" onclick="saveSingleSet('${ex.name}', ${s})">✓</button>
+              <button class="btn-small" style="background:var(--primary); color:#052e16;" onclick="saveSingleSet('${ex.name.replace(/'/g, "\\'")}', ${s})">✓</button>
             </div>
           `;
         }
@@ -610,17 +718,16 @@
         date: getTodayStr(),
         exercise: exerciseName,
         setNum: setNum,
-      akl: true,
         weight,
         reps
       });
 
       saveState();
-      alert(`Saved Set ${setNum} for ${exerciseName}!`);
     }
 
     function renderAll() {
       renderRoutine();
+      renderChart();
 
       // Today's Workouts List
       const today = getTodayStr();
@@ -656,7 +763,7 @@
 
       document.getElementById('goalCal').textContent = state.goals.cal;
       document.getElementById('goalPro').textContent = state.goals.pro;
-      document.getElementById('goalCarb').textContent = state.goals.carbs || state.goals.carb;
+      document.getElementById('goalCarb').textContent = state.goals.carb || state.goals.carb;
       document.getElementById('goalFat').textContent = state.goals.fat;
 
       const pct = Math.min(100, (totals.cal / state.goals.cal) * 100);
