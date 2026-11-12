@@ -1,1035 +1,137 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <title>FitLog</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FitLog Multi-User PWA</title>
   <style>
-    :root {
-      --bg: #f8fafc;
-      --surface: #ffffff;
-      --surface-light: #f1f5f9;
-      --text: #1e293b;
-      --text-muted: #64748b;
-      --primary: #0284c7;
-      --primary-hover: #0369a1;
-      --accent: #0ea5e9;
-      --danger: #ef4444;
-      --border: #e2e8f0;
-      --radius: 14px;
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    }
-
-    body {
-      background: var(--bg);
-      color: var(--text);
-      padding-bottom: 85px;
-      line-height: 1.4;
-    }
-
-    header {
-      background: var(--surface);
-      padding: 16px 20px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 1px solid var(--border);
-      position: sticky;
-      top: 0;
-      z-index: 10;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.02);
-    }
-
-    header h1 {
-      font-size: 1.25rem;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-    }
-
-    header h1 span {
-      color: var(--primary);
-    }
-
-    .header-actions {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
-
-    .btn-small {
-      background: var(--surface-light);
-      color: var(--text);
-      border: 1px solid var(--border);
-      padding: 6px 10px;
-      border-radius: 8px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      cursor: pointer;
-    }
-
-    .btn-small:active {
-      background: var(--border);
-    }
-
-    .container {
-      max-width: 650px;
-      margin: 0 auto;
-      padding: 16px;
-    }
-
-    .tab-content {
-      display: none;
-    }
-
-    .tab-content.active {
-      display: block;
-    }
-
-    .card {
-      background: var(--surface);
-      border-radius: var(--radius);
-      padding: 16px;
-      margin-bottom: 16px;
-      border: 1px solid var(--border);
-      box-shadow: 0 1px 3px rgba(0,0,0,0.02);
-    }
-
-    .card h2 {
-      font-size: 1rem;
-      margin-bottom: 12px;
-      color: var(--text);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .routine-selector {
-      display: flex;
-      gap: 6px;
-      margin-bottom: 16px;
-      overflow-x: auto;
-      padding-bottom: 4px;
-    }
-
-    .routine-btn {
-      flex: 0 0 auto;
-      padding: 8px 12px;
-      background: var(--surface-light);
-      border: 1px solid var(--border);
-      color: var(--text-muted);
-      border-radius: 10px;
-      font-weight: 600;
-      font-size: 0.8rem;
-      cursor: pointer;
-      text-align: center;
-    }
-
-    .routine-btn.active {
-      background: var(--primary);
-      color: #ffffff;
-      border-color: var(--primary);
-    }
-
-    .routine-actions {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 12px;
-    }
-
-    .exercise-card {
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 12px;
-      margin-bottom: 12px;
-    }
-
-    .exercise-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 8px;
-    }
-
-    .exercise-title {
-      font-weight: 600;
-      font-size: 0.95rem;
-    }
-
-    .exercise-meta {
-      font-size: 0.75rem;
-      color: var(--text-muted);
-    }
-
-    .exercise-tools {
-      display: flex;
-      gap: 8px;
-    }
-
-    .set-row {
-      display: grid;
-      grid-template-columns: 50px 1fr 1fr auto;
-      gap: 6px;
-      align-items: center;
-      margin-bottom: 6px;
-    }
-
-    .set-label {
-      font-size: 0.75rem;
-      color: var(--text-muted);
-      font-weight: 600;
-    }
-
-    input {
-      width: 100%;
-      padding: 8px;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-      background: var(--surface);
-      color: var(--text);
-      font-size: 0.9rem;
-      text-align: center;
-    }
-
-    input::placeholder {
-      color: #94a3b8;
-      font-size: 0.8rem;
-    }
-
-    input:focus {
-      outline: none;
-      border-color: var(--primary);
-      box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.15);
-    }
-
-    .chart-wrapper {
-      position: relative;
-      height: 360px;
-      width: 100%;
-    }
-
-    .macro-summary {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 8px;
-      text-align: center;
-      margin-bottom: 12px;
-    }
-
-    .macro-box {
-      background: var(--bg);
-      padding: 10px 6px;
-      border-radius: 10px;
-      border: 1px solid var(--border);
-    }
-
-    .macro-box .val {
-      font-size: 1.05rem;
-      font-weight: 700;
-    }
-
-    .macro-box .lbl {
-      font-size: 0.7rem;
-      color: var(--text-muted);
-      text-transform: uppercase;
-    }
-
-    .progress-bar {
-      height: 8px;
-      background: var(--surface-light);
-      border-radius: 99px;
-      overflow: hidden;
-      margin-top: 6px;
-    }
-
-    .progress-fill {
-      height: 100%;
-      background: var(--primary);
-      width: 0%;
-      transition: width 0.3s ease;
-    }
-
-    .form-group {
-      margin-bottom: 10px;
-    }
-
-    label {
-      display: block;
-      font-size: 0.8rem;
-      color: var(--text-muted);
-      margin-bottom: 4px;
-      font-weight: 500;
-    }
-
-    .grid-3 {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 8px;
-    }
-
-    .btn-primary {
-      width: 100%;
-      padding: 14px;
-      background: var(--primary);
-      color: #ffffff;
-      font-weight: 700;
-      font-size: 1rem;
-      border: none;
-      border-radius: 12px;
-      cursor: pointer;
-      margin-top: 4px;
-    }
-
-    .btn-primary:active {
-      background: var(--primary-hover);
-    }
-
-    .log-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 10px 0;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .log-item:last-child {
-      border-bottom: none;
-    }
-
-    .delete-btn {
-      background: none;
-      border: none;
-      color: var(--danger);
-      font-size: 1.1rem;
-      padding: 4px 8px;
-      cursor: pointer;
-    }
-
-    #loginModal {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(15, 23, 42, 0.6);
-      backdrop-filter: blur(4px);
-      z-index: 100;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 20px;
-    }
-
-    .login-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      padding: 24px;
-      border-radius: var(--radius);
-      width: 100%;
-      max-width: 360px;
-      text-align: center;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-    }
-
-    .login-card h2 {
-      margin-bottom: 8px;
-      font-size: 1.25rem;
-    }
-
-    .login-card p {
-      color: var(--text-muted);
-      font-size: 0.85rem;
-      margin-bottom: 16px;
-    }
-
-    nav {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: var(--surface);
-      border-top: 1px solid var(--border);
-      display: flex;
-      justify-content: space-around;
-      padding: 10px 0 18px;
-      z-index: 20;
-      box-shadow: 0 -1px 3px rgba(0,0,0,0.02);
-    }
-
-    nav button {
-      background: none;
-      border: none;
-      color: var(--text-muted);
-      font-size: 0.75rem;
-      font-weight: 600;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
-      cursor: pointer;
-    }
-
-    nav button.active {
-      color: var(--primary);
-    }
-
-    nav button span.icon {
-      font-size: 1.25rem;
-    }
-
-    .empty-state {
-      text-align: center;
-      color: var(--text-muted);
-      font-size: 0.85rem;
-      padding: 20px 0;
-    }
+    /* Add your existing CSS styles here */
+    body { font-family: sans-serif; margin: 0; padding: 20px; background: #f4f4f9; color: #333; }
+    .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    button { padding: 10px 15px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    button:hover { background: #0056b3; }
+    input, select { padding: 8px; margin: 5px 0; width: 100%; box-sizing: border-box; }
   </style>
 </head>
 <body>
-
-  <div id="loginModal" style="display: none;">
-    <div class="login-card">
-      <h2>Welcome to Fit<span>Log</span></h2>
-      <p>Enter your secret PIN to access your profile.</p>
-      <div class="form-group">
-        <input type="password" id="pinInput" placeholder="Enter 4-digit PIN" inputmode="numeric" style="font-size: 1.1rem; letter-spacing: 2px;" />
-      </div>
-      <button class="btn-primary" onclick="handleLogin()">Login / Sync</button>
-    </div>
-  </div>
-
-  <header>
-    <h1>Fit<span>Log</span></h1>
-    <div class="header-actions">
-      <button class="btn-small" onclick="syncWithCloud()" id="syncBtn">☁️ Sync</button>
-      <button class="btn-small" onclick="logout()">Logout</button>
-    </div>
-  </header>
-
   <div class="container">
-
-    <div id="tab-workouts" class="tab-content active">
-      <div class="card">
-        <h2>
-          Workout Routine
-          <button class="btn-small" onclick="openAddExerciseModal()">+ Add Exercise</button>
-        </h2>
-        <div class="routine-selector" id="routineSelector"></div>
-        <div class="routine-actions">
-          <button class="btn-small" onclick="openRenameRoutineModal()">✏️ Rename Day</button>
-          <button class="btn-small" onclick="openAddRoutineModal()">+ Add New Day</button>
-          <button class="btn-small" onclick="deleteCurrentRoutine()" style="color:var(--danger)">🗑️ Delete Day</button>
-        </div>
-        <div id="routineContainer"></div>
-      </div>
-
-      <div class="card">
-        <h2>Today's Completed Sets</h2>
-        <div id="workoutList"></div>
-      </div>
+    <div id="auth-screen">
+      <h2>Welcome to FitLog</h2>
+      <p>Please enter your PIN to continue:</p>
+      <input type="password" id="pin-input" placeholder="Enter PIN">
+      <button onclick="handleLogin()">Login</button>
     </div>
 
-    <div id="tab-progress" class="tab-content">
-      <div class="card">
-        <h2>Volume Progression (kg)</h2>
-        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">
-          Total volume (Weight × Reps) per session. Tap legend items to toggle lines.
-        </p>
-        <div class="chart-wrapper">
-          <canvas id="volumeChart"></canvas>
-        </div>
+    <div id="app-screen" style="display: none;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h2 id="welcome-user"></h2>
+        <button onclick="handleLogout()" style="background: #dc3545;">Logout</button>
+      </div>
+      <hr>
+      <div id="routine-container">
+        <!-- Dynamic routines will load here -->
       </div>
     </div>
-
-    <div id="tab-nutrition" class="tab-content">
-      <div class="card">
-        <h2>
-          Today's Macros
-          <button class="btn-small" onclick="editGoals()">Edit Goals</button>
-        </h2>
-        <div class="macro-summary">
-          <div class="macro-box">
-            <div class="val" id="sumCal">0</div>
-            <div class="lbl">kcal / <span id="goalCal">2000</span></div>
-          </div>
-          <div class="macro-box">
-            <div class="val" id="sumPro">0g</div>
-            <div class="lbl">Pro / <span id="goalPro">130</span>g</div>
-          </div>
-          <div class="macro-box">
-            <div class="val" id="sumCarb">0g</div>
-            <div class="lbl">Carb / <span id="goalCarb">220</span>g</div>
-          </div>
-          <div class="macro-box">
-            <div class="val" id="sumFat">0g</div>
-            <div class="lbl">Fat / <span id="goalFat">65</span>g</div>
-          </div>
-        </div>
-        <div class="progress-bar">
-          <div class="progress-fill" id="calProgress"></div>
-        </div>
-      </div>
-
-      <div class="card">
-        <h2>Log Food</h2>
-        <div class="form-group">
-          <label for="foodName">Meal or Food</label>
-          <input type="text" id="foodName" placeholder="e.g. Tofu scramble & toast" style="text-align: left;" />
-        </div>
-        <div class="form-group">
-          <label for="foodCal">Calories (kcal)</label>
-          <input type="number" id="foodCal" inputmode="numeric" placeholder="450" />
-        </div>
-        <div class="grid-3">
-          <div class="form-group">
-            <label for="foodPro">Protein (g)</label>
-            <input type="number" id="foodPro" step="0.5" inputmode="decimal" placeholder="25" />
-          </div>
-          <div class="form-group">
-            <label for="foodCarb">Carbs (g)</label>
-            <input type="number" id="foodCarb" step="0.5" inputmode="decimal" placeholder="40" />
-          </div>
-          <div class="form-group">
-            <label for="foodFat">Fat (g)</label>
-            <input type="number" id="foodFat" step="0.5" inputmode="decimal" placeholder="15" />
-          </div>
-        </div>
-        <button class="btn-primary" onclick="addFood()">+ Add Food</button>
-      </div>
-
-      <div class="card">
-        <h2>Today's Meals</h2>
-        <div id="foodList"></div>
-      </div>
-    </div>
-
-    <div id="tab-ai" class="tab-content">
-      <div class="card">
-        <h2>AI Voice & Chat Logger</h2>
-        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 14px;">
-          Coming next! Once we connect your Gemini free API key, you'll be able to tap the mic and log meals or workouts by voice.
-        </p>
-      </div>
-    </div>
-
   </div>
-
-  <nav>
-    <button class="active" onclick="switchTab('workouts', this)">
-      <span class="icon">🏋️</span>
-      Workouts
-    </button>
-    <button onclick="switchTab('progress', this)">
-      <span class="icon">📈</span>
-      Progress
-    </button>
-    <button onclick="switchTab('nutrition', this)">
-      <span class="icon">🥗</span>
-      Nutrition
-    </button>
-    <button onclick="switchTab('ai', this)">
-      <span class="icon">🎙️</span>
-      AI Log
-    </button>
-  </nav>
 
   <script>
-    const WORKER_URL = "https://fitlog-api.gaia-olcese.workers.dev";
-
-    const DEFAULT_ROUTINES = {
-      "Monday": [
-        { name: "Machine Chest Press", workingSets: 3, targetReps: "8-12", rest: 75 },
-        { name: "Lat Pulldown", workingSets: 3, targetReps: "8-12", rest: 75 },
-        { name: "Chest-Supported Machine Row", workingSets: 3, targetReps: "8-12", rest: 75 },
-        { name: "Machine Lateral Raise", workingSets: 3, targetReps: "12-15", rest: 45 },
-        { name: "Cable Rope Triceps Pressdown", workingSets: 3, targetReps: "10-15", rest: 45 },
-        { name: "Glute Drive / Hip Thrust Machine", workingSets: 3, targetReps: "10-12", rest: 75 },
-        { name: "Seated Hip Abduction Machine", workingSets: 3, targetReps: "15-20", rest: 45 }
-      ],
-      "Friday": [
-        { name: "Incline Chest Press Machine", workingSets: 3, targetReps: "8-12", rest: 75 },
-        { name: "Neutral-Grip Lat Pulldown", workingSets: 3, targetReps: "8-12", rest: 75 },
-        { name: "Machine Shoulder Press", workingSets: 3, targetReps: "8-12", rest: 75 },
-        { name: "Reverse Pec Deck", workingSets: 3, targetReps: "12-15", rest: 45 },
-        { name: "Machine Preacher Curl", workingSets: 3, targetReps: "10-15", rest: 45 },
-        { name: "Glute Drive / Hip Thrust Machine", workingSets: 3, targetReps: "10-12", rest: 75 },
-        { name: "Seated Hip Abduction Machine", workingSets: 3, targetReps: "15-20", rest: 45 }
-      ]
+    // User-specific or default routine configurations
+    const USER_ROUTINES = {
+      "Gaia": {
+        "Monday": [
+          { name: "Machine Chest Press", workingSets: 3, targetReps: "8-12", rest: 75 },
+          { name: "Lat Pulldown", workingSets: 3, targetReps: "8-12", rest: 75 },
+          { name: "Chest-Supported Machine Row", workingSets: 3, targetReps: "8-12", rest: 75 },
+          { name: "Lateral Raises", workingSets: 3, targetReps: "12-15", rest: 45 },
+          { name: "Cable Rope Triceps Pressdown", workingSets: 3, targetReps: "10-15", rest: 45 },
+          { name: "Barebell Hip Thrusts", workingSets: 3, targetReps: "10-12", rest: 75 },
+          { name: "Seated Hip Abduction Machine", workingSets: 3, targetReps: "15-20", rest: 45 }
+        ],
+        "Friday": [
+          { name: "Machine Chest Press", workingSets: 3, targetReps: "8-12", rest: 75 },
+          { name: "Neutral-Grip Lat Pulldown", workingSets: 3, targetReps: "8-12", rest: 75 },
+          { name: "Machine Shoulder Press", workingSets: 3, targetReps: "8-12", rest: 75 },
+          { name: "Reverse Pec Deck", workingSets: 3, targetReps: "12-15", rest: 45 },
+          { name: "Machine Preacher Curl", workingSets: 3, targetReps: "10-15", rest: 45 },
+          { name: "Barebell Hip Thrusts", workingSets: 3, targetReps: "10-12", rest: 75 },
+          { name: "Seated Hip Abduction Machine", workingSets: 3, targetReps: "15-20", rest: 45 }
+        ]
+      }
+      // New users like Adam default to an empty object {} so they can build their own routines from scratch
     };
 
-    const LINE_COLORS = [
-      '#0284c7', '#0d9488', '#d97706', '#db2777', '#7c3aed', '#0891b2',
-      '#e11d48', '#65a30d', '#ca8a04', '#4f46e5', '#0d9488', '#f97316'
-    ];
-
-    const DEFAULT_GOALS = { cal: 2000, pro: 130, carb: 220, fat: 65 };
-    
-    let userPin = localStorage.getItem('fitlog_pin');
-    let state = JSON.parse(localStorage.getItem('fitlog_data')) || {
+    let state = {
+      pin: localStorage.getItem("fitlog_pin") || "",
+      user: "",
       workouts: [],
       nutrition: [],
-      goals: DEFAULT_GOALS,
-      routines: DEFAULT_ROUTINES
+      routines: {}
     };
 
-    if (!state.routines) {
-      state.routines = DEFAULT_ROUTINES;
-    }
-
-    let routineKeys = Object.keys(state.routines);
-    let activeRoutineDay = routineKeys.length > 0 ? routineKeys[0] : "Monday";
-    let volumeChartInstance = null;
-
-    window.addEventListener('DOMContentLoaded', () => {
-      if (!userPin) {
-        document.getElementById('loginModal').style.display = 'flex';
-      } else {
-        syncWithCloud();
-      }
-      renderAll();
-    });
+    const WORKER_URL = "YOUR_CLOUDWORKER_URL_HERE"; // Replace with your Worker URL
 
     async function handleLogin() {
-      const pin = document.getElementById('pinInput').value.trim();
-      if (!pin) return;
-      
-      userPin = pin;
-      localStorage.setItem('fitlog_pin', userPin);
-      document.getElementById('loginModal').style.display = 'none';
-      await syncWithCloud();
-    }
+      const pin = document.getElementById("pin-input").value.trim();
+      if (!pin) return alert("Please enter a PIN");
 
-    function logout() {
-      localStorage.removeItem('fitlog_pin');
-      localStorage.removeItem('fitlog_data');
-      userPin = null;
-      document.getElementById('pinInput').value = '';
-      document.getElementById('loginModal').style.display = 'flex';
-    }
+      // Map PINs locally or verify via Worker headers
+      const pinMap = { "gaia1234": "Gaia", "adam1234": "Adam" };
+      const user = pinMap[pin];
 
-    async function syncWithCloud() {
-      if (!userPin) return;
-      const btn = document.getElementById('syncBtn');
-      if (btn) btn.textContent = '⏳ Syncing...';
-
-      try {
-        const response = await fetch(`${WORKER_URL}/api/data`, {
-          method: 'GET',
-          headers: { "X-Pin": userPin }
-        });
-
-        if (!response.ok) {
-          if (response.status === 401) {
-            alert('Invalid PIN. Please log in again.');
-            logout();
-            return;
-          }
-          throw new Error('Cloud fetch failed');
-        }
-
-        const cloudData = await response.json();
-        
-        if (cloudData.workouts.length === 0 && userPin === 'gaia1234') {
-          try {
-            const seedRes = await fetch('fitlog_weeks1_5.json');
-            if (seedRes.ok) {
-              const seedData = await seedRes.json();
-              state.workouts = seedData.workouts;
-              await pushToCloud();
-            }
-          } catch (e) {}
-        } else {
-          state.workouts = cloudData.workouts || [];
-          state.nutrition = cloudData.nutrition || [];
-        }
-
-        saveLocalState();
-        if (btn) btn.textContent = '☁️ Synced';
-        setTimeout(() => { if (btn) btn.textContent = '☁️ Sync'; }, 2000);
-      } catch (err) {
-        if (btn) btn.textContent = '⚠️ Offline';
-      }
-    }
-
-    async function pushToCloud() {
-      if (!userPin) return;
-      try {
-        await fetch(`${WORKER_URL}/api/sync`, {
-          method: 'POST',
-          headers: {
-            "Content-Type": "application/json",
-            "X-Pin": userPin
-          },
-          body: JSON.stringify({
-            workouts: state.workouts,
-            nutrition: state.nutrition
-          })
-        });
-      } catch (err) {}
-    }
-
-    function saveLocalState() {
-      localStorage.setItem('fitlog_data', JSON.stringify(state));
-      renderAll();
-      pushToCloud();
-    }
-
-    function getTodayStr() {
-      return new Date().toISOString().split('T')[0];
-    }
-
-    function switchTab(tabName, btn) {
-      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-      document.querySelectorAll('nav button').forEach(el => el.classList.remove('active'));
-      document.getElementById('tab-' + tabName).classList.add('active');
-      btn.classList.add('active');
-      if (tabName === 'progress') {
-        renderChart();
-      }
-    }
-
-    function selectRoutine(day) {
-      activeRoutineDay = day;
-      renderAll();
-    }
-
-    function deleteWorkout(id) {
-      state.workouts = state.workouts.filter(w => w.id !== id);
-      saveLocalState();
-    }
-
-    function getLastSetData(exerciseName, setNum) {
-      const today = getTodayStr();
-      const match = state.workouts.find(w => w.exercise === exerciseName && w.setNum === setNum && w.date !== today);
-      return match ? { weight: match.weight, reps: match.reps } : null;
-    }
-
-    // Routine & Exercise Management
-    function openAddRoutineModal() {
-      const name = prompt("Enter new workout day name (e.g. Wednesday, Legs, Push):");
-      if (!name) return;
-      const cleanName = name.trim();
-      if (state.routines[cleanName]) {
-        alert("A routine with this name already exists.");
-        return;
-      }
-      state.routines[cleanName] = [];
-      activeRoutineDay = cleanName;
-      saveLocalState();
-    }
-
-    function openRenameRoutineModal() {
-      const newName = prompt(`Rename routine "${activeRoutineDay}" to:`, activeRoutineDay);
-      if (!newName || newName.trim() === activeRoutineDay) return;
-      const cleanName = newName.trim();
-      if (state.routines[cleanName]) {
-        alert("A routine with this name already exists.");
-        return;
-      }
-      state.routines[cleanName] = state.routines[activeRoutineDay];
-      delete state.routines[activeRoutineDay];
-      activeRoutineDay = cleanName;
-      saveLocalState();
-    }
-
-    function deleteCurrentRoutine() {
-      const keys = Object.keys(state.routines);
-      if (keys.length <= 1) {
-        alert("You must keep at least one routine day.");
-        return;
-      }
-      if (confirm(`Delete the entire routine for "${activeRoutineDay}"?`)) {
-        delete state.routines[activeRoutineDay];
-        activeRoutineDay = Object.keys(state.routines)[0];
-        saveLocalState();
-      }
-    }
-
-    function openAddExerciseModal() {
-      const name = prompt(`Enter exercise name for ${activeRoutineDay}:`);
-      if (!name) return;
-      const targetReps = prompt("Enter target rep range (e.g. 8-12):", "8-12") || "8-12";
-      const sets = parseInt(prompt("Enter number of working sets:", "3")) || 3;
-
-      if (!state.routines[activeRoutineDay]) {
-        state.routines[activeRoutineDay] = [];
+      if (!user) {
+        return alert("Invalid PIN");
       }
 
-      state.routines[activeRoutineDay].push({
-        name: name.trim(),
-        workingSets: sets,
-        targetReps: targetReps,
-        rest: 75
-      });
+      state.pin = pin;
+      state.user = user;
+      localStorage.setItem("fitlog_pin", pin);
 
-      saveLocalState();
+      // Set routines: Gaia gets her templates, new users get empty object for custom creation
+      state.routines = USER_ROUTINES[user] || {};
+
+      document.getElementById("auth-screen").style.display = "none";
+      document.getElementById("app-screen").style.display = "block";
+      document.getElementById("welcome-user").innerText = `Welcome, ${user}!`;
+
+      renderRoutines();
     }
 
-    function editExercise(index) {
-      const ex = state.routines[activeRoutineDay][index];
-      const name = prompt("Edit exercise name:", ex.name);
-      if (!name) return;
-      const targetReps = prompt("Edit target rep range:", ex.targetReps) || ex.targetReps;
-      const sets = parseInt(prompt("Edit working sets:", ex.workingSets)) || ex.workingSets;
-
-      ex.name = name.trim();
-      ex.targetReps = targetReps;
-      ex.workingSets = sets;
-      saveLocalState();
+    function handleLogout() {
+      localStorage.removeItem("fitlog_pin");
+      state = { pin: "", user: "", workouts: [], nutrition: [], routines: {} };
+      document.getElementById("app-screen").style.display = "none";
+      document.getElementById("auth-screen").style.display = "block";
+      document.getElementById("pin-input").value = "";
     }
 
-    function removeExerciseFromRoutine(index) {
-      if (confirm(`Remove this exercise from ${activeRoutineDay}?`)) {
-        state.routines[activeRoutineDay].splice(index, 1);
-        saveLocalState();
-      }
-    }
+    function renderRoutines() {
+      const container = document.getElementById("routine-container");
+      container.innerHTML = "<h3>Your Workout Routines</h3>";
 
-    function renderChart() {
-      const ctx = document.getElementById('volumeChart');
-      if (!ctx) return;
-
-      const datesSet = new Set();
-      const exercisesSet = new Set();
-      const volumeMap = {};
-
-      state.workouts.forEach(w => {
-        datesSet.add(w.date);
-        exercisesSet.add(w.exercise);
-        if (!volumeMap[w.exercise]) volumeMap[w.exercise] = {};
-        const vol = (w.weight || 0) * (w.reps || 0);
-        volumeMap[w.exercise][w.date] = (volumeMap[w.exercise][w.date] || 0) + vol;
-      });
-
-      const sortedDates = Array.from(datesSet).sort();
-      const exercises = Array.from(exercisesSet);
-
-      const datasets = exercises.map((ex, idx) => {
-        const color = LINE_COLORS[idx % LINE_COLORS.length];
-        return {
-          label: ex,
-          data: sortedDates.map(d => volumeMap[ex][d] ? Math.round(volumeMap[ex][d] * 10) / 10 : null),
-          borderColor: color,
-          backgroundColor: color,
-          borderWidth: 2,
-          tension: 0.25,
-          spanGaps: true,
-          pointRadius: 4
-        };
-      });
-
-      if (volumeChartInstance) {
-        volumeChartInstance.destroy();
-      }
-
-      volumeChartInstance = new Chart(ctx, {
-        type: 'line',
-        data: { labels: sortedDates, datasets: datasets },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          interaction: { mode: 'nearest', intersect: false },
-          plugins: {
-            legend: {
-              position: 'bottom',
-              labels: { color: '#334155', boxWidth: 12, font: { size: 11 } }
-            }
-          },
-          scales: {
-            x: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { color: '#e2e8f0' } },
-            y: {
-              title: { display: true, text: 'Total Volume (kg)', color: '#64748b' },
-              ticks: { color: '#64748b', font: { size: 10 } },
-              grid: { color: '#e2e8f0' }
-            }
-          }
-        }
-      });
-    }
-
-    function addFood() {
-      const food = document.getElementById('foodName').value.trim();
-      const cal = parseFloat(document.getElementById('foodCal').value) || 0;
-      const pro = parseFloat(document.getElementById('foodPro').value) || 0;
-      const carb = parseFloat(document.getElementById('foodCarb').value) || 0;
-      const fat = parseFloat(document.getElementById('foodFat').value) || 0;
-
-      if (!food || cal <= 0) {
-        alert('Please enter a food name and calories.');
-        return;
-      }
-
-      state.nutrition.unshift({
-        id: Date.now(),
-        date: getTodayStr(),
-        food, cal, pro, carb, fat
-      });
-
-      document.getElementById('foodName').value = '';
-      document.getElementById('foodCal').value = '';
-      document.getElementById('foodPro').value = '';
-      document.getElementById('foodCarb').value = '';
-      document.getElementById('foodFat').value = '';
-      saveLocalState();
-    }
-
-    function deleteFood(id) {
-      state.nutrition = state.nutrition.filter(f => f.id !== id);
-      saveLocalState();
-    }
-
-    function editGoals() {
-      const cal = prompt('Daily Calorie Goal:', state.goals.cal);
-      const pro = prompt('Daily Protein Goal (g):', state.goals.pro);
-      const carb = prompt('Daily Carbs Goal (g):', state.goals.carb);
-      const fat = prompt('Daily Fat Goal (g):', state.goals.fat);
-      if (cal && pro && carb && fat) {
-        state.goals = { cal: Number(cal), pro: Number(pro), carb: Number(carb), fat: Number(fat) };
-        saveLocalState();
-      }
-    }
-
-    function renderRoutineSelector() {
-      const selectorEl = document.getElementById('routineSelector');
-      const keys = Object.keys(state.routines);
-      if (!keys.includes(activeRoutineDay) && keys.length > 0) {
-        activeRoutineDay = keys[0];
-      }
-
-      selectorEl.innerHTML = keys.map(day => `
-        <button class="routine-btn ${day === activeRoutineDay ? 'active' : ''}" onclick="selectRoutine('${day}')">${day}</button>
-      `).join('');
-    }
-
-    function renderRoutine() {
-      renderRoutineSelector();
-      const container = document.getElementById('routineContainer');
-      const exercises = state.routines[activeRoutineDay] || [];
-
-      if (exercises.length === 0) {
-        container.innerHTML = '<div class="empty-state">No exercises in this routine yet. Tap "+ Add Exercise" above.</div>';
-        return;
-      }
-
-      container.innerHTML = exercises.map((ex, idx) => {
-        let setsHTML = '';
-        for (let s = 1; s <= ex.workingSets; s++) {
-          const lastSet = getLastSetData(ex.name, s);
-          const weightPlaceholder = lastSet ? `${lastSet.weight}kg` : 'kg';
-          const repsPlaceholder = lastSet ? `${lastSet.reps}r` : 'reps';
-
-          setsHTML += `
-            <div class="set-row">
-              <span class="set-label">Set ${s}</span>
-              <input type="number" step="0.5" id="w_${CSS.escape(ex.name)}_s${s}" placeholder="${weightPlaceholder}" inputmode="decimal" />
-              <input type="number" id="r_${CSS.escape(ex.name)}_s${s}" placeholder="${repsPlaceholder}" inputmode="numeric" />
-              <button class="btn-small" style="background:var(--primary); color:#ffffff; border:none;" onclick="saveSingleSet('${ex.name.replace(/'/g, "\\'")}', ${s})">✓</button>
-            </div>
-          `;
-        }
-
-        return `
-          <div class="exercise-card">
-            <div class="exercise-header">
-              <div>
-                <div class="exercise-title">${idx + 1}. ${ex.name}</div>
-                <div class="exercise-meta">Target: ${ex.workingSets} sets × ${ex.targetReps} reps • Rest: ${ex.rest}s</div>
-              </div>
-              <div class="exercise-tools">
-                <button onclick="editExercise(${idx})" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.85rem;" title="Edit exercise">✏️</button>
-                <button onclick="removeExerciseFromRoutine(${idx})" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.9rem;" title="Remove exercise">✕</button>
-              </div>
-            </div>
-            ${setsHTML}
+      const routineKeys = Object.keys(state.routines);
+      if (routineKeys.length === 0) {
+        container.innerHTML += `
+          <div style="text-align: center; padding: 30px; color: #666; background: #fafafa; border-radius: 6px;">
+            <p>No workout routines set up yet.</p>
+            <p>Tap below to add your first routine day!</p>
           </div>
         `;
-      }).join('');
-    }
-
-    function saveSingleSet(exerciseName, setNum) {
-      const weight = parseFloat(document.getElementById(`w_${exerciseName}_s${setNum}`).value);
-      const reps = parseInt(document.getElementById(`r_${exerciseName}_s${setNum}`).value);
-
-      if (isNaN(weight) || isNaN(reps)) {
-        alert('Please enter both weight and reps for this set.');
-        return;
-      }
-
-      state.workouts.unshift({
-        id: Date.now() + Math.random(),
-        date: getTodayStr(),
-        exercise: exerciseName,
-        setNum: setNum,
-        weight,
-        reps
-      });
-
-      saveLocalState();
-    }
-
-    function renderAll() {
-      renderRoutine();
-      renderChart();
-
-      const today = getTodayStr();
-      const todayWorkouts = state.workouts.filter(w => w.date === today);
-      const workoutListEl = document.getElementById('workoutList');
-      if (todayWorkouts.length === 0) {
-        workoutListEl.innerHTML = '<div class="empty-state">No sets logged today yet.</div>';
       } else {
-        workoutListEl.innerHTML = todayWorkouts.map(w => `
-          <div class="log-item">
-            <div>
-              <div style="font-weight:600; font-size:0.9rem;">${w.exercise} (Set ${w.setNum})</div>
-              <div style="font-size:0.8rem; color:var(--text-muted);">${w.weight} kg × ${w.reps} reps</div>
-            </div>
-            <button class="delete-btn" onclick="deleteWorkout(${w.id})">✕</button>
-          </div>
-        `).join('');
-      }
-
-      const todayFood = state.nutrition.filter(f => f.date === today);
-      const totals = todayFood.reduce((acc, item) => ({
-        cal: acc.cal + item.cal,
-        pro: acc.pro + item.pro,
-        carb: acc.carb + item.carb,
-        fat: acc.fat + item.fat
-      }), { cal: 0, pro: 0, carb: 0, fat: 0 });
-
-      document.getElementById('sumCal').textContent = Math.round(totals.cal);
-      document.getElementById('sumPro').textContent = Math.round(totals.pro) + 'g';
-      document.getElementById('sumCarb').textContent = Math.round(totals.carb) + 'g';
-      document.getElementById('sumFat').textContent = Math.round(totals.fat) + 'g';
-
-      document.getElementById('goalCal').textContent = state.goals.cal;
-      document.getElementById('goalPro').textContent = state.goals.pro;
-      document.getElementById('goalCarb').textContent = state.goals.carb;
-      document.getElementById('goalFat').textContent = state.goals.fat;
-
-      const pct = Math.min(100, (totals.cal / state.goals.cal) * 100);
-      document.getElementById('calProgress').style.width = pct + '%';
-
-      const foodListEl = document.getElementById('foodList');
-      if (todayFood.length === 0) {
-        foodListEl.innerHTML = '<div class="empty-state">No food logged today yet.</div>';
-      } else {
-        foodListEl.innerHTML = todayFood.map(f => `
-          <div class="log-item">
-            <div>
-              <div style="font-weight:600; font-size:0.9rem;">${f.food}</div>
-              <div style="font-size:0.8rem; color:var(--text-muted);">${f.cal} kcal • ${f.pro}g P • ${f.carb}g C • ${f.fat}g F</div>
-            </div>
-            <button class="delete-btn" onclick="deleteFood(${f.id})">✕</button>
-          </div>
-        `).join('');
+        routineKeys.forEach(day => {
+          container.innerHTML += `<h4>${day}</h4><ul>` + 
+            state.routines[day].map(ex => `<li>${ex.name} (${ex.workingSets} sets)</li>`).join("") + 
+            `</ul>`;
+        });
       }
     }
+
+    // Auto-login on page load if PIN is stored
+    window.onload = () => {
+      if (state.pin) {
+        document.getElementById("pin-input").value = state.pin;
+        handleLogin();
+      }
+    };
   </script>
 </body>
 </html>
