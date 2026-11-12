@@ -542,14 +542,15 @@
   <script>
     const WORKER_URL = "https://fitlog-api.gaia-olcese.workers.dev";
 
-    const DEFAULT_ROUTINES = {
+    // Gaia's routine template with Glute Drive updated to Barebell Hip Thrusts
+    const GAIA_ROUTINES = {
       "Monday": [
         { name: "Machine Chest Press", workingSets: 3, targetReps: "8-12", rest: 75 },
         { name: "Lat Pulldown", workingSets: 3, targetReps: "8-12", rest: 75 },
         { name: "Chest-Supported Machine Row", workingSets: 3, targetReps: "8-12", rest: 75 },
         { name: "Machine Lateral Raise", workingSets: 3, targetReps: "12-15", rest: 45 },
         { name: "Cable Rope Triceps Pressdown", workingSets: 3, targetReps: "10-15", rest: 45 },
-        { name: "Glute Drive / Hip Thrust Machine", workingSets: 3, targetReps: "10-12", rest: 75 },
+        { name: "Barebell Hip Thrusts", workingSets: 3, targetReps: "10-12", rest: 75 },
         { name: "Seated Hip Abduction Machine", workingSets: 3, targetReps: "15-20", rest: 45 }
       ],
       "Friday": [
@@ -558,7 +559,7 @@
         { name: "Machine Shoulder Press", workingSets: 3, targetReps: "8-12", rest: 75 },
         { name: "Reverse Pec Deck", workingSets: 3, targetReps: "12-15", rest: 45 },
         { name: "Machine Preacher Curl", workingSets: 3, targetReps: "10-15", rest: 45 },
-        { name: "Glute Drive / Hip Thrust Machine", workingSets: 3, targetReps: "10-12", rest: 75 },
+        { name: "Barebell Hip Thrusts", workingSets: 3, targetReps: "10-12", rest: 75 },
         { name: "Seated Hip Abduction Machine", workingSets: 3, targetReps: "15-20", rest: 45 }
       ]
     };
@@ -575,15 +576,11 @@
       workouts: [],
       nutrition: [],
       goals: DEFAULT_GOALS,
-      routines: DEFAULT_ROUTINES
+      routines: null
     };
 
-    if (!state.routines) {
-      state.routines = DEFAULT_ROUTINES;
-    }
-
-    let routineKeys = Object.keys(state.routines);
-    let activeRoutineDay = routineKeys.length > 0 ? routineKeys[0] : "Monday";
+    let routineKeys = [];
+    let activeRoutineDay = "Monday";
     let volumeChartInstance = null;
 
     window.addEventListener('DOMContentLoaded', () => {
@@ -592,7 +589,6 @@
       } else {
         syncWithCloud();
       }
-      renderAll();
     });
 
     async function handleLogin() {
@@ -649,11 +645,26 @@
           state.nutrition = cloudData.nutrition || [];
         }
 
+        // Assign user-specific routines: Gaia gets her templates, other users (Adam) start fresh ({})
+        if (!state.routines || Object.keys(state.routines).length === 0) {
+          state.routines = (userPin === 'gaia1234') ? GAIA_ROUTINES : {};
+        }
+
+        routineKeys = Object.keys(state.routines);
+        if (!routineKeys.includes(activeRoutineDay) && routineKeys.length > 0) {
+          activeRoutineDay = routineKeys[0];
+        }
+
         saveLocalState();
         if (btn) btn.textContent = '☁️ Synced';
         setTimeout(() => { if (btn) btn.textContent = '☁️ Sync'; }, 2000);
       } catch (err) {
+        if (!state.routines || Object.keys(state.routines).length === 0) {
+          state.routines = (userPin === 'gaia1234') ? GAIA_ROUTINES : {};
+        }
+        routineKeys = Object.keys(state.routines);
         if (btn) btn.textContent = '⚠️ Offline';
+        renderAll();
       }
     }
 
@@ -902,6 +913,11 @@
         activeRoutineDay = keys[0];
       }
 
+      if (keys.length === 0) {
+        selectorEl.innerHTML = `<span style="font-size:0.8rem; color:var(--text-muted);">No routines defined. Tap "+ Add New Day" below.</span>`;
+        return;
+      }
+
       selectorEl.innerHTML = keys.map(day => `
         <button class="routine-btn ${day === activeRoutineDay ? 'active' : ''}" onclick="selectRoutine('${day}')">${day}</button>
       `).join('');
@@ -911,6 +927,11 @@
       renderRoutineSelector();
       const container = document.getElementById('routineContainer');
       const exercises = state.routines[activeRoutineDay] || [];
+
+      if (Object.keys(state.routines).length === 0) {
+        container.innerHTML = '<div class="empty-state">No workout routines yet. Tap "+ Add New Day" above to create your first routine!</div>';
+        return;
+      }
 
       if (exercises.length === 0) {
         container.innerHTML = '<div class="empty-state">No exercises in this routine yet. Tap "+ Add Exercise" above.</div>';
@@ -974,6 +995,7 @@
     }
 
     function renderAll() {
+      if (!state.routines) state.routines = {};
       renderRoutine();
       renderChart();
 
