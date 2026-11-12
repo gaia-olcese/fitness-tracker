@@ -873,7 +873,7 @@
       }
       const aiNavBtn = document.getElementById('aiNavBtn');
       if (aiNavBtn) {
-        aiNavBtn.style.display = (currentUser === 'gaia') ? 'flex' : 'none';
+        aiNavBtn.style.display = (currentUser && currentUser.toLowerCase() === 'gaia') ? 'flex' : 'none';
       }
     }
 
