@@ -596,6 +596,16 @@
           <canvas id="volumeChart"></canvas>
         </div>
       </div>
+
+      <div class="card">
+        <h2>Max Weight Progression (kg)</h2>
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">
+          Heaviest single set weight lifted per session.
+        </p>
+        <div class="chart-wrapper">
+          <canvas id="maxWeightChart"></canvas>
+        </div>
+      </div>
     </div>
 
     <!-- Nutrition Tab -->
@@ -794,6 +804,7 @@
     let routineKeys = Object.keys(state.routines);
     let activeRoutineDay = routineKeys.length > 0 ? routineKeys[0] : "";
     let volumeChartInstance = null;
+    let maxWeightChartInstance = null;
     let pendingAvatarData = "";
 
     function getUserProfile() {
@@ -1317,65 +1328,125 @@
     }
 
     function renderChart() {
-      const ctx = document.getElementById('volumeChart');
-      if (!ctx) return;
+      // --- 1. VOLUME CHART ---
+      const volCtx = document.getElementById('volumeChart');
+      if (volCtx) {
+        const datesSet = new Set();
+        const exercisesSet = new Set();
+        const volumeMap = {};
 
-      const datesSet = new Set();
-      const exercisesSet = new Set();
-      const volumeMap = {};
+        state.workouts.forEach(w => {
+          datesSet.add(w.date);
+          exercisesSet.add(w.exercise);
+          if (!volumeMap[w.exercise]) volumeMap[w.exercise] = {};
+          const vol = (w.weight || 0) * (w.reps || 0);
+          volumeMap[w.exercise][w.date] = (volumeMap[w.exercise][w.date] || 0) + vol;
+        });
 
-      state.workouts.forEach(w => {
-        datesSet.add(w.date);
-        exercisesSet.add(w.exercise);
-        if (!volumeMap[w.exercise]) volumeMap[w.exercise] = {};
-        const vol = (w.weight || 0) * (w.reps || 0);
-        volumeMap[w.exercise][w.date] = (volumeMap[w.exercise][w.date] || 0) + vol;
-      });
+        const sortedDates = Array.from(datesSet).sort();
+        const exercises = Array.from(exercisesSet);
 
-      const sortedDates = Array.from(datesSet).sort();
-      const exercises = Array.from(exercisesSet);
+        const volDatasets = exercises.map((ex, idx) => {
+          const color = LINE_COLORS[idx % LINE_COLORS.length];
+          return {
+            label: ex,
+            data: sortedDates.map(d => volumeMap[ex][d] ? Math.round(volumeMap[ex][d] * 10) / 10 : null),
+            borderColor: color,
+            backgroundColor: color,
+            borderWidth: 2,
+            tension: 0.25,
+            spanGaps: true,
+            pointRadius: 4
+          };
+        });
 
-      const datasets = exercises.map((ex, idx) => {
-        const color = LINE_COLORS[idx % LINE_COLORS.length];
-        return {
-          label: ex,
-          data: sortedDates.map(d => volumeMap[ex][d] ? Math.round(volumeMap[ex][d] * 10) / 10 : null),
-          borderColor: color,
-          backgroundColor: color,
-          borderWidth: 2,
-          tension: 0.25,
-          spanGaps: true,
-          pointRadius: 4
-        };
-      });
+        if (volumeChartInstance) volumeChartInstance.destroy();
 
-      if (volumeChartInstance) {
-        volumeChartInstance.destroy();
-      }
-
-      volumeChartInstance = new Chart(ctx, {
-        type: 'line',
-        data: { labels: sortedDates, datasets: datasets },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          interaction: { mode: 'nearest', intersect: false },
-          plugins: {
-            legend: {
-              position: 'bottom',
-              labels: { color: '#334155', boxWidth: 12, font: { size: 11 } }
-            }
-          },
-          scales: {
-            x: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { color: '#e2e8f0' } },
-            y: {
-              title: { display: true, text: 'Total Volume (kg)', color: '#64748b' },
-              ticks: { color: '#64748b', font: { size: 10 } },
-              grid: { color: '#e2e8f0' }
+        volumeChartInstance = new Chart(volCtx, {
+          type: 'line',
+          data: { labels: sortedDates, datasets: volDatasets },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'nearest', intersect: false },
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: { color: '#334155', boxWidth: 12, font: { size: 11 } }
+              }
+            },
+            scales: {
+              x: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { color: '#e2e8f0' } },
+              y: {
+                title: { display: true, text: 'Total Volume (kg)', color: '#64748b' },
+                ticks: { color: '#64748b', font: { size: 10 } },
+                grid: { color: '#e2e8f0' }
+              }
             }
           }
-        }
-      });
+        });
+      }
+
+      // --- 2. MAX WEIGHT CHART ---
+      const maxCtx = document.getElementById('maxWeightChart');
+      if (maxCtx) {
+        const datesSet = new Set();
+        const exercisesSet = new Set();
+        const maxWeightMap = {};
+
+        state.workouts.forEach(w => {
+          datesSet.add(w.date);
+          exercisesSet.add(w.exercise);
+          if (!maxWeightMap[w.exercise]) maxWeightMap[w.exercise] = {};
+          const currentMax = maxWeightMap[w.exercise][w.date] || 0;
+          if ((w.weight || 0) > currentMax) {
+            maxWeightMap[w.exercise][w.date] = w.weight;
+          }
+        });
+
+        const sortedDates = Array.from(datesSet).sort();
+        const exercises = Array.from(exercisesSet);
+
+        const maxDatasets = exercises.map((ex, idx) => {
+          const color = LINE_COLORS[idx % LINE_COLORS.length];
+          return {
+            label: ex,
+            data: sortedDates.map(d => maxWeightMap[ex][d] !== undefined ? maxWeightMap[ex][d] : null),
+            borderColor: color,
+            backgroundColor: color,
+            borderWidth: 2,
+            tension: 0.25,
+            spanGaps: true,
+            pointRadius: 4
+          };
+        });
+
+        if (maxWeightChartInstance) maxWeightChartInstance.destroy();
+
+        maxWeightChartInstance = new Chart(maxCtx, {
+          type: 'line',
+          data: { labels: sortedDates, datasets: maxDatasets },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'nearest', intersect: false },
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: { color: '#334155', boxWidth: 12, font: { size: 11 } }
+              }
+            },
+            scales: {
+              x: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { color: '#e2e8f0' } },
+              y: {
+                title: { display: true, text: 'Max Weight (kg)', color: '#64748b' },
+                ticks: { color: '#64748b', font: { size: 10 } },
+                grid: { color: '#e2e8f0' }
+              }
+            }
+          }
+        });
+      }
     }
 
     function addFood() {
