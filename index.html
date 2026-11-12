@@ -58,9 +58,10 @@
       color: var(--primary);
     }
 
-    .backup-btns {
+    .header-actions {
       display: flex;
       gap: 8px;
+      align-items: center;
     }
 
     .btn-small {
@@ -187,14 +188,12 @@
       border-color: var(--primary);
     }
 
-    /* Chart Container */
     .chart-wrapper {
       position: relative;
       height: 360px;
       width: 100%;
     }
 
-    /* Macro Summary */
     .macro-summary {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -292,6 +291,39 @@
       cursor: pointer;
     }
 
+    /* Login Modal Overlay */
+    #loginModal {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(15, 23, 42, 0.95);
+      z-index: 100;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .login-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 24px;
+      border-radius: var(--radius);
+      width: 100%;
+      max-width: 360px;
+      text-align: center;
+    }
+
+    .login-card h2 {
+      margin-bottom: 8px;
+      font-size: 1.25rem;
+    }
+
+    .login-card p {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      margin-bottom: 16px;
+    }
+
     /* Bottom Navigation */
     nav {
       position: fixed;
@@ -337,12 +369,23 @@
 </head>
 <body>
 
+  <!-- LOGIN MODAL -->
+  <div id="loginModal" style="display: none;">
+    <div class="login-card">
+      <h2>Welcome to Fit<span>Log</span></h2>
+      <p>Enter your secret PIN to access your profile.</p>
+      <div class="form-group">
+        <input type="password" id="pinInput" placeholder="Enter 4-digit PIN" inputmode="numeric" style="font-size: 1.1rem; letter-spacing: 2px;" />
+      </div>
+      <button class="btn-primary" onclick="handleLogin()">Login / Sync</button>
+    </div>
+  </div>
+
   <header>
     <h1>Fit<span>Log</span></h1>
-    <div class="backup-btns">
-      <button class="btn-small" onclick="exportData()">Export JSON</button>
-      <button class="btn-small" onclick="document.getElementById('importFile').click()">Import</button>
-      <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)" />
+    <div class="header-actions">
+      <button class="btn-small" onclick="syncWithCloud()" id="syncBtn">☁️ Sync</button>
+      <button class="btn-small" onclick="logout()">Logout</button>
     </div>
   </header>
 
@@ -370,7 +413,7 @@
       <div class="card">
         <h2>Volume Progression (kg)</h2>
         <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">
-          Total volume (Weight × Reps) per session. Tap an exercise in the legend to toggle its line.
+          Total volume (Weight × Reps) per session. Tap legend items to toggle lines.
         </p>
         <div class="chart-wrapper">
           <canvas id="volumeChart"></canvas>
@@ -446,7 +489,7 @@
       <div class="card">
         <h2>AI Voice & Chat Logger</h2>
         <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 14px;">
-          Coming next! Once we connect your Cloudflare Worker & Gemini free API key, you'll be able to tap the mic and log meals or workouts by voice.
+          Coming next! Once we connect your Gemini free API key, you'll be able to tap the mic and log meals or workouts by voice.
         </p>
       </div>
     </div>
@@ -473,6 +516,8 @@
   </nav>
 
   <script>
+    const WORKER_URL = "https://fitlog-api.gaia-olcese.workers.dev";
+
     const ROUTINES = {
       Monday: [
         { name: "Machine Chest Press", workingSets: 3, targetReps: "8-12", rest: 75 },
@@ -500,6 +545,8 @@
     ];
 
     const DEFAULT_GOALS = { cal: 2000, pro: 130, carb: 220, fat: 65 };
+    
+    let userPin = localStorage.getItem('fitlog_pin');
     let state = JSON.parse(localStorage.getItem('fitlog_data')) || {
       workouts: [],
       nutrition: [],
@@ -509,9 +556,105 @@
     let activeRoutineDay = 'Monday';
     let volumeChartInstance = null;
 
-    function saveState() {
+    // Check auth on load
+    window.addEventListener('DOMContentLoaded', () => {
+      if (!userPin) {
+        document.getElementById('loginModal').style.display = 'flex';
+      } else {
+        syncWithCloud();
+      }
+      renderAll();
+    });
+
+    async function handleLogin() {
+      const pin = document.getElementById('pinInput').value.trim();
+      if (!pin) return;
+      
+      userPin = pin;
+      localStorage.setItem('fitlog_pin', userPin);
+      document.getElementById('loginModal').style.display = 'none';
+      await syncWithCloud();
+    }
+
+    function logout() {
+      localStorage.removeItem('fitlog_pin');
+      localStorage.removeItem('fitlog_data');
+      userPin = null;
+      document.getElementById('pinInput').value = '';
+      document.getElementById('loginModal').style.display = 'flex';
+    }
+
+    async function syncWithCloud() {
+      if (!userPin) return;
+      const btn = document.getElementById('syncBtn');
+      if (btn) btn.textContent = '⏳ Syncing...';
+
+      try {
+        const response = await fetch(`${WORKER_URL}/api/data`, {
+          method: 'GET',
+          headers: { "X-Pin": userPin }
+        });
+
+        if (!response.ok) {
+          if (response.status === 401) {
+            alert('Invalid PIN. Please log in again.');
+            logout();
+            return;
+          }
+          throw new Error('Cloud fetch failed');
+        }
+
+        const cloudData = await response.json();
+        
+        // If cloud is empty and this is Gaia's PIN, auto-seed with Weeks 1-5 JSON if available
+        if (cloudData.workouts.length === 0 && userPin === 'gaia1234') {
+          try {
+            const seedRes = await fetch('fitlog_weeks1_5.json');
+            if (seedRes.ok) {
+              const seedData = await seedRes.json();
+              state.workouts = seedData.workouts;
+              await pushToCloud();
+            }
+          } catch (e) {
+            // Seed file optional
+          }
+        } else {
+          state.workouts = cloudData.workouts || [];
+          state.nutrition = cloudData.nutrition || [];
+        }
+
+        saveLocalState();
+        if (btn) btn.textContent = '☁️ Synced';
+        setTimeout(() => { if (btn) btn.textContent = '☁️ Sync'; }, 2000);
+      } catch (err) {
+        if (btn) btn.textContent = '⚠️ Offline';
+        console.warn('Working offline with local storage data:', err);
+      }
+    }
+
+    async function pushToCloud() {
+      if (!userPin) return;
+      try {
+        await fetch(`${WORKER_URL}/api/sync`, {
+          method: 'POST',
+          headers: {
+            "Content-Type": "application/json",
+            "X-Pin": userPin
+          },
+          body: JSON.stringify({
+            workouts: state.workouts,
+            nutrition: state.nutrition
+          })
+        });
+      } catch (err) {
+        console.error('Failed to sync to cloud:', err);
+      }
+    }
+
+    function saveLocalState() {
       localStorage.setItem('fitlog_data', JSON.stringify(state));
       renderAll();
+      pushToCloud();
     }
 
     function getTodayStr() {
@@ -537,7 +680,7 @@
 
     function deleteWorkout(id) {
       state.workouts = state.workouts.filter(w => w.id !== id);
-      saveState();
+      saveLocalState();
     }
 
     function getLastSetData(exerciseName, setNum) {
@@ -546,15 +689,13 @@
       return match ? { weight: match.weight, reps: match.reps } : null;
     }
 
-    // Chart Rendering
     function renderChart() {
       const ctx = document.getElementById('volumeChart');
       if (!ctx) return;
 
-      // Group volume (weight * reps) by date and exercise
       const datesSet = new Set();
       const exercisesSet = new Set();
-      const volumeMap = {}; // { exercise: { date: totalVolume } }
+      const volumeMap = {};
 
       state.workouts.forEach(w => {
         datesSet.add(w.date);
@@ -587,32 +728,19 @@
 
       volumeChartInstance = new Chart(ctx, {
         type: 'line',
-        data: {
-          labels: sortedDates,
-          datasets: datasets
-        },
+        data: { labels: sortedDates, datasets: datasets },
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          interaction: {
-            mode: 'nearest',
-            intersect: false
-          },
+          interaction: { mode: 'nearest', intersect: false },
           plugins: {
             legend: {
               position: 'bottom',
-              labels: {
-                color: '#cbd5e1',
-                boxWidth: 12,
-                font: { size: 11 }
-              }
+              labels: { color: '#cbd5e1', boxWidth: 12, font: { size: 11 } }
             }
           },
           scales: {
-            x: {
-              ticks: { color: '#94a3b8', font: { size: 10 } },
-              grid: { color: '#334155' }
-            },
+            x: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { color: '#334155' } },
             y: {
               title: { display: true, text: 'Total Volume (kg)', color: '#94a3b8' },
               ticks: { color: '#94a3b8', font: { size: 10 } },
@@ -623,7 +751,6 @@
       });
     }
 
-    // Nutrition Logic
     function addFood() {
       const food = document.getElementById('foodName').value.trim();
       const cal = parseFloat(document.getElementById('foodCal').value) || 0;
@@ -639,11 +766,7 @@
       state.nutrition.unshift({
         id: Date.now(),
         date: getTodayStr(),
-        food,
-        cal,
-        pro,
-        carb,
-        fat
+        food, cal, pro, carb, fat
       });
 
       document.getElementById('foodName').value = '';
@@ -651,12 +774,12 @@
       document.getElementById('foodPro').value = '';
       document.getElementById('foodCarb').value = '';
       document.getElementById('foodFat').value = '';
-      saveState();
+      saveLocalState();
     }
 
     function deleteFood(id) {
       state.nutrition = state.nutrition.filter(f => f.id !== id);
-      saveState();
+      saveLocalState();
     }
 
     function editGoals() {
@@ -666,11 +789,10 @@
       const fat = prompt('Daily Fat Goal (g):', state.goals.fat);
       if (cal && pro && carb && fat) {
         state.goals = { cal: Number(cal), pro: Number(pro), carb: Number(carb), fat: Number(fat) };
-        saveState();
+        saveLocalState();
       }
     }
 
-    // Render UI
     function renderRoutine() {
       const container = document.getElementById('routineContainer');
       const exercises = ROUTINES[activeRoutineDay];
@@ -722,14 +844,13 @@
         reps
       });
 
-      saveState();
+      saveLocalState();
     }
 
     function renderAll() {
       renderRoutine();
       renderChart();
 
-      // Today's Workouts List
       const today = getTodayStr();
       const todayWorkouts = state.workouts.filter(w => w.date === today);
       const workoutListEl = document.getElementById('workoutList');
@@ -747,7 +868,6 @@
         `).join('');
       }
 
-      // Today's Nutrition
       const todayFood = state.nutrition.filter(f => f.date === today);
       const totals = todayFood.reduce((acc, item) => ({
         cal: acc.cal + item.cal,
@@ -763,7 +883,7 @@
 
       document.getElementById('goalCal').textContent = state.goals.cal;
       document.getElementById('goalPro').textContent = state.goals.pro;
-      document.getElementById('goalCarb').textContent = state.goals.carb || state.goals.carb;
+      document.getElementById('goalCarb').textContent = state.goals.carb;
       document.getElementById('goalFat').textContent = state.goals.fat;
 
       const pct = Math.min(100, (totals.cal / state.goals.cal) * 100);
@@ -784,33 +904,6 @@
         `).join('');
       }
     }
-
-    function exportData() {
-      const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `fitlog-backup-${getTodayStr()}.json`;
-      a.click();
-    }
-
-    function importData(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = e => {
-        try {
-          state = JSON.parse(e.target.result);
-          saveState();
-          alert('Backup restored!');
-        } catch (err) {
-          alert('Invalid JSON file.');
-        }
-      };
-      reader.readAsText(file);
-    }
-
-    renderAll();
   </script>
 </body>
 </html>
