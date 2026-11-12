@@ -234,7 +234,7 @@
 
     .set-row {
       display: grid;
-      grid-template-columns: 50px 1fr 1fr auto;
+      grid-template-columns: 50px 1fr 1fr;
       gap: 6px;
       align-items: center;
       margin-bottom: 6px;
@@ -1104,6 +1104,55 @@
       }
     }
 
+    async function editUserPrompt(currentUsername, currentDisplayName) {
+      const newUsername = prompt("Enter new username (or keep existing):", currentUsername);
+      if (!newUsername) return;
+      const newPassword = prompt("Enter new password (leave blank to keep current):");
+      const displayName = prompt("Enter new display name:", currentDisplayName);
+
+      try {
+        const response = await fetch(`${WORKER_URL}/api/admin/users`, {
+          method: 'PATCH',
+          headers: {
+            "Content-Type": "application/json",
+            "X-Username": currentUser,
+            "X-Password": currentPassword
+          },
+          body: JSON.stringify({
+            targetUsername: currentUsername,
+            newUsername: newUsername.trim().toLowerCase(),
+            newPassword: newPassword ? newPassword : undefined,
+            displayName: displayName !== null ? displayName.trim() : undefined
+          })
+        });
+
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Failed to update user");
+
+        alert("User updated successfully!");
+
+        if (currentUsername === currentUser) {
+          currentUser = newUsername.trim().toLowerCase();
+          localStorage.setItem('fitlog_user', currentUser);
+          if (newPassword) {
+            currentPassword = newPassword;
+            localStorage.setItem('fitlog_pass', currentPassword);
+          }
+          if (displayName) {
+            const allProfiles = JSON.parse(localStorage.getItem('fitlog_profiles')) || {};
+            if (!allProfiles[currentUser]) allProfiles[currentUser] = {};
+            allProfiles[currentUser].name = displayName.trim();
+            localStorage.setItem('fitlog_profiles', JSON.stringify(allProfiles));
+          }
+          renderProfileBadge();
+        }
+
+        fetchAdminUsers();
+      } catch (err) {
+        alert("Error updating user: " + err.message);
+      }
+    }
+
     async function deleteUserAccount(targetUser) {
       if (!confirm(`Are you sure you want to delete user "${targetUser}" and all their data?`)) return;
 
@@ -1140,7 +1189,10 @@
             <div style="font-weight:600; font-size:0.9rem;">${u.display_name} (${u.username}) ${u.is_admin ? '🛡️ [Admin]' : ''}</div>
             <div style="font-size:0.75rem; color:var(--text-muted);">Created: ${u.created_at || 'N/A'}</div>
           </div>
-          ${u.username !== currentUser ? `<button class="delete-btn" onclick="deleteUserAccount('${u.username}')">✕</button>` : ''}
+          <div style="display: flex; gap: 6px;">
+            <button class="btn-small" onclick="editUserPrompt('${u.username}', '${u.display_name || ''}')">Edit</button>
+            ${u.username !== currentUser ? `<button class="delete-btn" onclick="deleteUserAccount('${u.username}')">✕</button>` : ''}
+          </div>
         </div>
       `).join('');
     }
@@ -1410,9 +1462,8 @@
           setsHTML += `
             <div class="set-row">
               <span class="set-label">Set ${s}</span>
-              <input type="number" step="0.5" id="w_${CSS.escape(ex.name)}_s${s}" placeholder="${weightPlaceholder}" inputmode="decimal" />
-              <input type="number" id="r_${CSS.escape(ex.name)}_s${s}" placeholder="${repsPlaceholder}" inputmode="numeric" />
-              <button class="btn-small" style="background:var(--primary); color:#ffffff; border:none;" onclick="saveSingleSet('${ex.name.replace(/'/g, "\\'")}', ${s})">✓</button>
+              <input type="number" step="0.5" id="w_ex${idx}_s${s}" placeholder="${weightPlaceholder}" inputmode="decimal" />
+              <input type="number" id="r_ex${idx}_s${s}" placeholder="${repsPlaceholder}" inputmode="numeric" />
             </div>
           `;
         }
@@ -1430,28 +1481,42 @@
               </div>
             </div>
             ${setsHTML}
+            <button class="btn-small" style="width:100%; margin-top:8px; background:var(--primary); color:#ffffff; border:none; padding:8px;" onclick="saveExerciseSets('${ex.name.replace(/'/g, "\\'")}', ${idx}, ${ex.workingSets})">✓ Log Exercise</button>
           </div>
         `;
       }).join('');
     }
 
-    function saveSingleSet(exerciseName, setNum) {
-      const weight = parseFloat(document.getElementById(`w_${exerciseName}_s${setNum}`).value);
-      const reps = parseInt(document.getElementById(`r_${exerciseName}_s${setNum}`).value);
+    function saveExerciseSets(exerciseName, exIndex, totalSets) {
+      let loggedCount = 0;
+      const todayStr = getTodayStr();
 
-      if (isNaN(weight) || isNaN(reps)) {
-        alert('Please enter both weight and reps for this set.');
-        return;
+      for (let s = 1; s <= totalSets; s++) {
+        const weightInput = document.getElementById(`w_ex${exIndex}_s${s}`);
+        const repsInput = document.getElementById(`r_ex${exIndex}_s${s}`);
+        
+        if (weightInput && repsInput && weightInput.value !== '' && repsInput.value !== '') {
+          const weight = parseFloat(weightInput.value);
+          const reps = parseInt(repsInput.value);
+
+          if (!isNaN(weight) && !isNaN(reps)) {
+            state.workouts.unshift({
+              id: 'w_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7) + '_' + s,
+              date: todayStr,
+              exercise: exerciseName,
+              setNum: s,
+              weight,
+              reps
+            });
+            loggedCount++;
+          }
+        }
       }
 
-      state.workouts.unshift({
-        id: 'w_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
-        date: getTodayStr(),
-        exercise: exerciseName,
-        setNum: setNum,
-        weight,
-        reps
-      });
+      if (loggedCount === 0) {
+        alert('Please enter weight and reps for at least one set before logging.');
+        return;
+      }
 
       saveLocalState();
     }
