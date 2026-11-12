@@ -765,11 +765,6 @@
       ]
     };
 
-    const LINE_COLORS = [
-      '#0284c7', '#0d9488', '#d97706', '#db2777', '#7c3aed', '#0891b2',
-      '#e11d48', '#65a30d', '#ca8a04', '#4f46e5', '#0d9488', '#f97316'
-    ];
-
     const DEFAULT_GOALS = { cal: 2000, pro: 130, carb: 220, fat: 65 };
     
     let currentUser = localStorage.getItem('fitlog_user');
@@ -818,7 +813,6 @@
         avatarEl.textContent = (profile.name || "?").charAt(0).toUpperCase();
       }
 
-      // Show/Hide Admin Nav Button
       const adminBtn = document.getElementById('adminNavBtn');
       if (adminBtn) {
         adminBtn.style.display = isAdmin ? 'flex' : 'none';
@@ -1046,373 +1040,76 @@
             "X-Username": currentUser,
             "X-Password": currentPassword
           },
-          body: JSON.stringify({
-            workouts: state.workouts,
-            nutrition: state.nutrition
-          })
+          body: JSON.stringify({ workouts: state.workouts, nutrition: state.nutrition })
         });
       } catch (err) {}
     }
 
-    async function fetchAdminUsers() {
-      if (!isAdmin) return;
-      try {
-        const res = await fetch(`${WORKER_URL}/api/admin/users`, {
-          headers: { "X-Username": currentUser, "X-Password": currentPassword }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          renderAdminUserList(data.users);
-        }
-      } catch (e) {}
-    }
-
-    async function createNewUser() {
-      const newUsername = document.getElementById('newUsername').value.trim().toLowerCase();
-      const newPassword = document.getElementById('newPassword').value.trim();
-      const displayName = document.getElementById('newDisplayName').value.trim();
-
-      if (!newUsername || !newPassword) {
-        alert("Please enter a username and password.");
-        return;
-      }
-
-      try {
-        const res = await fetch(`${WORKER_URL}/api/admin/users`, {
-          method: 'POST',
-          headers: {
-            "Content-Type": "application/json",
-            "X-Username": currentUser,
-            "X-Password": currentPassword
-          },
-          body: JSON.stringify({ newUsername, newPassword, displayName })
-        });
-
-        if (!res.ok) {
-          const errData = await res.json();
-          alert(errData.error || "Failed to create user.");
-          return;
-        }
-
-        document.getElementById('newUsername').value = '';
-        document.getElementById('newPassword').value = '';
-        document.getElementById('newDisplayName').value = '';
-        alert("User created successfully!");
-        fetchAdminUsers();
-      } catch (e) {
-        alert("Error connecting to server.");
-      }
-    }
-
-    async function deleteUserAccount(targetUser) {
-      if (!confirm(`Are you sure you want to delete user "${targetUser}" and all their data?`)) return;
-
-      try {
-        const res = await fetch(`${WORKER_URL}/api/admin/users/${targetUser}`, {
-          method: 'DELETE',
-          headers: { "X-Username": currentUser, "X-Password": currentPassword }
-        });
-
-        if (!res.ok) {
-          const errData = await res.json();
-          alert(errData.error || "Failed to delete user.");
-          return;
-        }
-
-        fetchAdminUsers();
-      } catch (e) {
-        alert("Error connecting to server.");
-      }
-    }
-
-    function renderAdminUserList(users) {
-      const listEl = document.getElementById('adminUserList');
-      if (!listEl) return;
-
-      if (!users || users.length === 0) {
-        listEl.innerHTML = '<div class="empty-state">No users found.</div>';
-        return;
-      }
-
-      listEl.innerHTML = users.map(u => `
-        <div class="log-item">
-          <div>
-            <div style="font-weight:600; font-size:0.9rem;">${u.display_name} (${u.username}) ${u.is_admin ? '🛡️ [Admin]' : ''}</div>
-            <div style="font-size:0.75rem; color:var(--text-muted);">Created: ${u.created_at || 'N/A'}</div>
-          </div>
-          ${u.username !== currentUser ? `<button class="delete-btn" onclick="deleteUserAccount('${u.username}')">✕</button>` : ''}
-        </div>
-      `).join('');
-    }
-
     function saveLocalState() {
-      localStorage.setItem('fitlog_data', JSON.stringify(state));
+      localStorage.setItem('fitlog_data', JSON.stringify({
+        workouts: state.workouts,
+        nutrition: state.nutrition,
+        goals: state.goals,
+        routines: state.routines
+      }));
       renderAll();
       pushToCloud();
-    }
-
-    function getTodayStr() {
-      return new Date().toISOString().split('T')[0];
     }
 
     function switchTab(tabName, btn) {
       document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
       document.querySelectorAll('nav button').forEach(el => el.classList.remove('active'));
-      document.getElementById('tab-' + tabName).classList.add('active');
-      btn.classList.add('active');
-      if (tabName === 'progress') {
-        renderChart();
+      document.getElementById(`tab-${tabName}`).classList.add('active');
+      if (btn) btn.classList.add('active');
+      if (tabName === 'progress') renderVolumeChart();
+      if (tabName === 'admin' && isAdmin) fetchAdminUsers();
+    }
+
+    function renderAll() {
+      routineKeys = Object.keys(state.routines);
+      if (!routineKeys.includes(activeRoutineDay)) {
+        activeRoutineDay = routineKeys.length > 0 ? routineKeys[0] : "";
       }
-      if (tabName === 'admin' && isAdmin) {
-        fetchAdminUsers();
-      }
-    }
-
-    function selectRoutine(day) {
-      activeRoutineDay = day;
-      renderAll();
-    }
-
-    function deleteWorkout(id) {
-      state.workouts = state.workouts.filter(w => w.id !== id);
-      saveLocalState();
-    }
-
-    function getLastSetData(exerciseName, setNum) {
-      const today = getTodayStr();
-      const match = state.workouts.find(w => w.exercise === exerciseName && w.setNum === setNum && w.date !== today);
-      return match ? { weight: match.weight, reps: match.reps } : null;
-    }
-
-    function openAddRoutineModal() {
-      const name = prompt("Enter new workout day name (e.g. Wednesday, Legs, Push):");
-      if (!name) return;
-      const cleanName = name.trim();
-      if (state.routines[cleanName]) {
-        alert("A routine with this name already exists.");
-        return;
-      }
-      state.routines[cleanName] = [];
-      activeRoutineDay = cleanName;
-      saveLocalState();
-    }
-
-    function openRenameRoutineModal() {
-      const newName = prompt(`Rename routine "${activeRoutineDay}" to:`, activeRoutineDay);
-      if (!newName || newName.trim() === activeRoutineDay) return;
-      const cleanName = newName.trim();
-      if (state.routines[cleanName]) {
-        alert("A routine with this name already exists.");
-        return;
-      }
-      state.routines[cleanName] = state.routines[activeRoutineDay];
-      delete state.routines[activeRoutineDay];
-      activeRoutineDay = cleanName;
-      saveLocalState();
-    }
-
-    function deleteCurrentRoutine() {
-      const keys = Object.keys(state.routines);
-      if (keys.length <= 1) {
-        alert("You must keep at least one routine day.");
-        return;
-      }
-      if (confirm(`Delete the entire routine for "${activeRoutineDay}"?`)) {
-        delete state.routines[activeRoutineDay];
-        activeRoutineDay = Object.keys(state.routines)[0];
-        saveLocalState();
-      }
-    }
-
-    function openAddExerciseModal() {
-      const name = prompt(`Enter exercise name for ${activeRoutineDay}:`);
-      if (!name) return;
-      const targetReps = prompt("Enter target rep range (e.g. 8-12):", "8-12") || "8-12";
-      const sets = parseInt(prompt("Enter number of working sets:", "3")) || 3;
-
-      if (!state.routines[activeRoutineDay]) {
-        state.routines[activeRoutineDay] = [];
-      }
-
-      state.routines[activeRoutineDay].push({
-        name: name.trim(),
-        workingSets: sets,
-        targetReps: targetReps,
-        rest: 75
-      });
-
-      saveLocalState();
-    }
-
-    function editExercise(index) {
-      const ex = state.routines[activeRoutineDay][index];
-      const name = prompt("Edit exercise name:", ex.name);
-      if (!name) return;
-      const targetReps = prompt("Edit target rep range:", ex.targetReps) || ex.targetReps;
-      const sets = parseInt(prompt("Edit working sets:", ex.workingSets)) || ex.workingSets;
-
-      ex.name = name.trim();
-      ex.targetReps = targetReps;
-      ex.workingSets = sets;
-      saveLocalState();
-    }
-
-    function removeExerciseFromRoutine(index) {
-      if (confirm(`Remove this exercise from ${activeRoutineDay}?`)) {
-        state.routines[activeRoutineDay].splice(index, 1);
-        saveLocalState();
-      }
-    }
-
-    function renderChart() {
-      const ctx = document.getElementById('volumeChart');
-      if (!ctx) return;
-
-      const datesSet = new Set();
-      const exercisesSet = new Set();
-      const volumeMap = {};
-
-      state.workouts.forEach(w => {
-        datesSet.add(w.date);
-        exercisesSet.add(w.exercise);
-        if (!volumeMap[w.exercise]) volumeMap[w.exercise] = {};
-        const vol = (w.weight || 0) * (w.reps || 0);
-        volumeMap[w.exercise][w.date] = (volumeMap[w.exercise][w.date] || 0) + vol;
-      });
-
-      const sortedDates = Array.from(datesSet).sort();
-      const exercises = Array.from(exercisesSet);
-
-      const datasets = exercises.map((ex, idx) => {
-        const color = LINE_COLORS[idx % LINE_COLORS.length];
-        return {
-          label: ex,
-          data: sortedDates.map(d => volumeMap[ex][d] ? Math.round(volumeMap[ex][d] * 10) / 10 : null),
-          borderColor: color,
-          backgroundColor: color,
-          borderWidth: 2,
-          tension: 0.25,
-          spanGaps: true,
-          pointRadius: 4
-        };
-      });
-
-      if (volumeChartInstance) {
-        volumeChartInstance.destroy();
-      }
-
-      volumeChartInstance = new Chart(ctx, {
-        type: 'line',
-        data: { labels: sortedDates, datasets: datasets },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          interaction: { mode: 'nearest', intersect: false },
-          plugins: {
-            legend: {
-              position: 'bottom',
-              labels: { color: '#334155', boxWidth: 12, font: { size: 11 } }
-            }
-          },
-          scales: {
-            x: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { color: '#e2e8f0' } },
-            y: {
-              title: { display: true, text: 'Total Volume (kg)', color: '#64748b' },
-              ticks: { color: '#64748b', font: { size: 10 } },
-              grid: { color: '#e2e8f0' }
-            }
-          }
-        }
-      });
-    }
-
-    function addFood() {
-      const food = document.getElementById('foodName').value.trim();
-      const cal = parseFloat(document.getElementById('foodCal').value) || 0;
-      const pro = parseFloat(document.getElementById('foodPro').value) || 0;
-      const carb = parseFloat(document.getElementById('foodCarb').value) || 0;
-      const fat = parseFloat(document.getElementById('foodFat').value) || 0;
-
-      if (!food || cal <= 0) {
-        alert('Please enter a food name and calories.');
-        return;
-      }
-
-      state.nutrition.unshift({
-        id: 'n_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
-        date: getTodayStr(),
-        food, cal, pro, carb, fat
-      });
-
-      document.getElementById('foodName').value = '';
-      document.getElementById('foodCal').value = '';
-      document.getElementById('foodPro').value = '';
-      document.getElementById('foodCarb').value = '';
-      document.getElementById('foodFat').value = '';
-      saveLocalState();
-    }
-
-    function deleteFood(id) {
-      state.nutrition = state.nutrition.filter(f => f.id !== id);
-      saveLocalState();
-    }
-
-    function editGoals() {
-      const cal = prompt('Daily Calorie Goal:', state.goals.cal);
-      const pro = prompt('Daily Protein Goal (g):', state.goals.pro);
-      const carb = prompt('Daily Carbs Goal (g):', state.goals.carb);
-      const fat = prompt('Daily Fat Goal (g):', state.goals.fat);
-      if (cal && pro && carb && fat) {
-        state.goals = { cal: Number(cal), pro: Number(pro), carb: Number(carb), fat: Number(fat) };
-        saveLocalState();
-      }
+      renderRoutineSelector();
+      renderRoutineContainer();
+      renderWorkoutList();
+      renderNutrition();
     }
 
     function renderRoutineSelector() {
-      const selectorEl = document.getElementById('routineSelector');
-      const keys = Object.keys(state.routines);
-      if (!keys.includes(activeRoutineDay) && keys.length > 0) {
-        activeRoutineDay = keys[0];
-      }
-
-      if (keys.length === 0) {
-        selectorEl.innerHTML = `<span style="font-size:0.8rem; color:var(--text-muted);">No routines defined. Tap "+ Add New Day" below.</span>`;
+      const container = document.getElementById('routineSelector');
+      if (routineKeys.length === 0) {
+        container.innerHTML = '<span style="font-size:0.8rem; color:var(--text-muted)">No routines. Add a day!</span>';
         return;
       }
-
-      selectorEl.innerHTML = keys.map(day => `
-        <button class="routine-btn ${day === activeRoutineDay ? 'active' : ''}" onclick="selectRoutine('${day}')">${day}</button>
+      container.innerHTML = routineKeys.map(day => `
+        <button class="routine-btn ${day === activeRoutineDay ? 'active' : ''}" onclick="selectRoutineDay('${day}')">${day}</button>
       `).join('');
     }
 
-    function renderRoutine() {
+    function selectRoutineDay(day) {
+      activeRoutineDay = day;
       renderRoutineSelector();
+      renderRoutineContainer();
+    }
+
+    function renderRoutineContainer() {
       const container = document.getElementById('routineContainer');
-      const exercises = state.routines[activeRoutineDay] || [];
-
-      if (Object.keys(state.routines).length === 0) {
-        container.innerHTML = '<div class="empty-state">No workout routines yet. Tap "+ Add New Day" above to create your first routine!</div>';
+      if (!activeRoutineDay || !state.routines[activeRoutineDay]) {
+        container.innerHTML = '<div class="empty-state">No exercises found for this routine.</div>';
         return;
       }
 
-      if (exercises.length === 0) {
-        container.innerHTML = '<div class="empty-state">No exercises in this routine yet. Tap "+ Add Exercise" above.</div>';
-        return;
-      }
-
-      container.innerHTML = exercises.map((ex, idx) => {
-        let setsHTML = '';
+      const exercises = state.routines[activeRoutineDay];
+      container.innerHTML = exercises.map((ex, exIndex) => {
+        let setsHtml = '';
         for (let s = 1; s <= ex.workingSets; s++) {
-          const lastSet = getLastSetData(ex.name, s);
-          const weightPlaceholder = lastSet ? `${lastSet.weight}kg` : 'kg';
-          const repsPlaceholder = lastSet ? `${lastSet.reps}r` : 'reps';
-
-          setsHTML += `
+          setsHtml += `
             <div class="set-row">
               <span class="set-label">Set ${s}</span>
-              <input type="number" step="0.5" id="w_${CSS.escape(ex.name)}_s${s}" placeholder="${weightPlaceholder}" inputmode="decimal" />
-              <input type="number" id="r_${CSS.escape(ex.name)}_s${s}" placeholder="${repsPlaceholder}" inputmode="numeric" />
-              <button class="btn-small" style="background:var(--primary); color:#ffffff; border:none;" onclick="saveSingleSet('${ex.name.replace(/'/g, "\\'")}', ${s})">✓</button>
+              <input type="number" step="0.5" id="w_${exIndex}_${s}_weight" placeholder="kg" inputmode="decimal" />
+              <input type="number" id="w_${exIndex}_${s}_reps" placeholder="reps" inputmode="numeric" />
+              <button class="btn-small" onclick="logSet('${ex.name.replace(/'/g, "\\'")}', ${exIndex}, ${s})">Log</button>
             </div>
           `;
         }
@@ -1421,97 +1118,407 @@
           <div class="exercise-card">
             <div class="exercise-header">
               <div>
-                <div class="exercise-title">${idx + 1}. ${ex.name}</div>
-                <div class="exercise-meta">Target: ${ex.workingSets} sets × ${ex.targetReps} reps • Rest: ${ex.rest}s</div>
+                <div class="exercise-title">${ex.name}</div>
+                <div class="exercise-meta">${ex.workingSets} sets • Target: ${ex.targetReps} reps • ${ex.rest}s rest</div>
               </div>
-              <div class="exercise-tools">
-                <button onclick="editExercise(${idx})" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.85rem;" title="Edit exercise">✏️</button>
-                <button onclick="removeExerciseFromRoutine(${idx})" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.9rem;" title="Remove exercise">✕</button>
-              </div>
+              <button class="delete-btn" onclick="deleteExercise('${activeRoutineDay}', ${exIndex})" title="Remove exercise">×</button>
             </div>
-            ${setsHTML}
+            ${setsHtml}
           </div>
         `;
       }).join('');
     }
 
-    function saveSingleSet(exerciseName, setNum) {
-      const weight = parseFloat(document.getElementById(`w_${exerciseName}_s${setNum}`).value);
-      const reps = parseInt(document.getElementById(`r_${exerciseName}_s${setNum}`).value);
+    function logSet(exerciseName, exIndex, setNum) {
+      const weightInput = document.getElementById(`w_${exIndex}_${setNum}_weight`);
+      const repsInput = document.getElementById(`w_${exIndex}_${setNum}_reps`);
+      
+      const weight = parseFloat(weightInput.value);
+      const reps = parseInt(repsInput.value);
 
       if (isNaN(weight) || isNaN(reps)) {
-        alert('Please enter both weight and reps for this set.');
+        alert("Please enter valid numbers for both weight and reps.");
         return;
       }
 
+      const todayStr = new Date().toISOString().split('T')[0];
       state.workouts.unshift({
-        id: 'w_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
-        date: getTodayStr(),
+        id: Date.now() + Math.random(),
+        date: todayStr,
         exercise: exerciseName,
-        setNum: setNum,
-        weight,
-        reps
+        weight: weight,
+        reps: reps,
+        setNum: setNum
       });
 
+      weightInput.value = '';
+      repsInput.value = '';
       saveLocalState();
     }
 
-    function renderAll() {
-      if (!state.routines) state.routines = {};
-      renderRoutine();
-      renderChart();
+    function renderWorkoutList() {
+      const container = document.getElementById('workoutList');
+      const todayStr = new Date().toISOString().split('T')[0];
+      const todayWorkouts = state.workouts.filter(w => w.date === todayStr);
 
-      const today = getTodayStr();
-      const todayWorkouts = state.workouts.filter(w => w.date === today);
-      const workoutListEl = document.getElementById('workoutList');
       if (todayWorkouts.length === 0) {
-        workoutListEl.innerHTML = '<div class="empty-state">No sets logged today yet.</div>';
-      } else {
-        workoutListEl.innerHTML = todayWorkouts.map(w => `
-          <div class="log-item">
-            <div>
-              <div style="font-weight:600; font-size:0.9rem;">${w.exercise} (Set ${w.setNum})</div>
-              <div style="font-size:0.8rem; color:var(--text-muted);">${w.weight} kg × ${w.reps} reps</div>
-            </div>
-            <button class="delete-btn" onclick="deleteWorkout('${w.id}')">✕</button>
-          </div>
-        `).join('');
+        container.innerHTML = '<div class="empty-state">No sets logged yet today.</div>';
+        return;
       }
 
-      const todayFood = state.nutrition.filter(f => f.date === today);
-      const totals = todayFood.reduce((acc, item) => ({
-        cal: acc.cal + item.cal,
-        pro: acc.pro + item.pro,
-        carb: acc.carb + item.carb,
-        fat: acc.fat + item.fat
-      }), { cal: 0, pro: 0, carb: 0, fat: 0 });
+      container.innerHTML = todayWorkouts.map(w => `
+        <div class="log-item">
+          <div>
+            <strong>${w.exercise}</strong> (Set ${w.setNum})<br>
+            <span style="font-size: 0.8rem; color: var(--text-muted);">${w.weight} kg × ${w.reps} reps</span>
+          </div>
+          <button class="delete-btn" onclick="deleteWorkoutItem('${w.id}')">×</button>
+        </div>
+      `).join('');
+    }
 
-      document.getElementById('sumCal').textContent = Math.round(totals.cal);
-      document.getElementById('sumPro').textContent = Math.round(totals.pro) + 'g';
-      document.getElementById('sumCarb').textContent = Math.round(totals.carb) + 'g';
-      document.getElementById('sumFat').textContent = Math.round(totals.fat) + 'g';
+    function deleteWorkoutItem(id) {
+      state.workouts = state.workouts.filter(w => w.id !== id);
+      saveLocalState();
+    }
+
+    function renderNutrition() {
+      const todayStr = new Date().toISOString().split('T')[0];
+      const todayFood = state.nutrition.filter(n => n.date === todayStr);
+
+      let totalCal = 0, totalPro = 0, totalCarb = 0, totalFat = 0;
+      todayFood.forEach(item => {
+        totalCal += item.cal;
+        totalPro += item.pro;
+        totalCarb += item.carb;
+        totalFat += item.fat;
+      });
+
+      document.getElementById('sumCal').textContent = Math.round(totalCal);
+      document.getElementById('sumPro').textContent = Math.round(totalPro) + 'g';
+      document.getElementById('sumCarb').textContent = Math.round(totalCarb) + 'g';
+      document.getElementById('sumFat').textContent = Math.round(totalFat) + 'g';
 
       document.getElementById('goalCal').textContent = state.goals.cal;
       document.getElementById('goalPro').textContent = state.goals.pro;
       document.getElementById('goalCarb').textContent = state.goals.carb;
       document.getElementById('goalFat').textContent = state.goals.fat;
 
-      const pct = Math.min(100, (totals.cal / state.goals.cal) * 100);
+      const pct = Math.min(100, Math.round((totalCal / state.goals.cal) * 100));
       document.getElementById('calProgress').style.width = pct + '%';
 
-      const foodListEl = document.getElementById('foodList');
+      const container = document.getElementById('foodList');
       if (todayFood.length === 0) {
-        foodListEl.innerHTML = '<div class="empty-state">No food logged today yet.</div>';
-      } else {
-        foodListEl.innerHTML = todayFood.map(f => `
+        container.innerHTML = '<div class="empty-state">No meals logged yet today.</div>';
+        return;
+      }
+
+      container.innerHTML = todayFood.map(f => `
+        <div class="log-item">
+          <div>
+            <strong>${f.food}</strong><br>
+            <span style="font-size: 0.8rem; color: var(--text-muted);">${f.cal} kcal | P: ${f.pro}g, C: ${f.carb}g, F: ${f.fat}g</span>
+          </div>
+          <button class="delete-btn" onclick="deleteFoodItem('${f.id}')">×</button>
+        </div>
+      `).join('');
+    }
+
+    function addFood() {
+      const food = document.getElementById('foodName').value.trim();
+      const cal = parseFloat(document.getElementById('foodCal').value);
+      const pro = parseFloat(document.getElementById('foodPro').value) || 0;
+      const carb = parseFloat(document.getElementById('foodCarb').value) || 0;
+      const fat = parseFloat(document.getElementById('foodFat').value) || 0;
+
+      if (!food || isNaN(cal)) {
+        alert("Please enter a food name and calorie amount.");
+        return;
+      }
+
+      const todayStr = new Date().toISOString().split('T')[0];
+      state.nutrition.unshift({
+        id: Date.now() + Math.random(),
+        date: todayStr,
+        food: food,
+        cal: cal,
+        pro: pro,
+        carb: carb,
+        fat: fat
+      });
+
+      document.getElementById('foodName').value = '';
+      document.getElementById('foodCal').value = '';
+      document.getElementById('foodPro').value = '';
+      document.getElementById('foodCarb').value = '';
+      document.getElementById('foodFat').value = '';
+
+      saveLocalState();
+    }
+
+    function deleteFoodItem(id) {
+      state.nutrition = state.nutrition.filter(n => n.id !== id);
+      saveLocalState();
+    }
+
+    function editGoals() {
+      const cal = prompt("Target Calories (kcal):", state.goals.cal);
+      if (cal === null) return;
+      const pro = prompt("Target Protein (g):", state.goals.pro);
+      const carb = prompt("Target Carbs (g):", state.goals.carb);
+      const fat = prompt("Target Fat (g):", state.goals.fat);
+
+      state.goals = {
+        cal: parseFloat(cal) || DEFAULT_GOALS.cal,
+        pro: parseFloat(pro) || DEFAULT_GOALS.pro,
+        carb: parseFloat(carb) || DEFAULT_GOALS.carb,
+        fat: parseFloat(fat) || DEFAULT_GOALS.fat
+      };
+      saveLocalState();
+    }
+
+    function openAddExerciseModal() {
+      if (!activeRoutineDay) return;
+      const name = prompt("Exercise Name:");
+      if (!name) return;
+      const sets = parseInt(prompt("Working Sets:", "3")) || 3;
+      const reps = prompt("Target Reps (e.g. 8-12):", "8-12");
+      const rest = parseInt(prompt("Rest Time in seconds:", "75")) || 75;
+
+      state.routines[activeRoutineDay].push({
+        name: name.trim(),
+        workingSets: sets,
+        targetReps: reps,
+        rest: rest
+      });
+      saveLocalState();
+    }
+
+    function deleteExercise(day, index) {
+      if (!confirm("Remove this exercise from the routine?")) return;
+      state.routines[day].splice(index, 1);
+      saveLocalState();
+    }
+
+    function openRenameRoutineModal() {
+      if (!activeRoutineDay) return;
+      const newName = prompt("Rename routine day:", activeRoutineDay);
+      if (!newName || newName.trim() === activeRoutineDay) return;
+      const trimmed = newName.trim();
+      
+      state.routines[trimmed] = state.routines[activeRoutineDay];
+      delete state.routines[activeRoutineDay];
+      activeRoutineDay = trimmed;
+      saveLocalState();
+    }
+
+    function openAddRoutineModal() {
+      const name = prompt("New routine day name (e.g. 'Leg Day'):");
+      if (!name) return;
+      const trimmed = name.trim();
+      if (state.routines[trimmed]) {
+        alert("Day already exists.");
+        return;
+      }
+      state.routines[trimmed] = [];
+      activeRoutineDay = trimmed;
+      saveLocalState();
+    }
+
+    function deleteCurrentRoutine() {
+      if (!activeRoutineDay) return;
+      if (!confirm(`Delete entire routine day "${activeRoutineDay}"?`)) return;
+      delete state.routines[activeRoutineDay];
+      routineKeys = Object.keys(state.routines);
+      activeRoutineDay = routineKeys.length > 0 ? routineKeys[0] : "";
+      saveLocalState();
+    }
+
+    function renderVolumeChart() {
+      const ctx = document.getElementById('volumeChart').getContext('2d');
+      const sessionMap = {};
+
+      state.workouts.forEach(w => {
+        if (!sessionMap[w.date]) sessionMap[w.date] = {};
+        if (!sessionMap[w.date][w.exercise]) sessionMap[w.date][w.exercise] = 0;
+        sessionMap[w.date][w.exercise] += (w.weight * w.reps);
+      });
+
+      const dates = Object.keys(sessionMap).sort();
+      const exerciseSet = new Set();
+      state.workouts.forEach(w => exerciseSet.add(w.exercise));
+      const exercises = Array.from(exerciseSet);
+
+      const datasets = exercises.map((ex, idx) => {
+        const data = dates.map(date => sessionMap[date][ex] || null);
+        const color = LINE_COLORS[idx % LINE_COLORS.length];
+        return {
+          label: ex,
+          data: data,
+          borderColor: color,
+          backgroundColor: color,
+          borderWidth: 2,
+          pointRadius: 3,
+          spanGaps: true,
+          tension: 0.1
+        };
+      });
+
+      if (volumeChartInstance) volumeChartInstance.destroy();
+
+      volumeChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: { labels: dates, datasets: datasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } }
+          },
+          scales: {
+            y: { beginAtZero: true, grid: { color: '#e2e8f0' } },
+            x: { grid: { display: false } }
+          }
+        }
+      });
+    }
+
+    async function fetchAdminUsers() {
+      if (!isAdmin) return;
+      try {
+        const response = await fetch(`${WORKER_URL}/api/admin/users`, {
+          method: 'GET',
+          headers: {
+            "X-Username": currentUser,
+            "X-Password": currentPassword
+          }
+        });
+        if (!response.ok) return;
+        const data = await response.json();
+        
+        const container = document.getElementById('adminUserList');
+        if (!data.users || data.users.length === 0) {
+          container.innerHTML = '<div class="empty-state">No users found.</div>';
+          return;
+        }
+
+        container.innerHTML = data.users.map(u => `
           <div class="log-item">
             <div>
-              <div style="font-weight:600; font-size:0.9rem;">${f.food}</div>
-              <div style="font-size:0.8rem; color:var(--text-muted);">${f.cal} kcal • ${f.pro}g P • ${f.carb}g C • ${f.fat}g F</div>
+              <strong>${u.username}</strong> (${u.display_name || 'No Name'}) 
+              <span style="font-size:0.75rem; color:var(--text-muted);">[${u.is_admin ? 'Admin' : 'User'}]</span>
             </div>
-            <button class="delete-btn" onclick="deleteFood('${f.id}')">✕</button>
+            <div style="display: flex; gap: 6px;">
+              <button class="btn-small" onclick="editUserPrompt('${u.username}', '${u.display_name || ''}')">Edit</button>
+              ${u.username !== currentUser ? `<button class="delete-btn" onclick="deleteUser('${u.username}')">×</button>` : ''}
+            </div>
           </div>
         `).join('');
+      } catch (err) {
+        console.error("Failed to load admin users", err);
+      }
+    }
+
+    async function createNewUser() {
+      const newUsername = document.getElementById('newUsername').value.trim().toLowerCase();
+      const newPassword = document.getElementById('newPassword').value.trim();
+      const displayName = document.getElementById('newDisplayName').value.trim();
+
+      if (!newUsername || !newPassword) {
+        alert("Username and password are required.");
+        return;
+      }
+
+      try {
+        const response = await fetch(`${WORKER_URL}/api/admin/users`, {
+          method: 'POST',
+          headers: {
+            "Content-Type": "application/json",
+            "X-Username": currentUser,
+            "X-Password": currentPassword
+          },
+          body: JSON.stringify({ newUsername, newPassword, displayName })
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Failed to create user");
+
+        alert("User created successfully!");
+        document.getElementById('newUsername').value = '';
+        document.getElementById('newPassword').value = '';
+        document.getElementById('newDisplayName').value = '';
+        fetchAdminUsers();
+      } catch (err) {
+        alert("Error: " + err.message);
+      }
+    }
+
+    async function editUserPrompt(currentUsername, currentDisplayName) {
+      const newUsername = prompt("Enter new username (or keep existing):", currentUsername);
+      if (!newUsername) return;
+      const newPassword = prompt("Enter new password (leave blank to keep current):");
+      const displayName = prompt("Enter new display name:", currentDisplayName);
+
+      try {
+        const response = await fetch(`${WORKER_URL}/api/admin/users`, {
+          method: 'PATCH',
+          headers: {
+            "Content-Type": "application/json",
+            "X-Username": currentUser,
+            "X-Password": currentPassword
+          },
+          body: JSON.stringify({
+            targetUsername: currentUsername,
+            newUsername: newUsername.trim().toLowerCase(),
+            newPassword: newPassword ? newPassword : undefined,
+            displayName: displayName !== null ? displayName.trim() : undefined
+          })
+        });
+
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Failed to update user");
+
+        alert("User updated successfully!");
+
+        if (currentUsername === currentUser) {
+          currentUser = newUsername.trim().toLowerCase();
+          localStorage.setItem('fitlog_user', currentUser);
+          if (newPassword) {
+            currentPassword = newPassword;
+            localStorage.setItem('fitlog_pass', currentPassword);
+          }
+          if (displayName) {
+            const allProfiles = JSON.parse(localStorage.getItem('fitlog_profiles')) || {};
+            if (!allProfiles[currentUser]) allProfiles[currentUser] = {};
+            allProfiles[currentUser].name = displayName.trim();
+            localStorage.setItem('fitlog_profiles', JSON.stringify(allProfiles));
+          }
+          renderProfileBadge();
+        }
+
+        fetchAdminUsers();
+      } catch (err) {
+        alert("Error updating user: " + err.message);
+      }
+    }
+
+    async function deleteUser(username) {
+      if (!confirm(`Are you sure you want to delete user "${username}" and all their data?`)) return;
+
+      try {
+        const response = await fetch(`${WORKER_URL}/api/admin/users/${username}`, {
+          method: 'DELETE',
+          headers: {
+            "X-Username": currentUser,
+            "X-Password": currentPassword
+          }
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Failed to delete user");
+
+        alert("User deleted successfully.");
+        fetchAdminUsers();
+      } catch (err) {
+        alert("Error: " + err.message);
       }
     }
   </script>
