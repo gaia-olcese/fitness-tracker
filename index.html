@@ -708,13 +708,18 @@
         </div>
         <button class="btn-small" onclick="saveApiKey()" style="width: 100%; padding: 10px; background: var(--primary); color: #fff; border: none; font-weight:600; margin-bottom: 12px;">Save API Key</button>
 
-        <div style="background: var(--surface-light); padding: 12px; border-radius: 10px; border: 1px solid var(--border); font-size: 0.8rem; color: var(--text-muted);">
-          <div style="font-weight: 600; color: var(--text); margin-bottom: 6px;">💡 How to get your free Gemini API key:</div>
-          <ol style="margin-left: 16px; display: flex; flex-direction: column; gap: 4px;">
-            <li>Go to <a href="https://aistudio.google.com/" target="_blank" style="color: var(--primary); font-weight: 600;">Google AI Studio</a> and sign in.</li>
-            <li>Click <strong>"Get API key"</strong> in the top left.</li>
-            <li>Click <strong>"Create API key in new project"</strong> and copy your key (starts with <code>AIzaSy</code>).</li>
-            <li>Paste it above and tap <strong>Save API Key</strong>!</li>
+        <div style="background: var(--surface-light); padding: 14px; border-radius: 12px; border: 1px solid var(--border); font-size: 0.85rem; color: var(--text);">
+          <div style="font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+            <span>🔑</span> How to get your free Gemini API key:
+          </div>
+          <p style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 10px; line-height: 1.3;">
+            FitLog uses your own free Google AI key so you can chat or use voice logging without limits. It takes under 60 seconds:
+          </p>
+          <ol style="margin-left: 18px; display: flex; flex-direction: column; gap: 6px; color: var(--text);">
+            <li>Open <a href="https://aistudio.google.com/" target="_blank" style="color: var(--primary); font-weight: 600; text-decoration: none;">Google AI Studio ↗</a> and sign in with any Google account.</li>
+            <li>Click the blue <strong>"Get API key"</strong> button near the top left.</li>
+            <li>Click <strong>"Create API key in new project"</strong>.</li>
+            <li>Copy the code that pops up (it starts with <code>AIzaSy...</code>), paste it in the box above, and tap <strong>Save API Key</strong>!</li>
           </ol>
         </div>
       </div>
@@ -772,7 +777,7 @@
         { name: "Chest-Supported Machine Row", workingSets: 3, targetReps: "8-12", rest: 75 },
         { name: "Machine Lateral Raise", workingSets: 3, targetReps: "12-15", rest: 45 },
         { name: "Cable Rope Triceps Pressdown", workingSets: 3, targetReps: "10-15", rest: 45 },
-        { name: "Barebell Hip Thrusts", workingSets: 3, targetReps: "10-12", rest: 75 },
+        { name: "Barbell Hip Thrusts", workingSets: 3, targetReps: "10-12", rest: 75 },
         { name: "Seated Hip Abduction Machine", workingSets: 3, targetReps: "15-20", rest: 45 }
       ],
       "Friday": [
@@ -781,7 +786,7 @@
         { name: "Machine Shoulder Press", workingSets: 3, targetReps: "8-12", rest: 75 },
         { name: "Reverse Pec Deck", workingSets: 3, targetReps: "12-15", rest: 45 },
         { name: "Machine Preacher Curl", workingSets: 3, targetReps: "10-15", rest: 45 },
-        { name: "Barebell Hip Thrusts", workingSets: 3, targetReps: "10-12", rest: 75 },
+        { name: "Barbell Hip Thrusts", workingSets: 3, targetReps: "10-12", rest: 75 },
         { name: "Seated Hip Abduction Machine", workingSets: 3, targetReps: "15-20", rest: 45 }
       ]
     };
@@ -861,7 +866,6 @@
         avatarEl.textContent = (profile.name || "?").charAt(0).toUpperCase();
       }
 
-      // Show/Hide Admin Nav Button
       const adminBtn = document.getElementById('adminNavBtn');
       if (adminBtn) {
         adminBtn.style.display = isAdmin ? 'flex' : 'none';
@@ -1760,7 +1764,6 @@ Your job is to help the user log their workouts and meals through conversation.
         });
 
         const data = await response.json();
-        removeThinkingBubble();
 
         if (!response.ok) {
           throw new Error(data.error?.message || 'API request failed');
@@ -1783,8 +1786,9 @@ Your job is to help the user log their workouts and meals through conversation.
         }
 
       } catch (err) {
-        removeThinkingBubble();
         appendChatMessage("Error: " + err.message, 'assistant');
+      } finally {
+        removeThinkingBubble();
       }
     }
 
