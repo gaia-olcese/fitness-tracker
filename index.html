@@ -706,7 +706,17 @@
           <label for="aiApiKeyInput">Gemini API Key</label>
           <input type="password" id="aiApiKeyInput" placeholder="AIzaSy..." style="text-align: left; margin-bottom: 8px;" />
         </div>
-        <button class="btn-small" onclick="saveApiKey()" style="width: 100%; padding: 10px; background: var(--primary); color: #fff; border: none; font-weight:600;">Save API Key</button>
+        <button class="btn-small" onclick="saveApiKey()" style="width: 100%; padding: 10px; background: var(--primary); color: #fff; border: none; font-weight:600; margin-bottom: 12px;">Save API Key</button>
+
+        <div style="background: var(--surface-light); padding: 12px; border-radius: 10px; border: 1px solid var(--border); font-size: 0.8rem; color: var(--text-muted);">
+          <div style="font-weight: 600; color: var(--text); margin-bottom: 6px;">💡 How to get your free Gemini API key:</div>
+          <ol style="margin-left: 16px; display: flex; flex-direction: column; gap: 4px;">
+            <li>Go to <a href="https://aistudio.google.com/" target="_blank" style="color: var(--primary); font-weight: 600;">Google AI Studio</a> and sign in.</li>
+            <li>Click <strong>"Get API key"</strong> in the top left.</li>
+            <li>Click <strong>"Create API key in new project"</strong> and copy your key (starts with <code>AIzaSy</code>).</li>
+            <li>Paste it above and tap <strong>Save API Key</strong>!</li>
+          </ol>
+        </div>
       </div>
 
       <div class="card" style="display: flex; flex-direction: column; height: 480px;">
