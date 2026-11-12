@@ -542,7 +542,7 @@
   <script>
     const WORKER_URL = "https://fitlog-api.gaia-olcese.workers.dev";
 
-    // Gaia's routine template with Glute Drive updated to Barebell Hip Thrusts
+    // Gaia's specific routine templates with Barebell Hip Thrusts normalization
     const GAIA_ROUTINES = {
       "Monday": [
         { name: "Machine Chest Press", workingSets: 3, targetReps: "8-12", rest: 75 },
@@ -572,15 +572,18 @@
     const DEFAULT_GOALS = { cal: 2000, pro: 130, carb: 220, fat: 65 };
     
     let userPin = localStorage.getItem('fitlog_pin');
-    let state = JSON.parse(localStorage.getItem('fitlog_data')) || {
-      workouts: [],
-      nutrition: [],
-      goals: DEFAULT_GOALS,
-      routines: null
+    
+    // Check local storage safely and assign user-aware routines so data doesn't bleed across users on the same device
+    let savedData = JSON.parse(localStorage.getItem('fitlog_data')) || {};
+    let state = {
+      workouts: savedData.workouts || [],
+      nutrition: savedData.nutrition || [],
+      goals: savedData.goals || DEFAULT_GOALS,
+      routines: (userPin === 'gaia1234') ? GAIA_ROUTINES : (savedData.routines || {})
     };
 
-    let routineKeys = [];
-    let activeRoutineDay = "Monday";
+    let routineKeys = Object.keys(state.routines);
+    let activeRoutineDay = routineKeys.length > 0 ? routineKeys[0] : "Monday";
     let volumeChartInstance = null;
 
     window.addEventListener('DOMContentLoaded', () => {
@@ -589,6 +592,7 @@
       } else {
         syncWithCloud();
       }
+      renderAll();
     });
 
     async function handleLogin() {
@@ -597,6 +601,10 @@
       
       userPin = pin;
       localStorage.setItem('fitlog_pin', userPin);
+
+      // Enforce correct routines based strictly on the PIN entered
+      state.routines = (userPin === 'gaia1234') ? GAIA_ROUTINES : {};
+
       document.getElementById('loginModal').style.display = 'none';
       await syncWithCloud();
     }
@@ -645,14 +653,9 @@
           state.nutrition = cloudData.nutrition || [];
         }
 
-        // Assign user-specific routines: Gaia gets her templates, other users (Adam) start fresh ({})
+        // Re-verify user routine assignment after cloud sync
         if (!state.routines || Object.keys(state.routines).length === 0) {
           state.routines = (userPin === 'gaia1234') ? GAIA_ROUTINES : {};
-        }
-
-        routineKeys = Object.keys(state.routines);
-        if (!routineKeys.includes(activeRoutineDay) && routineKeys.length > 0) {
-          activeRoutineDay = routineKeys[0];
         }
 
         saveLocalState();
@@ -662,7 +665,6 @@
         if (!state.routines || Object.keys(state.routines).length === 0) {
           state.routines = (userPin === 'gaia1234') ? GAIA_ROUTINES : {};
         }
-        routineKeys = Object.keys(state.routines);
         if (btn) btn.textContent = '⚠️ Offline';
         renderAll();
       }
@@ -723,7 +725,7 @@
 
     // Routine & Exercise Management
     function openAddRoutineModal() {
-      const name = prompt("Enter new workout day name (e.g. Wednesday, Legs, Push):");
+      const name = prompt("Enter new workout day name (e.g. Wednesday, Push & Core, Pull Day):");
       if (!name) return;
       const cleanName = name.trim();
       if (state.routines[cleanName]) {
