@@ -398,7 +398,7 @@
       <h2>Welcome to Fit<span>Log</span></h2>
       <p>Enter your secret PIN to access your profile.</p>
       <div class="form-group">
-        <input type="password" id="pinInput" placeholder="Enter PIN" inputmode="numeric" style="font-size: 1.1rem; letter-spacing: 2px;" />
+        <input type="password" id="pinInput" placeholder="Enter 4-digit PIN" inputmode="numeric" style="font-size: 1.1rem; letter-spacing: 2px;" />
       </div>
       <button class="btn-primary" onclick="handleLogin()">Login / Sync</button>
     </div>
@@ -542,24 +542,23 @@
   <script>
     const WORKER_URL = "https://fitlog-api.gaia-olcese.workers.dev";
 
-    // Gaia keeps her Monday/Friday routines, with Glute Drive updated to Barebell Hip Thrusts
-    const GAIA_ROUTINES = {
+    const DEFAULT_ROUTINES = {
       "Monday": [
         { name: "Machine Chest Press", workingSets: 3, targetReps: "8-12", rest: 75 },
         { name: "Lat Pulldown", workingSets: 3, targetReps: "8-12", rest: 75 },
         { name: "Chest-Supported Machine Row", workingSets: 3, targetReps: "8-12", rest: 75 },
-        { name: "Lateral Raises", workingSets: 3, targetReps: "12-15", rest: 45 },
+        { name: "Machine Lateral Raise", workingSets: 3, targetReps: "12-15", rest: 45 },
         { name: "Cable Rope Triceps Pressdown", workingSets: 3, targetReps: "10-15", rest: 45 },
-        { name: "Barebell Hip Thrusts", workingSets: 3, targetReps: "10-12", rest: 75 },
+        { name: "Glute Drive / Hip Thrust Machine", workingSets: 3, targetReps: "10-12", rest: 75 },
         { name: "Seated Hip Abduction Machine", workingSets: 3, targetReps: "15-20", rest: 45 }
       ],
       "Friday": [
-        { name: "Machine Chest Press", workingSets: 3, targetReps: "8-12", rest: 75 },
+        { name: "Incline Chest Press Machine", workingSets: 3, targetReps: "8-12", rest: 75 },
         { name: "Neutral-Grip Lat Pulldown", workingSets: 3, targetReps: "8-12", rest: 75 },
         { name: "Machine Shoulder Press", workingSets: 3, targetReps: "8-12", rest: 75 },
         { name: "Reverse Pec Deck", workingSets: 3, targetReps: "12-15", rest: 45 },
         { name: "Machine Preacher Curl", workingSets: 3, targetReps: "10-15", rest: 45 },
-        { name: "Barebell Hip Thrusts", workingSets: 3, targetReps: "10-12", rest: 75 },
+        { name: "Glute Drive / Hip Thrust Machine", workingSets: 3, targetReps: "10-12", rest: 75 },
         { name: "Seated Hip Abduction Machine", workingSets: 3, targetReps: "15-20", rest: 45 }
       ]
     };
@@ -576,11 +575,15 @@
       workouts: [],
       nutrition: [],
       goals: DEFAULT_GOALS,
-      routines: null
+      routines: DEFAULT_ROUTINES
     };
 
-    let routineKeys = [];
-    let activeRoutineDay = "Monday";
+    if (!state.routines) {
+      state.routines = DEFAULT_ROUTINES;
+    }
+
+    let routineKeys = Object.keys(state.routines);
+    let activeRoutineDay = routineKeys.length > 0 ? routineKeys[0] : "Monday";
     let volumeChartInstance = null;
 
     window.addEventListener('DOMContentLoaded', () => {
@@ -589,6 +592,7 @@
       } else {
         syncWithCloud();
       }
+      renderAll();
     });
 
     async function handleLogin() {
@@ -645,26 +649,11 @@
           state.nutrition = cloudData.nutrition || [];
         }
 
-        // Determine user-specific default routines: Gaia gets her templates, new users (like Adam) start empty ({})
-        if (!state.routines || Object.keys(state.routines).length === 0) {
-          state.routines = (userPin === 'gaia1234') ? GAIA_ROUTINES : {};
-        }
-
-        routineKeys = Object.keys(state.routines);
-        if (!routineKeys.includes(activeRoutineDay) && routineKeys.length > 0) {
-          activeRoutineDay = routineKeys[0];
-        }
-
         saveLocalState();
         if (btn) btn.textContent = '☁️ Synced';
         setTimeout(() => { if (btn) btn.textContent = '☁️ Sync'; }, 2000);
       } catch (err) {
-        if (!state.routines || Object.keys(state.routines).length === 0) {
-          state.routines = (userPin === 'gaia1234') ? GAIA_ROUTINES : {};
-        }
-        routineKeys = Object.keys(state.routines);
         if (btn) btn.textContent = '⚠️ Offline';
-        renderAll();
       }
     }
 
@@ -723,8 +712,324 @@
 
     // Routine & Exercise Management
     function openAddRoutineModal() {
-      const name = prompt("Enter new workout day name (e.g. Wednesday, Push & Core, Pull Day):");
+      const name = prompt("Enter new workout day name (e.g. Wednesday, Legs, Push):");
       if (!name) return;
       const cleanName = name.trim();
       if (state.routines[cleanName]) {
-        alert
+        alert("A routine with this name already exists.");
+        return;
+      }
+      state.routines[cleanName] = [];
+      activeRoutineDay = cleanName;
+      saveLocalState();
+    }
+
+    function openRenameRoutineModal() {
+      const newName = prompt(`Rename routine "${activeRoutineDay}" to:`, activeRoutineDay);
+      if (!newName || newName.trim() === activeRoutineDay) return;
+      const cleanName = newName.trim();
+      if (state.routines[cleanName]) {
+        alert("A routine with this name already exists.");
+        return;
+      }
+      state.routines[cleanName] = state.routines[activeRoutineDay];
+      delete state.routines[activeRoutineDay];
+      activeRoutineDay = cleanName;
+      saveLocalState();
+    }
+
+    function deleteCurrentRoutine() {
+      const keys = Object.keys(state.routines);
+      if (keys.length <= 1) {
+        alert("You must keep at least one routine day.");
+        return;
+      }
+      if (confirm(`Delete the entire routine for "${activeRoutineDay}"?`)) {
+        delete state.routines[activeRoutineDay];
+        activeRoutineDay = Object.keys(state.routines)[0];
+        saveLocalState();
+      }
+    }
+
+    function openAddExerciseModal() {
+      const name = prompt(`Enter exercise name for ${activeRoutineDay}:`);
+      if (!name) return;
+      const targetReps = prompt("Enter target rep range (e.g. 8-12):", "8-12") || "8-12";
+      const sets = parseInt(prompt("Enter number of working sets:", "3")) || 3;
+
+      if (!state.routines[activeRoutineDay]) {
+        state.routines[activeRoutineDay] = [];
+      }
+
+      state.routines[activeRoutineDay].push({
+        name: name.trim(),
+        workingSets: sets,
+        targetReps: targetReps,
+        rest: 75
+      });
+
+      saveLocalState();
+    }
+
+    function editExercise(index) {
+      const ex = state.routines[activeRoutineDay][index];
+      const name = prompt("Edit exercise name:", ex.name);
+      if (!name) return;
+      const targetReps = prompt("Edit target rep range:", ex.targetReps) || ex.targetReps;
+      const sets = parseInt(prompt("Edit working sets:", ex.workingSets)) || ex.workingSets;
+
+      ex.name = name.trim();
+      ex.targetReps = targetReps;
+      ex.workingSets = sets;
+      saveLocalState();
+    }
+
+    function removeExerciseFromRoutine(index) {
+      if (confirm(`Remove this exercise from ${activeRoutineDay}?`)) {
+        state.routines[activeRoutineDay].splice(index, 1);
+        saveLocalState();
+      }
+    }
+
+    function renderChart() {
+      const ctx = document.getElementById('volumeChart');
+      if (!ctx) return;
+
+      const datesSet = new Set();
+      const exercisesSet = new Set();
+      const volumeMap = {};
+
+      state.workouts.forEach(w => {
+        datesSet.add(w.date);
+        exercisesSet.add(w.exercise);
+        if (!volumeMap[w.exercise]) volumeMap[w.exercise] = {};
+        const vol = (w.weight || 0) * (w.reps || 0);
+        volumeMap[w.exercise][w.date] = (volumeMap[w.exercise][w.date] || 0) + vol;
+      });
+
+      const sortedDates = Array.from(datesSet).sort();
+      const exercises = Array.from(exercisesSet);
+
+      const datasets = exercises.map((ex, idx) => {
+        const color = LINE_COLORS[idx % LINE_COLORS.length];
+        return {
+          label: ex,
+          data: sortedDates.map(d => volumeMap[ex][d] ? Math.round(volumeMap[ex][d] * 10) / 10 : null),
+          borderColor: color,
+          backgroundColor: color,
+          borderWidth: 2,
+          tension: 0.25,
+          spanGaps: true,
+          pointRadius: 4
+        };
+      });
+
+      if (volumeChartInstance) {
+        volumeChartInstance.destroy();
+      }
+
+      volumeChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: { labels: sortedDates, datasets: datasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'nearest', intersect: false },
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: { color: '#334155', boxWidth: 12, font: { size: 11 } }
+            }
+          },
+          scales: {
+            x: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { color: '#e2e8f0' } },
+            y: {
+              title: { display: true, text: 'Total Volume (kg)', color: '#64748b' },
+              ticks: { color: '#64748b', font: { size: 10 } },
+              grid: { color: '#e2e8f0' }
+            }
+          }
+        }
+      });
+    }
+
+    function addFood() {
+      const food = document.getElementById('foodName').value.trim();
+      const cal = parseFloat(document.getElementById('foodCal').value) || 0;
+      const pro = parseFloat(document.getElementById('foodPro').value) || 0;
+      const carb = parseFloat(document.getElementById('foodCarb').value) || 0;
+      const fat = parseFloat(document.getElementById('foodFat').value) || 0;
+
+      if (!food || cal <= 0) {
+        alert('Please enter a food name and calories.');
+        return;
+      }
+
+      state.nutrition.unshift({
+        id: Date.now(),
+        date: getTodayStr(),
+        food, cal, pro, carb, fat
+      });
+
+      document.getElementById('foodName').value = '';
+      document.getElementById('foodCal').value = '';
+      document.getElementById('foodPro').value = '';
+      document.getElementById('foodCarb').value = '';
+      document.getElementById('foodFat').value = '';
+      saveLocalState();
+    }
+
+    function deleteFood(id) {
+      state.nutrition = state.nutrition.filter(f => f.id !== id);
+      saveLocalState();
+    }
+
+    function editGoals() {
+      const cal = prompt('Daily Calorie Goal:', state.goals.cal);
+      const pro = prompt('Daily Protein Goal (g):', state.goals.pro);
+      const carb = prompt('Daily Carbs Goal (g):', state.goals.carb);
+      const fat = prompt('Daily Fat Goal (g):', state.goals.fat);
+      if (cal && pro && carb && fat) {
+        state.goals = { cal: Number(cal), pro: Number(pro), carb: Number(carb), fat: Number(fat) };
+        saveLocalState();
+      }
+    }
+
+    function renderRoutineSelector() {
+      const selectorEl = document.getElementById('routineSelector');
+      const keys = Object.keys(state.routines);
+      if (!keys.includes(activeRoutineDay) && keys.length > 0) {
+        activeRoutineDay = keys[0];
+      }
+
+      selectorEl.innerHTML = keys.map(day => `
+        <button class="routine-btn ${day === activeRoutineDay ? 'active' : ''}" onclick="selectRoutine('${day}')">${day}</button>
+      `).join('');
+    }
+
+    function renderRoutine() {
+      renderRoutineSelector();
+      const container = document.getElementById('routineContainer');
+      const exercises = state.routines[activeRoutineDay] || [];
+
+      if (exercises.length === 0) {
+        container.innerHTML = '<div class="empty-state">No exercises in this routine yet. Tap "+ Add Exercise" above.</div>';
+        return;
+      }
+
+      container.innerHTML = exercises.map((ex, idx) => {
+        let setsHTML = '';
+        for (let s = 1; s <= ex.workingSets; s++) {
+          const lastSet = getLastSetData(ex.name, s);
+          const weightPlaceholder = lastSet ? `${lastSet.weight}kg` : 'kg';
+          const repsPlaceholder = lastSet ? `${lastSet.reps}r` : 'reps';
+
+          setsHTML += `
+            <div class="set-row">
+              <span class="set-label">Set ${s}</span>
+              <input type="number" step="0.5" id="w_${CSS.escape(ex.name)}_s${s}" placeholder="${weightPlaceholder}" inputmode="decimal" />
+              <input type="number" id="r_${CSS.escape(ex.name)}_s${s}" placeholder="${repsPlaceholder}" inputmode="numeric" />
+              <button class="btn-small" style="background:var(--primary); color:#ffffff; border:none;" onclick="saveSingleSet('${ex.name.replace(/'/g, "\\'")}', ${s})">✓</button>
+            </div>
+          `;
+        }
+
+        return `
+          <div class="exercise-card">
+            <div class="exercise-header">
+              <div>
+                <div class="exercise-title">${idx + 1}. ${ex.name}</div>
+                <div class="exercise-meta">Target: ${ex.workingSets} sets × ${ex.targetReps} reps • Rest: ${ex.rest}s</div>
+              </div>
+              <div class="exercise-tools">
+                <button onclick="editExercise(${idx})" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.85rem;" title="Edit exercise">✏️</button>
+                <button onclick="removeExerciseFromRoutine(${idx})" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.9rem;" title="Remove exercise">✕</button>
+              </div>
+            </div>
+            ${setsHTML}
+          </div>
+        `;
+      }).join('');
+    }
+
+    function saveSingleSet(exerciseName, setNum) {
+      const weight = parseFloat(document.getElementById(`w_${exerciseName}_s${setNum}`).value);
+      const reps = parseInt(document.getElementById(`r_${exerciseName}_s${setNum}`).value);
+
+      if (isNaN(weight) || isNaN(reps)) {
+        alert('Please enter both weight and reps for this set.');
+        return;
+      }
+
+      state.workouts.unshift({
+        id: Date.now() + Math.random(),
+        date: getTodayStr(),
+        exercise: exerciseName,
+        setNum: setNum,
+        weight,
+        reps
+      });
+
+      saveLocalState();
+    }
+
+    function renderAll() {
+      renderRoutine();
+      renderChart();
+
+      const today = getTodayStr();
+      const todayWorkouts = state.workouts.filter(w => w.date === today);
+      const workoutListEl = document.getElementById('workoutList');
+      if (todayWorkouts.length === 0) {
+        workoutListEl.innerHTML = '<div class="empty-state">No sets logged today yet.</div>';
+      } else {
+        workoutListEl.innerHTML = todayWorkouts.map(w => `
+          <div class="log-item">
+            <div>
+              <div style="font-weight:600; font-size:0.9rem;">${w.exercise} (Set ${w.setNum})</div>
+              <div style="font-size:0.8rem; color:var(--text-muted);">${w.weight} kg × ${w.reps} reps</div>
+            </div>
+            <button class="delete-btn" onclick="deleteWorkout(${w.id})">✕</button>
+          </div>
+        `).join('');
+      }
+
+      const todayFood = state.nutrition.filter(f => f.date === today);
+      const totals = todayFood.reduce((acc, item) => ({
+        cal: acc.cal + item.cal,
+        pro: acc.pro + item.pro,
+        carb: acc.carb + item.carb,
+        fat: acc.fat + item.fat
+      }), { cal: 0, pro: 0, carb: 0, fat: 0 });
+
+      document.getElementById('sumCal').textContent = Math.round(totals.cal);
+      document.getElementById('sumPro').textContent = Math.round(totals.pro) + 'g';
+      document.getElementById('sumCarb').textContent = Math.round(totals.carb) + 'g';
+      document.getElementById('sumFat').textContent = Math.round(totals.fat) + 'g';
+
+      document.getElementById('goalCal').textContent = state.goals.cal;
+      document.getElementById('goalPro').textContent = state.goals.pro;
+      document.getElementById('goalCarb').textContent = state.goals.carb;
+      document.getElementById('goalFat').textContent = state.goals.fat;
+
+      const pct = Math.min(100, (totals.cal / state.goals.cal) * 100);
+      document.getElementById('calProgress').style.width = pct + '%';
+
+      const foodListEl = document.getElementById('foodList');
+      if (todayFood.length === 0) {
+        foodListEl.innerHTML = '<div class="empty-state">No food logged today yet.</div>';
+      } else {
+        foodListEl.innerHTML = todayFood.map(f => `
+          <div class="log-item">
+            <div>
+              <div style="font-weight:600; font-size:0.9rem;">${f.food}</div>
+              <div style="font-size:0.8rem; color:var(--text-muted);">${f.cal} kcal • ${f.pro}g P • ${f.carb}g C • ${f.fat}g F</div>
+            </div>
+            <button class="delete-btn" onclick="deleteFood(${f.id})">✕</button>
+          </div>
+        `).join('');
+      }
+    }
+  </script>
+</body>
+</html>
