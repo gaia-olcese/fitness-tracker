@@ -1,1 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>FitLog</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --surface-light: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #10b981;
+      --primary-hover: #059669;
+      --accent: #3b82f6;
+      --danger: #ef4444;
+      --border: #334155;
+      --radius: 14px;
+    }
 
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      padding-bottom: 85px;
+      line-height: 1.4;
+    }
+
+    header {
+      background: var(--surface);
+      padding: 16px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    header h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    header h1 span {
+      color: var(--primary);
+    }
+
+    .backup-btns {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-small {
+      background: var(--surface-light);
+      color: var(--text);
+      border: none;
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 16px;
+      border: 1px solid var(--border);
+    }
+
+    .card h2 {
+      font-size: 1rem;
+      margin-bottom: 12px;
+      color: var(--text);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .form-group {
+      margin-bottom: 12px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+      font-weight: 500;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 1rem;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+    }
+
+    .btn-primary {
+      width: 100%;
+      padding: 14px;
+      background: var(--primary);
+      color: #052e16;
+      font-weight: 700;
+      font-size: 1rem;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      margin-top: 4px;
+    }
+
+    .btn-primary:active {
+      background: var(--primary-hover);
+      transform: scale(0.99);
+    }
+
+    .last-session-badge {
+      background: rgba(59, 130, 246, 0.15);
+      border: 1px solid rgba(59, 130, 246, 0.4);
+      color: #93c5fd;
+      padding: 10px 12px;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      margin-bottom: 12px;
+      display: none;
+    }
+
+    /* Macro Progress Bars */
+    .macro-summary {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      text-align: center;
+      margin-bottom: 12px;
+    }
+
+    .macro-box {
+      background: var(--bg);
+      padding: 10px 6px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+
+    .macro-box .val {
+      font-size: 1.05rem;
+      font-weight: 700;
+    }
+
+    .macro-box .lbl {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .progress-bar {
+      height: 8px;
+      background: var(--bg);
+      border-radius: 99px;
+      overflow: hidden;
+      margin-top: 6px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--primary);
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+
+    /* Log Lists */
+    .log-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .log-item:last-child {
+      border-bottom: none;
+    }
+
+    .log-title {
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    .log-sub {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .delete-btn {
+      background: none;
+      border: none;
+      color: var(--danger);
+      font-size: 1.1rem;
+      padding: 6px 10px;
+      cursor: pointer;
+    }
+
+    /* Bottom Navigation */
+    nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-around;
+      padding: 10px 0 18px;
+      z-index: 20;
+    }
+
+    nav button {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      font-weight: 600;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+    }
+
+    nav button.active {
+      color: var(--primary);
+    }
+
+    nav button span.icon {
+      font-size: 1.3rem;
+    }
+
+    .empty-state {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      padding: 20px 0;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Fit<span>Log</span></h1>
+    <div class="backup-btns">
+      <button class="btn-small" onclick="exportData()">Export JSON</button>
+      <button class="btn-small" onclick="document.getElementById('importFile').click()">Import</button>
+      <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)" />
+    </div>
+  </header>
+
+  <div class="container">
+
+    <!-- TAB 1: WORKOUTS -->
+    <div id="tab-workouts" class="tab-content active">
+      <div class="card">
+        <h2>Log Set</h2>
+        <div class="form-group">
+          <label for="exName">Exercise</label>
+          <input type="text" id="exName" list="exerciseList" placeholder="e.g. Bench Press, Squats..." oninput="checkLastSession()" />
+          <datalist id="exerciseList"></datalist>
+        </div>
+
+        <div id="lastSessionBox" class="last-session-badge"></div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label for="exWeight">Weight (kg)</label>
+            <input type="number" id="exWeight" step="0.5" inputmode="decimal" placeholder="60" />
+          </div>
+          <div class="form-group">
+            <label for="exReps">Reps</label>
+            <input type="number" id="exReps" inputmode="numeric" placeholder="8" />
+          </div>
+        </div>
+        <button class="btn-primary" onclick="addWorkout()">+ Save Set</button>
+      </div>
+
+      <div class="card">
+        <h2>Today's Sets</h2>
+        <div id="workoutList"></div>
+      </div>
+    </div>
+
+    <!-- TAB 2: NUTRITION -->
+    <div id="tab-nutrition" class="tab-content">
+      <div class="card">
+        <h2>
+          Today's Macros
+          <button class="btn-small" onclick="editGoals()">Edit Goals</button>
+        </h2>
+        <div class="macro-summary">
+          <div class="macro-box">
+            <div class="val" id="sumCal">0</div>
+            <div class="lbl">kcal / <span id="goalCal">2000</span></div>
+          </div>
+          <div class="macro-box">
+            <div class="val" id="sumPro">0g</div>
+            <div class="lbl">Pro / <span id="goalPro">130</span>g</div>
+          </div>
+          <div class="macro-box">
+            <div class="val" id="sumCarb">0g</div>
+            <div class="lbl">Carb / <span id="goalCarb">220</span>g</div>
+          </div>
+          <div class="macro-box">
+            <div class="val" id="sumFat">0g</div>
+            <div class="lbl">Fat / <span id="goalFat">65</span>g</div>
+          </div>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="calProgress"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Log Food</h2>
+        <div class="form-group">
+          <label for="foodName">Meal or Food</label>
+          <input type="text" id="foodName" placeholder="e.g. Tofu scramble & toast" />
+        </div>
+        <div class="form-group">
+          <label for="foodCal">Calories (kcal)</label>
+          <input type="number" id="foodCal" inputmode="numeric" placeholder="450" />
+        </div>
+        <div class="grid-3">
+          <div class="form-group">
+            <label for="foodPro">Protein (g)</label>
+            <input type="number" id="foodPro" step="0.5" inputmode="decimal" placeholder="25" />
+          </div>
+          <div class="form-group">
+            <label for="foodCarb">Carbs (g)</label>
+            <input type="number" id="foodCarb" step="0.5" inputmode="decimal" placeholder="40" />
+          </div>
+          <div class="form-group">
+            <label for="foodFat">Fat (g)</label>
+            <input type="number" id="foodFat" step="0.5" inputmode="decimal" placeholder="15" />
+          </div>
+        </div>
+        <button class="btn-primary" onclick="addFood()">+ Add Food</button>
+      </div>
+
+      <div class="card">
+        <h2>Today's Meals</h2>
+        <div id="foodList"></div>
+      </div>
+    </div>
+
+    <!-- TAB 3: AI & VOICE (PLACEHOLDER FOR STEP 4) -->
+    <div id="tab-ai" class="tab-content">
+      <div class="card">
+        <h2>AI Voice & Chat Logger</h2>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 14px;">
+          Coming in Step 4! Once we connect your Cloudflare Worker & Gemini free API key, you'll be able to tap the mic and say:
+        </p>
+        <div style="background: var(--bg); padding: 12px; border-radius: 10px; font-style: italic; font-size: 0.85rem; color: #cbd5e1; border: 1px dashed var(--border);">
+          "I just did 3 sets of squats at 70kg for 8 reps, and had a bowl of lentil soup with 2 slices of sourdough."
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <nav>
+    <button class="active" onclick="switchTab('workouts', this)">
+      <span class="icon">🏋️</span>
+      Workouts
+    </button>
+    <button onclick="switchTab('nutrition', this)">
+      <span class="icon">🥗</span>
+      Nutrition
+    </button>
+    <button onclick="switchTab('ai', this)">
+      <span class="icon">🎙️</span>
+      AI Log
+    </button>
+  </nav>
+
+  <script>
+    // State Management
+    const DEFAULT_GOALS = { cal: 2000, pro: 130, carb: 220, fat: 65 };
+    let state = JSON.parse(localStorage.getItem('fitlog_data')) || {
+      workouts: [],
+      nutrition: [],
+      goals: DEFAULT_GOALS
+    };
+
+    function saveState() {
+      localStorage.setItem('fitlog_data', JSON.stringify(state));
+      renderAll();
+    }
+
+    function getTodayStr() {
+      return new Date().toISOString().split('T')[0];
+    }
+
+    // Navigation
+    function switchTab(tabName, btn) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('nav button').forEach(el => el.classList.remove('active'));
+      document.getElementById('tab-' + tabName).classList.add('active');
+      btn.classList.add('active');
+    }
+
+    // Workouts Logic
+    function addWorkout() {
+      const exercise = document.getElementById('exName').value.trim();
+      const weight = parseFloat(document.getElementById('exWeight').value) || 0;
+      const reps = parseInt(document.getElementById('exReps').value) || 0;
+
+      if (!exercise || reps <= 0) {
+        alert('Please enter an exercise name and reps.');
+        return;
+      }
+
+      state.workouts.unshift({
+        id: Date.now(),
+        date: getTodayStr(),
+        exercise,
+        weight,
+        reps
+      });
+
+      // Keep exercise name & weight prefilled for quick consecutive sets!
+      document.getElementById('exReps').value = '';
+      saveState();
+      checkLastSession();
+    }
+
+    function deleteWorkout(id) {
+      state.workouts = state.workouts.filter(w => w.id !== id);
+      saveState();
+    }
+
+    function checkLastSession() {
+      const input = document.getElementById('exName').value.trim().toLowerCase();
+      const box = document.getElementById('lastSessionBox');
+      if (!input) {
+        box.style.display = 'none';
+        return;
+      }
+
+      const today = getTodayStr();
+      // Find most recent set from a previous day (or most recent overall if none before today)
+      const pastMatches = state.workouts.filter(w => w.exercise.toLowerCase() === input && w.date !== today);
+      const match = pastMatches[0] || state.workouts.find(w => w.exercise.toLowerCase() === input);
+
+      if (match) {
+        box.style.display = 'block';
+        box.innerHTML = `💡 Last logged (${match.date}): <strong>${match.weight} kg × ${match.reps} reps</strong>`;
+      } else {
+        box.style.display = 'none';
+      }
+    }
+
+    // Nutrition Logic
+    function addFood() {
+      const food = document.getElementById('foodName').value.trim();
+      const cal = parseFloat(document.getElementById('foodCal').value) || 0;
+      const pro = parseFloat(document.getElementById('foodPro').value) || 0;
+      const carb = parseFloat(document.getElementById('foodCarb').value) || 0;
+      const fat = parseFloat(document.getElementById('foodFat').value) || 0;
+
+      if (!food || cal <= 0) {
+        alert('Please enter a food name and calories.');
+        return;
+      }
+
+      state.nutrition.unshift({
+        id: Date.now(),
+        date: getTodayStr(),
+        food,
+        cal,
+        pro,
+        carb,
+        fat
+      });
+
+      document.getElementById('foodName').value = '';
+      document.getElementById('foodCal').value = '';
+      document.getElementById('foodPro').value = '';
+      document.getElementById('foodCarb').value = '';
+      document.getElementById('foodFat').value = '';
+      saveState();
+    }
+
+    function deleteFood(id) {
+      state.nutrition = state.nutrition.filter(f => f.id !== id);
+      saveState();
+    }
+
+    function editGoals() {
+      const cal = prompt('Daily Calorie Goal:', state.goals.cal);
+      const pro = prompt('Daily Protein Goal (g):', state.goals.pro);
+      const carb = prompt('Daily Carbs Goal (g):', state.goals.carb);
+      const fat = prompt('Daily Fat Goal (g):', state.goals.fat);
+      if (cal && pro && carb && fat) {
+        state.goals = {
+          cal: Number(cal),
+          pro: Number(pro),
+          carb: Number(carb),
+          fat: Number(fat)
+        };
+        saveState();
+      }
+    }
+
+    // Render UI
+    function renderAll() {
+      const today = getTodayStr();
+
+      // Autocomplete list of past exercises
+      const uniqueExercises = [...new Set(state.workouts.map(w => w.exercise))];
+      document.getElementById('exerciseList').innerHTML = uniqueExercises
+        .map(ex => `<option value="${ex}">`)
+        .join('');
+
+      // Today's workouts
+      const todayWorkouts = state.workouts.filter(w => w.date === today);
+      const workoutListEl = document.getElementById('workoutList');
+      if (todayWorkouts.length === 0) {
+        workoutListEl.innerHTML = '<div class="empty-state">No sets logged today yet.</div>';
+      } else {
+        workoutListEl.innerHTML = todayWorkouts.map(w => `
+          <div class="log-item">
+            <div>
+              <div class="log-title">${w.exercise}</div>
+              <div class="log-sub">${w.weight} kg × ${w.reps} reps</div>
+            </div>
+            <button class="delete-btn" onclick="deleteWorkout(${w.id})">✕</button>
+          </div>
+        `).join('');
+      }
+
+      // Today's nutrition
+      const todayFood = state.nutrition.filter(f => f.date === today);
+      const totals = todayFood.reduce((acc, item) => ({
+        cal: acc.cal + item.cal,
+        pro: acc.pro + item.pro,
+        carb: acc.carb + item.carb,
+        fat: acc.fat + item.fat
+      }), { cal: 0, pro: 0, carb: 0, fat: 0 });
+
+      document.getElementById('sumCal').textContent = Math.round(totals.cal);
+      document.getElementById('sumPro').textContent = Math.round(totals.pro) + 'g';
+      document.getElementById('sumCarb').textContent = Math.round(totals.carb) + 'g';
+      document.getElementById('sumFat').textContent = Math.round(totals.fat) + 'g';
+
+      document.getElementById('goalCal').textContent = state.goals.cal;
+      document.getElementById('goalPro').textContent = state.goals.pro;
+      document.getElementById('goalCarb').textContent = state.goals.carb;
+      document.getElementById('goalFat').textContent = state.goals.fat;
+
+      const pct = Math.min(100, (totals.cal / state.goals.cal) * 100);
+      document.getElementById('calProgress').style.width = pct + '%';
+
+      const foodListEl = document.getElementById('foodList');
+      if (todayFood.length === 0) {
+        foodListEl.innerHTML = '<div class="empty-state">No food logged today yet.</div>';
+      } else {
+        foodListEl.innerHTML = todayFood.map(f => `
+          <div class="log-item">
+            <div>
+              <div class="log-title">${f.food}</div>
+              <div class="log-sub">${f.cal} kcal • ${f.pro}g P • ${f.carb}g C • ${f.fat}g F</div>
+            </div>
+            <button class="delete-btn" onclick="deleteFood(${f.id})">✕</button>
+          </div>
+        `).join('');
+      }
+    }
+
+    // Export / Import Backups
+    function exportData() {
+      const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `fitlog-backup-${getTodayStr()}.json`;
+      a.click();
+    }
+
+    function importData(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = e => {
+        try {
+          state = JSON.parse(e.target.result);
+          saveState();
+          alert('Backup restored!');
+        } catch (err) {
+          alert('Invalid JSON file.');
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    // Initialize
+    renderAll();
+  </script>
+</body>
+</html>
