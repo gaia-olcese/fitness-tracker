@@ -104,43 +104,93 @@
       align-items: center;
     }
 
-    .form-group {
+    .routine-selector {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .routine-btn {
+      flex: 1;
+      padding: 10px;
+      background: var(--surface-light);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      text-align: center;
+    }
+
+    .routine-btn.active {
+      background: var(--primary);
+      color: #052e16;
+      border-color: var(--primary);
+    }
+
+    .exercise-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
       margin-bottom: 12px;
     }
 
-    label {
-      display: block;
-      font-size: 0.8rem;
+    .exercise-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 8px;
+    }
+
+    .exercise-title {
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    .exercise-meta {
+      font-size: 0.75rem;
       color: var(--text-muted);
-      margin-bottom: 4px;
-      font-weight: 500;
+    }
+
+    .last-session-hint {
+      font-size: 0.8rem;
+      color: #93c5fd;
+      background: rgba(59, 130, 246, 0.1);
+      padding: 6px 8px;
+      border-radius: 6px;
+      margin-bottom: 8px;
+    }
+
+    .set-row {
+      display: grid;
+      grid-template-columns: 50px 1fr 1fr auto;
+      gap: 6px;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .set-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: 600;
     }
 
     input {
       width: 100%;
-      padding: 12px;
-      border-radius: 10px;
+      padding: 8px;
+      border-radius: 8px;
       border: 1px solid var(--border);
-      background: var(--bg);
+      background: var(--surface);
       color: var(--text);
-      font-size: 1rem;
+      font-size: 0.9rem;
+      text-align: center;
     }
 
     input:focus {
       outline: none;
       border-color: var(--primary);
-    }
-
-    .grid-2 {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-
-    .grid-3 {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 8px;
     }
 
     .btn-primary {
@@ -158,21 +208,9 @@
 
     .btn-primary:active {
       background: var(--primary-hover);
-      transform: scale(0.99);
     }
 
-    .last-session-badge {
-      background: rgba(59, 130, 246, 0.15);
-      border: 1px solid rgba(59, 130, 246, 0.4);
-      color: #93c5fd;
-      padding: 10px 12px;
-      border-radius: 10px;
-      font-size: 0.85rem;
-      margin-bottom: 12px;
-      display: none;
-    }
-
-    /* Macro Progress Bars */
+    /* Macro Summary */
     .macro-summary {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -214,12 +252,29 @@
       transition: width 0.3s ease;
     }
 
-    /* Log Lists */
+    .form-group {
+      margin-bottom: 10px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+      font-weight: 500;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+    }
+
     .log-item {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 12px 0;
+      padding: 10px 0;
       border-bottom: 1px solid var(--border);
     }
 
@@ -227,22 +282,12 @@
       border-bottom: none;
     }
 
-    .log-title {
-      font-weight: 600;
-      font-size: 0.95rem;
-    }
-
-    .log-sub {
-      font-size: 0.8rem;
-      color: var(--text-muted);
-    }
-
     .delete-btn {
       background: none;
       border: none;
       color: var(--danger);
       font-size: 1.1rem;
-      padding: 6px 10px;
+      padding: 4px 8px;
       cursor: pointer;
     }
 
@@ -305,30 +350,16 @@
     <!-- TAB 1: WORKOUTS -->
     <div id="tab-workouts" class="tab-content active">
       <div class="card">
-        <h2>Log Set</h2>
-        <div class="form-group">
-          <label for="exName">Exercise</label>
-          <input type="text" id="exName" list="exerciseList" placeholder="e.g. Bench Press, Squats..." oninput="checkLastSession()" />
-          <datalist id="exerciseList"></datalist>
+        <h2>Workout Routine</h2>
+        <div class="routine-selector">
+          <button class="routine-btn active" id="btn-Monday" onclick="selectRoutine('Monday')">Monday: Upper + Glutes</button>
+          <button class="routine-btn" id="btn-Friday" onclick="selectRoutine('Friday')">Friday: Upper + Glutes</button>
         </div>
-
-        <div id="lastSessionBox" class="last-session-badge"></div>
-
-        <div class="grid-2">
-          <div class="form-group">
-            <label for="exWeight">Weight (kg)</label>
-            <input type="number" id="exWeight" step="0.5" inputmode="decimal" placeholder="60" />
-          </div>
-          <div class="form-group">
-            <label for="exReps">Reps</label>
-            <input type="number" id="exReps" inputmode="numeric" placeholder="8" />
-          </div>
-        </div>
-        <button class="btn-primary" onclick="addWorkout()">+ Save Set</button>
+        <div id="routineContainer"></div>
       </div>
 
       <div class="card">
-        <h2>Today's Sets</h2>
+        <h2>Today's Completed Sets</h2>
         <div id="workoutList"></div>
       </div>
     </div>
@@ -367,7 +398,7 @@
         <h2>Log Food</h2>
         <div class="form-group">
           <label for="foodName">Meal or Food</label>
-          <input type="text" id="foodName" placeholder="e.g. Tofu scramble & toast" />
+          <input type="text" id="foodName" placeholder="e.g. Tofu scramble & toast" style="text-align: left;" />
         </div>
         <div class="form-group">
           <label for="foodCal">Calories (kcal)</label>
@@ -401,11 +432,8 @@
       <div class="card">
         <h2>AI Voice & Chat Logger</h2>
         <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 14px;">
-          Coming in Step 4! Once we connect your Cloudflare Worker & Gemini free API key, you'll be able to tap the mic and say:
+          Coming in Step 4! Once we connect your Cloudflare Worker & Gemini free API key, you'll be able to tap the mic and log meals or workouts by voice.
         </p>
-        <div style="background: var(--bg); padding: 12px; border-radius: 10px; font-style: italic; font-size: 0.85rem; color: #cbd5e1; border: 1px dashed var(--border);">
-          "I just did 3 sets of squats at 70kg for 8 reps, and had a bowl of lentil soup with 2 slices of sourdough."
-        </div>
       </div>
     </div>
 
@@ -427,13 +455,36 @@
   </nav>
 
   <script>
-    // State Management
+    // Routine Definitions extracted from spreadsheet
+    const ROUTINES = {
+      Monday: [
+        { name: "Machine Chest Press", workingSets: 3, targetReps: "8-12", rest: 75 },
+        { name: "Lat Pulldown", workingSets: 3, targetReps: "8-12", rest: 75 },
+        { name: "Chest-Supported Machine Row", workingSets: 3, targetReps: "8-12", rest: 75 },
+        { name: "Machine Lateral Raise", workingSets: 3, targetReps: "12-15", rest: 45 },
+        { name: "Cable Rope Triceps Pressdown", workingSets: 3, targetReps: "10-15", rest: 45 },
+        { name: "Glute Drive / Hip Thrust Machine", workingSets: 3, targetReps: "10-12", rest: 75 },
+        { name: "Seated Hip Abduction Machine", workingSets: 3, targetReps: "15-20", rest: 45 }
+      ],
+      Friday: [
+        { name: "Incline Chest Press Machine", workingSets: 3, targetReps: "8-12", rest: 75 },
+        { name: "Neutral-Grip Lat Pulldown", workingSets: 3, targetReps: "8-12", rest: 75 },
+        { name: "Machine Shoulder Press", workingSets: 3, targetReps: "8-12", rest: 75 },
+        { name: "Reverse Pec Deck", workingSets: 3, targetReps: "12-15", rest: 45 },
+        { name: "Machine Preacher Curl", workingSets: 3, targetReps: "10-15", rest: 45 },
+        { name: "Glute Drive / Hip Thrust Machine", workingSets: 3, targetReps: "10-12", rest: 75 },
+        { name: "Seated Hip Abduction Machine", workingSets: 3, targetReps: "15-20", rest: 45 }
+      ]
+    };
+
     const DEFAULT_GOALS = { cal: 2000, pro: 130, carb: 220, fat: 65 };
     let state = JSON.parse(localStorage.getItem('fitlog_data')) || {
       workouts: [],
       nutrition: [],
       goals: DEFAULT_GOALS
     };
+
+    let activeRoutineDay = 'Monday';
 
     function saveState() {
       localStorage.setItem('fitlog_data', JSON.stringify(state));
@@ -444,7 +495,6 @@
       return new Date().toISOString().split('T')[0];
     }
 
-    // Navigation
     function switchTab(tabName, btn) {
       document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
       document.querySelectorAll('nav button').forEach(el => el.classList.remove('active'));
@@ -452,29 +502,33 @@
       btn.classList.add('active');
     }
 
+    function selectRoutine(day) {
+      activeRoutineDay = day;
+      document.querySelectorAll('.routine-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('btn-' + day).classList.add('active');
+      renderRoutine();
+    }
+
     // Workouts Logic
-    function addWorkout() {
-      const exercise = document.getElementById('exName').value.trim();
-      const weight = parseFloat(document.getElementById('exWeight').value) || 0;
-      const reps = parseInt(document.getElementById('exReps').value) || 0;
+    function logExerciseSets(exerciseName, totalSets) {
+      for (let i = 1; i <= totalSets; i++) {
+        const weight = parseFloat(document.getElementById(`w_${exerciseName}_s${i}`).value);
+        const reps = parseInt(document.getElementById(`r_${exerciseName}_s${i}`).value);
 
-      if (!exercise || reps <= 0) {
-        alert('Please enter an exercise name and reps.');
-        return;
+        if (!isNaN(weight) && !isNaN(reps)) {
+          // Check if already logged for today, update or add
+          state.workouts.unshift({
+            id: Date.now() + Math.random(),
+            date: getTodayStr(),
+            exercise: exerciseName,
+            setNum: i,
+            weight,
+            reps
+          });
+        }
       }
-
-      state.workouts.unshift({
-        id: Date.now(),
-        date: getTodayStr(),
-        exercise,
-        weight,
-        reps
-      });
-
-      // Keep exercise name & weight prefilled for quick consecutive sets!
-      document.getElementById('exReps').value = '';
       saveState();
-      checkLastSession();
+      alert(`Saved sets for ${exerciseName}!`);
     }
 
     function deleteWorkout(id) {
@@ -482,25 +536,17 @@
       saveState();
     }
 
-    function checkLastSession() {
-      const input = document.getElementById('exName').value.trim().toLowerCase();
-      const box = document.getElementById('lastSessionBox');
-      if (!input) {
-        box.style.display = 'none';
-        return;
-      }
-
+    function getLastSessionData(exerciseName) {
       const today = getTodayStr();
-      // Find most recent set from a previous day (or most recent overall if none before today)
-      const pastMatches = state.workouts.filter(w => w.exercise.toLowerCase() === input && w.date !== today);
-      const match = pastMatches[0] || state.workouts.find(w => w.exercise.toLowerCase() === input);
-
-      if (match) {
-        box.style.display = 'block';
-        box.innerHTML = `💡 Last logged (${match.date}): <strong>${match.weight} kg × ${match.reps} reps</strong>`;
-      } else {
-        box.style.display = 'none';
-      }
+      const past = state.workouts.filter(w => w.exercise === exerciseName && w.date !== today);
+      if (past.length === 0) return null;
+      // Group by date of last workout session
+      const lastDate = past[0].date;
+      const lastSets = past.filter(w => w.date === lastDate);
+      return {
+        date: lastDate,
+        summary: lastSets.map(s => `S${s.setNum}: ${s.weight}kg × ${s.reps}`).join(' | ')
+      };
     }
 
     // Nutrition Logic
@@ -545,27 +591,71 @@
       const carb = prompt('Daily Carbs Goal (g):', state.goals.carb);
       const fat = prompt('Daily Fat Goal (g):', state.goals.fat);
       if (cal && pro && carb && fat) {
-        state.goals = {
-          cal: Number(cal),
-          pro: Number(pro),
-          carb: Number(carb),
-          fat: Number(fat)
-        };
+        state.goals = { cal: Number(cal), pro: Number(pro), carb: Number(carb), fat: Number(fat) };
         saveState();
       }
     }
 
     // Render UI
+    function renderRoutine() {
+      const container = document.getElementById('routineContainer');
+      const exercises = ROUTINES[activeRoutineDay];
+
+      container.innerHTML = exercises.map((ex, idx) => {
+        const last = getLastSessionData(ex.name);
+        let setsHTML = '';
+        for (let s = 1; s <= ex.workingSets; s++) {
+          setsHTML += `
+            <div class="set-row">
+              <span class="set-label">Set ${s}</span>
+              <input type="number" step="0.5" id="w_${ex.name}_s${s}" placeholder="kg" inputmode="decimal" />
+              <input type="number" id="r_${ex.name}_s${s}" placeholder="reps" inputmode="numeric" />
+              <button class="btn-small" style="background:var(--primary); color:#052e16;" onclick="saveSingleSet('${ex.name}', ${s})">✓</button>
+            </div>
+          `;
+        }
+
+        return `
+          <div class="exercise-card">
+            <div class="exercise-header">
+              <div>
+                <div class="exercise-title">${idx + 1}. ${ex.name}</div>
+                <div class="exercise-meta">Target: ${ex.workingSets} sets × ${ex.targetReps} reps • Rest: ${ex.rest}s</div>
+              </div>
+            </div>
+            ${last ? `<div class="last-session-hint">💡 Last (${last.date}): ${last.summary}</div>` : ''}
+            ${setsHTML}
+          </div>
+        `;
+      }).join('');
+    }
+
+    function saveSingleSet(exerciseName, setNum) {
+      const weight = parseFloat(document.getElementById(`w_${exerciseName}_s${setNum}`).value);
+      const reps = parseInt(document.getElementById(`r_${exerciseName}_s${setNum}`).value);
+
+      if (isNaN(weight) || isNaN(reps)) {
+        alert('Please enter both weight and reps for this set.');
+        return;
+      }
+
+      state.workouts.unshift({
+        id: Date.now() + Math.random(),
+        date: getTodayStr(),
+        exercise: exerciseName,
+        setNum: setNum,
+        weight,
+        reps
+      });
+
+      saveState();
+    }
+
     function renderAll() {
+      renderRoutine();
+
+      // Today's Workouts List
       const today = getTodayStr();
-
-      // Autocomplete list of past exercises
-      const uniqueExercises = [...new Set(state.workouts.map(w => w.exercise))];
-      document.getElementById('exerciseList').innerHTML = uniqueExercises
-        .map(ex => `<option value="${ex}">`)
-        .join('');
-
-      // Today's workouts
       const todayWorkouts = state.workouts.filter(w => w.date === today);
       const workoutListEl = document.getElementById('workoutList');
       if (todayWorkouts.length === 0) {
@@ -574,15 +664,15 @@
         workoutListEl.innerHTML = todayWorkouts.map(w => `
           <div class="log-item">
             <div>
-              <div class="log-title">${w.exercise}</div>
-              <div class="log-sub">${w.weight} kg × ${w.reps} reps</div>
+              <div class="log-title" style="font-weight:600; font-size:0.9rem;">${w.exercise} (Set ${w.setNum})</div>
+              <div class="log-sub" style="font-size:0.8rem; color:var(--text-muted);">${w.weight} kg × ${w.reps} reps</div>
             </div>
             <button class="delete-btn" onclick="deleteWorkout(${w.id})">✕</button>
           </div>
         `).join('');
       }
 
-      // Today's nutrition
+      // Today's Nutrition
       const todayFood = state.nutrition.filter(f => f.date === today);
       const totals = todayFood.reduce((acc, item) => ({
         cal: acc.cal + item.cal,
@@ -611,8 +701,8 @@
         foodListEl.innerHTML = todayFood.map(f => `
           <div class="log-item">
             <div>
-              <div class="log-title">${f.food}</div>
-              <div class="log-sub">${f.cal} kcal • ${f.pro}g P • ${f.carb}g C • ${f.fat}g F</div>
+              <div style="font-weight:600; font-size:0.9rem;">${f.food}</div>
+              <div style="font-size:0.8rem; color:var(--text-muted);">${f.cal} kcal • ${f.pro}g P • ${f.carb}g C • ${f.fat}g F</div>
             </div>
             <button class="delete-btn" onclick="deleteFood(${f.id})">✕</button>
           </div>
@@ -620,7 +710,6 @@
       }
     }
 
-    // Export / Import Backups
     function exportData() {
       const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
