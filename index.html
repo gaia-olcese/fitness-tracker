@@ -1,123 +1,569 @@
-<!-- Admin Dashboard Container / Modal Snippet -->
-<div id="admin-panel" style="display:none; padding: 20px; background: var(--surface); border-radius: 12px; margin-top: 20px;">
-  <h3>Admin User Management</h3>
-  <div id="admin-user-list" style="margin-top: 15px;">
-    <!-- Rendered dynamically by loadAdminUsers() -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FitLog - Workout & Nutrition Tracker</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --surface-hover: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --danger: #ef4444;
+      --border: #334155;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); padding-bottom: 80px; min-height: 100vh; }
+    header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 10; }
+    header h1 { font-size: 1.25rem; font-weight: 700; color: var(--primary); }
+    .user-info { display: flex; align-items: center; gap: 12px; font-size: 0.9rem; color: var(--text-muted); }
+    button { background: var(--primary); color: white; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: 600; transition: background 0.2s; }
+    button:hover { background: var(--primary-hover); }
+    button.secondary { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    button.secondary:hover { background: var(--surface-hover); }
+    button.danger { background: var(--danger); }
+    .container { max-width: 800px; margin: 20px auto; padding: 0 16px; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+    .card h2 { font-size: 1.1rem; margin-bottom: 15px; color: var(--text); }
+    .form-group { margin-bottom: 12px; }
+    label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 6px; }
+    input, select { width: 100%; padding: 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 0.95rem; }
+    input:focus, select:focus { outline: none; border-color: var(--primary); }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9rem; }
+    th, td { padding: 10px; text-align: left; border-bottom: 1px solid var(--border); }
+    th { color: var(--text-muted); font-weight: 600; }
+    nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface); border-top: 1px solid var(--border); display: flex; justify-content: space-around; padding: 12px; z-index: 20; }
+    nav button { background: none; border: none; color: var(--text-muted); font-size: 0.85rem; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    nav button.active { color: var(--primary); }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    #login-modal { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.9); display: flex; justify-content: center; align-items: center; z-index: 100; }
+    .login-box { width: 100%; max-width: 360px; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 30px; }
+  </style>
+</head>
+<body>
+
+  <!-- LOGIN MODAL -->
+  <div id="login-modal">
+    <div class="login-box">
+      <h2 style="margin-bottom: 20px; text-align: center;">FitLog Login</h2>
+      <form id="login-form" onsubmit="handleLogin(event)">
+        <div class="form-group">
+          <label>Username</label>
+          <input type="text" id="login-user" required placeholder="e.g. gaia">
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="login-pass" required placeholder="••••••••">
+        </div>
+        <button type="submit" style="width: 100%; margin-top: 10px;">Sign In</button>
+      </form>
+    </div>
   </div>
-</div>
 
-<script>
-async function loadAdminUsers() {
-  const container = document.getElementById("admin-user-list");
-  container.innerHTML = "<p>Loading users...</p>";
+  <!-- MAIN APP -->
+  <div id="app" style="display: none;">
+    <header>
+      <h1>FitLog</h1>
+      <div class="user-info">
+        <span id="display-user-name"></span>
+        <button class="secondary" onclick="handleLogout()">Logout</button>
+      </div>
+    </header>
 
-  try {
-    const res = await fetch("https://fitlog-api.gaia-olcese.workers.dev/api/admin/users", {
-      method: "GET",
-      headers: {
-        "X-Username": localStorage.getItem("fitlog_user"),
-        "X-Password": localStorage.getItem("fitlog_pass")
+    <div class="container">
+
+      <!-- WORKOUTS TAB -->
+      <div id="tab-workouts" class="tab-content active">
+        <div class="card">
+          <h2>Log Workout Set</h2>
+          <form onsubmit="addWorkout(event)">
+            <div class="form-group">
+              <label>Date</label>
+              <input type="date" id="w-date" required>
+            </div>
+            <div class="form-group">
+              <label>Exercise Name</label>
+              <input type="text" id="w-exercise" required placeholder="e.g. Squats">
+            </div>
+            <div class="row">
+              <div class="form-group">
+                <label>Weight (kg/lbs)</label>
+                <input type="number" step="0.5" id="w-weight" required placeholder="0">
+              </div>
+              <div class="form-group">
+                <label>Reps</label>
+                <input type="number" id="w-reps" required placeholder="0">
+              </div>
+            </div>
+            <button type="submit" style="width: 100%; margin-top: 10px;">Add Set</button>
+          </form>
+        </div>
+
+        <div class="card">
+          <h2>Workout History</h2>
+          <div style="overflow-x: auto;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Exercise</th>
+                  <th>Weight</th>
+                  <th>Reps</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="workout-table-body">
+                <tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No workouts logged yet.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- NUTRITION TAB -->
+      <div id="tab-nutrition" class="tab-content">
+        <div class="card">
+          <h2>Log Nutrition</h2>
+          <form onsubmit="addNutrition(event)">
+            <div class="form-group">
+              <label>Date</label>
+              <input type="date" id="n-date" required>
+            </div>
+            <div class="form-group">
+              <label>Food Item / Meal</label>
+              <input type="text" id="n-food" required placeholder="e.g. Tofu Lentil Bowl">
+            </div>
+            <div class="row">
+              <div class="form-group">
+                <label>Calories (kcal)</label>
+                <input type="number" step="1" id="n-cal" required placeholder="0">
+              </div>
+              <div class="form-group">
+                <label>Protein (g)</label>
+                <input type="number" step="0.1" id="n-pro" required placeholder="0">
+              </div>
+            </div>
+            <div class="row">
+              <div class="form-group">
+                <label>Carbs (g)</label>
+                <input type="number" step="0.1" id="n-carb" required placeholder="0">
+              </div>
+              <div class="form-group">
+                <label>Fat (g)</label>
+                <input type="number" step="0.1" id="n-fat" required placeholder="0">
+              </div>
+            </div>
+            <button type="submit" style="width: 100%; margin-top: 10px;">Add Meal</button>
+          </form>
+        </div>
+
+        <div class="card">
+          <h2>Nutrition History</h2>
+          <div style="overflow-x: auto;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Food</th>
+                  <th>Cal</th>
+                  <th>P / C / F</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="nutrition-table-body">
+                <tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No meals logged yet.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ADMIN TAB -->
+      <div id="tab-admin" class="tab-content">
+        <div class="card">
+          <h2>Admin Dashboard: User Management</h2>
+          <div style="margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--border);">
+            <h3 style="font-size: 0.95rem; margin-bottom: 10px;">Create New User</h3>
+            <form onsubmit="createUser(event)">
+              <div class="row">
+                <div class="form-group">
+                  <label>Username</label>
+                  <input type="text" id="adm-new-user" required placeholder="e.g. adam">
+                </div>
+                <div class="form-group">
+                  <label>Password</label>
+                  <input type="password" id="adm-new-pass" required placeholder="••••••••">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Display Name</label>
+                <input type="text" id="adm-new-display" placeholder="e.g. Adam">
+              </div>
+              <button type="submit">Create User</button>
+            </form>
+          </div>
+
+          <h3 style="font-size: 0.95rem; margin-bottom: 10px;">Existing Users</h3>
+          <div id="admin-user-list">
+            <p style="color: var(--text-muted);">Loading users...</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <nav>
+      <button onclick="switchTab('workouts', this)" class="active" id="nav-w-btn">Workouts</button>
+      <button onclick="switchTab('nutrition', this)">Nutrition</button>
+      <button onclick="switchTab('admin', this)" id="nav-admin-btn" style="display:none;">Admin</button>
+    </nav>
+  </div>
+
+  <script>
+    const API_BASE = "https://fitlog-api.gaia-olcese.workers.dev";
+    let workouts = [];
+    let nutrition = [];
+
+    // Initialize dates to today
+    document.getElementById('w-date').valueAsDate = new Date();
+    document.getElementById('n-date').valueAsDate = new Date();
+
+    // Check existing session
+    window.addEventListener('DOMContentLoaded', () => {
+      const user = localStorage.getItem("fitlog_user");
+      const pass = localStorage.getItem("fitlog_pass");
+      if (user && pass) {
+        verifyAndLoadSession(user, pass);
       }
     });
 
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Failed to load users");
+    async function handleLogin(e) {
+      e.preventDefault();
+      const username = document.getElementById('login-user').value.trim();
+      const password = document.getElementById('login-pass').value;
 
-    let html = `
-      <table style="width: 100%; border-collapse: collapse; text-align: left;">
-        <thead>
-          <tr style="border-bottom: 1px solid var(--border);">
-            <th style="padding: 8px;">Username</th>
-            <th style="padding: 8px;">Display Name</th>
-            <th style="padding: 8px;">Role</th>
-            <th style="padding: 8px; text-align: right;">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-    `;
+      try {
+        const res = await fetch(`${API_BASE}/api/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Login failed");
 
-    data.users.forEach(u => {
-      html = html + `
-        <tr style="border-bottom: 1px solid var(--border);">
-          <td style="padding: 8px;">${u.username}</td>
-          <td style="padding: 8px;">${u.display_name || '-'}</td>
-          <td style="padding: 8px;">${u.is_admin ? 'Admin' : 'User'}</td>
-          <td style="padding: 8px; text-align: right;">
-            <button onclick="editUserPrompt('${u.username}', '${u.display_name || ''}')" style="margin-right: 5px; padding: 4px 8px; cursor: pointer;">Edit</button>
-            <button onclick="deleteUser('${u.username}')" style="padding: 4px 8px; background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer;">Delete</button>
-          </td>
-        </tr>
-      `;
-    });
+        localStorage.setItem("fitlog_user", data.username);
+        localStorage.setItem("fitlog_pass", password);
+        localStorage.setItem("fitlog_is_admin", data.is_admin ? "1" : "0");
+        localStorage.setItem("fitlog_display", data.display_name || data.username);
 
-    html += `</tbody></table>`;
-    container.innerHTML = html;
-  } catch (err) {
-    container.innerHTML = `<p style="color: red;">Error: ${err.message}</p>`;
-  }
-}
-
-async function editUserPrompt(currentUsername, currentDisplayName) {
-  const newUsername = prompt("Enter new username (or keep existing):", currentUsername);
-  if (!newUsername) return;
-  const newPassword = prompt("Enter new password (leave blank to keep current password):");
-  const displayName = prompt("Enter new display name:", currentDisplayName);
-
-  try {
-    const res = await fetch("https://fitlog-api.gaia-olcese.workers.dev/api/admin/users", {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Username": localStorage.getItem("fitlog_user"),
-        "X-Password": localStorage.getItem("fitlog_pass")
-      },
-      body: JSON.stringify({
-        targetUsername: currentUsername,
-        newUsername: newUsername.trim(),
-        newPassword: newPassword ? newPassword : undefined,
-        displayName: displayName !== null ? displayName.trim() : undefined
-      })
-    });
-
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Failed to update user");
-
-    alert("User updated successfully!");
-    
-    // If you changed your own username/password, update local storage cache too!
-    if (currentUsername === localStorage.getItem("fitlog_user")) {
-      localStorage.setItem("fitlog_user", newUsername.trim().toLowerCase());
-      if (newPassword) {
-        // Note: frontend stores raw password to send as header in this architecture
-        localStorage.setItem("fitlog_pass", newPassword);
+        startApp(data.username, data.display_name, data.is_admin);
+      } catch (err) {
+        alert("Login error: " + err.message);
       }
     }
 
-    loadAdminUsers();
-  } catch (err) {
-    alert("Error updating user: " + err.message);
-  }
-}
+    async function verifyAndLoadSession(username, password) {
+      try {
+        const res = await fetch(`${API_BASE}/api/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error("Session expired");
 
-async function deleteUser(username) {
-  if (!confirm(`Are you sure you want to delete user "${username}" and all their workout/nutrition data?`)) return;
-
-  try {
-    const res = await fetch(`https://fitlog-api.gaia-olcese.workers.dev/api/admin/users/${username}`, {
-      method: "DELETE",
-      headers: {
-        "X-Username": localStorage.getItem("fitlog_user"),
-        "X-Password": localStorage.getItem("fitlog_pass")
+        startApp(data.username, data.display_name, data.is_admin);
+      } catch (err) {
+        handleLogout();
       }
-    });
+    }
 
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Failed to delete user");
+    async function startApp(username, displayName, isAdmin) {
+      document.getElementById('login-modal').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      document.getElementById('display-user-name').textContent = displayName || username;
 
-    alert("User deleted successfully.");
-    loadAdminUsers();
-  } catch (err) {
-    alert("Error deleting user: " + err.message);
-  }
-}
-</script>
+      if (isAdmin) {
+        document.getElementById('nav-admin-btn').style.display = 'flex';
+      }
+
+      await fetchData();
+    }
+
+    function handleLogout() {
+      localStorage.removeItem("fitlog_user");
+      localStorage.removeItem("fitlog_pass");
+      localStorage.removeItem("fitlog_is_admin");
+      localStorage.removeItem("fitlog_display");
+      location.reload();
+    }
+
+    function switchTab(tabName, btn) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('nav button').forEach(el => el.classList.remove('active'));
+      document.getElementById(`tab-${tabName}`).classList.add('active');
+      if (btn) btn.classList.add('active');
+
+      if (tabName === 'admin') {
+        loadAdminUsers();
+      }
+    }
+
+    async function fetchData() {
+      try {
+        const res = await fetch(`${API_BASE}/api/data`, {
+          headers: {
+            "X-Username": localStorage.getItem("fitlog_user"),
+            "X-Password": localStorage.getItem("fitlog_pass")
+          }
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed to load data");
+
+        workouts = data.workouts || [];
+        nutrition = data.nutrition || [];
+        renderWorkouts();
+        renderNutrition();
+      } catch (err) {
+        console.error("Fetch error:", err.message);
+      }
+    }
+
+    async function syncData() {
+      try {
+        await fetch(`${API_BASE}/api/sync`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Username": localStorage.getItem("fitlog_user"),
+            "X-Password": localStorage.getItem("fitlog_pass")
+          },
+          body: JSON.stringify({ workouts, nutrition })
+        });
+      } catch (err) {
+        console.error("Sync error:", err);
+      }
+    }
+
+    function addWorkout(e) {
+      e.preventDefault();
+      const item = {
+        id: 'w_' + Date.now(),
+        date: document.getElementById('w-date').value,
+        exercise: document.getElementById('w-exercise').value.trim(),
+        weight: parseFloat(document.getElementById('w-weight').value),
+        reps: parseInt(document.getElementById('w-reps').value),
+        setNum: 1
+      };
+      workouts.unshift(item);
+      renderWorkouts();
+      syncData();
+      e.target.reset();
+      document.getElementById('w-date').valueAsDate = new Date();
+    }
+
+    function deleteWorkout(id) {
+      workouts = workouts.filter(w => w.id !== id);
+      renderWorkouts();
+      syncData();
+    }
+
+    function renderWorkouts() {
+      const tbody = document.getElementById('workout-table-body');
+      if (workouts.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No workouts logged yet.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = workouts.map(w => `
+        <tr>
+          <td>${w.date}</td>
+          <td>${w.exercise}</td>
+          <td>${w.weight}</td>
+          <td>${w.reps}</td>
+          <td><button class="danger" style="padding: 4px 8px; font-size: 0.8rem;" onclick="deleteWorkout('${w.id}')">Del</button></td>
+        </tr>
+      `).join('');
+    }
+
+    function addNutrition(e) {
+      e.preventDefault();
+      const item = {
+        id: 'n_' + Date.now(),
+        date: document.getElementById('n-date').value,
+        food: document.getElementById('n-food').value.trim(),
+        cal: parseFloat(document.getElementById('n-cal').value),
+        pro: parseFloat(document.getElementById('n-pro').value),
+        carb: parseFloat(document.getElementById('n-carb').value),
+        fat: parseFloat(document.getElementById('n-fat').value)
+      };
+      nutrition.unshift(item);
+      renderNutrition();
+      syncData();
+      e.target.reset();
+      document.getElementById('n-date').valueAsDate = new Date();
+    }
+
+    function deleteNutrition(id) {
+      nutrition = nutrition.filter(n => n.id !== id);
+      renderNutrition();
+      syncData();
+    }
+
+    function renderNutrition() {
+      const tbody = document.getElementById('nutrition-table-body');
+      if (nutrition.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No meals logged yet.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = nutrition.map(n => `
+        <tr>
+          <td>${n.date}</td>
+          <td>${n.food}</td>
+          <td>${n.cal}</td>
+          <td>${n.pro}p / ${n.carb}c / ${n.fat}f</td>
+          <td><button class="danger" style="padding: 4px 8px; font-size: 0.8rem;" onclick="deleteNutrition('${n.id}')">Del</button></td>
+        </tr>
+      `).join('');
+    }
+
+    async function loadAdminUsers() {
+      const container = document.getElementById("admin-user-list");
+      container.innerHTML = "<p style='color: var(--text-muted);'>Loading users...</p>";
+
+      try {
+        const res = await fetch(`${API_BASE}/api/admin/users`, {
+          method: "GET",
+          headers: {
+            "X-Username": localStorage.getItem("fitlog_user"),
+            "X-Password": localStorage.getItem("fitlog_pass")
+          }
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed to load users");
+
+        container.innerHTML = `
+          <table>
+            <thead>
+              <tr>
+                <th>Username</th>
+                <th>Display Name</th>
+                <th>Role</th>
+                <th style="text-align: right;">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${data.users.map(u => `
+                <tr>
+                  <td>${u.username}</td>
+                  <td>${u.display_name || '-'}</td>
+                  <td>${u.is_admin ? 'Admin' : 'User'}</td>
+                  <td style="text-align: right;">
+                    <button class="secondary" style="padding: 4px 8px; font-size: 0.8rem; margin-right: 4px;" onclick="editUserPrompt('${u.username}', '${u.display_name || ''}')">Edit</button>
+                    ${u.username !== localStorage.getItem("fitlog_user") ? `<button class="danger" style="padding: 4px 8px; font-size: 0.8rem;" onclick="deleteUser('${u.username}')">Delete</button>` : ''}
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `;
+      } catch (err) {
+        container.innerHTML = `<p style="color: var(--danger);">Error: ${err.message}</p>`;
+      }
+    }
+
+    async function createUser(e) {
+      e.preventDefault();
+      const newUsername = document.getElementById('adm-new-user').value.trim();
+      const newPassword = document.getElementById('adm-new-pass').value;
+      const displayName = document.getElementById('adm-new-display').value.trim();
+
+      try {
+        const res = await fetch(`${API_BASE}/api/admin/users`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Username": localStorage.getItem("fitlog_user"),
+            "X-Password": localStorage.getItem("fitlog_pass")
+          },
+          body: JSON.stringify({ newUsername, newPassword, displayName })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed to create user");
+
+        alert("User created successfully!");
+        e.target.reset();
+        loadAdminUsers();
+      } catch (err) {
+        alert("Error: " + err.message);
+      }
+    }
+
+    async function editUserPrompt(currentUsername, currentDisplayName) {
+      const newUsername = prompt("Enter new username:", currentUsername);
+      if (!newUsername) return;
+      const newPassword = prompt("Enter new password (leave blank to keep current):");
+      const displayName = prompt("Enter new display name:", currentDisplayName);
+
+      try {
+        const res = await fetch(`${API_BASE}/api/admin/users`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Username": localStorage.getItem("fitlog_user"),
+            "X-Password": localStorage.getItem("fitlog_pass")
+          },
+          body: JSON.stringify({
+            targetUsername: currentUsername,
+            newUsername: newUsername.trim(),
+            newPassword: newPassword ? newPassword : undefined,
+            displayName: displayName !== null ? displayName.trim() : undefined
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed to update user");
+
+        alert("User updated successfully!");
+
+        // If editing own credentials, update local cache
+        if (currentUsername === localStorage.getItem("fitlog_user")) {
+          localStorage.setItem("fitlog_user", newUsername.trim().toLowerCase());
+          if (newPassword) localStorage.setItem("fitlog_pass", newPassword);
+          if (displayName) localStorage.setItem("fitlog_display", displayName.trim());
+          document.getElementById('display-user-name').textContent = displayName || newUsername;
+        }
+
+        loadAdminUsers();
+      } catch (err) {
+        alert("Error: " + err.message);
+      }
+    }
+
+    async function deleteUser(username) {
+      if (!confirm(`Are you sure you want to delete user "${username}" and all their data?`)) return;
+
+      try {
+        const res = await fetch(`${API_BASE}/api/admin/users/${username}`, {
+          method: "DELETE",
+          headers: {
+            "X-Username": localStorage.getItem("fitlog_user"),
+            "X-Password": localStorage.getItem("fitlog_pass")
+          }
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed to delete user");
+
+        alert("User deleted successfully.");
+        loadAdminUsers();
+      } catch (err) {
+        alert("Error: " + err.message);
+      }
+    }
+  </script>
+</body>
+</html>
