@@ -234,16 +234,66 @@
 
     .set-row {
       display: grid;
-      grid-template-columns: 50px 1fr 1fr;
+      grid-template-columns: 50px minmax(0, 1fr) minmax(0, 1fr) auto;
       gap: 6px;
       align-items: center;
       margin-bottom: 6px;
+    }
+
+    .set-row .btn-small {
+      padding: 8px 6px;
+      white-space: nowrap;
+    }
+
+    .set-summary {
+      grid-column: span 2;
+      font-size: 0.85rem;
     }
 
     .set-label {
       font-size: 0.75rem;
       color: var(--text-muted);
       font-weight: 600;
+    }
+
+    .exercise-status.complete {
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    .exercise-set-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .rest-timer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      padding: 12px;
+      margin: 0 0 12px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--surface-light);
+    }
+
+    .rest-timer[hidden] {
+      display: none;
+    }
+
+    .rest-timer-countdown {
+      color: var(--primary);
+      font-size: 1.4rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .rest-timer-controls {
+      display: flex;
+      gap: 6px;
     }
 
     input {
@@ -576,13 +626,21 @@
           <button class="btn-small" onclick="openAddRoutineModal()">+ Add New Day</button>
           <button class="btn-small" onclick="deleteCurrentRoutine()" style="color:var(--danger)">🗑️ Delete Day</button>
         </div>
+        <div id="restTimer" class="rest-timer" role="status" aria-live="polite" hidden>
+          <div>
+            <div id="restTimerLabel" style="font-size:0.85rem; font-weight:600;"></div>
+            <div id="restTimerStatus" style="font-size:0.75rem; color:var(--text-muted);"></div>
+          </div>
+          <div id="restTimerCountdown" class="rest-timer-countdown">00:00</div>
+          <div class="rest-timer-controls">
+            <button class="btn-small" onclick="addRestTimerTime(15)">+15 sec</button>
+            <button class="btn-small" onclick="restartRestTimer()">Restart</button>
+            <button class="btn-small" onclick="skipRestTimer()">Skip</button>
+          </div>
+        </div>
         <div id="routineContainer"></div>
       </div>
 
-      <div class="card">
-        <h2>Today's Completed Sets</h2>
-        <div id="workoutList"></div>
-      </div>
     </div>
 
     <!-- Progress Tab -->
@@ -826,6 +884,9 @@
     let savedData = JSON.parse(localStorage.getItem('fitlog_data')) || {};
     
     function getInitialRoutines(user) {
+      if (savedData.routines && Object.keys(savedData.routines).length > 0) {
+        return savedData.routines;
+      }
       if (user === 'gaia') return GAIA_ROUTINES;
       if (user === 'adam') return ADAM_ROUTINES;
       return savedData.routines || {};
@@ -843,6 +904,15 @@
     let volumeChartInstance = null;
     let maxWeightChartInstance = null;
     let pendingAvatarData = "";
+    let restTimer = {
+      intervalId: null,
+      visible: false,
+      endAt: 0,
+      duration: 0,
+      label: "",
+      finishedReason: ""
+    };
+    let editingSetExercise = null;
 
     function getUserProfile() {
       if (!currentUser) return { name: "Guest", avatar: "" };
@@ -1277,6 +1347,7 @@
 
     function selectRoutine(day) {
       activeRoutineDay = day;
+      editingSetExercise = null;
       renderAll();
     }
 
@@ -1289,6 +1360,22 @@
       const today = getTodayStr();
       const match = state.workouts.find(w => w.exercise === exerciseName && w.setNum === setNum && w.date !== today);
       return match ? { weight: match.weight, reps: match.reps } : null;
+    }
+
+    function getTodaysExerciseSets(exerciseName) {
+      const sets = new Map();
+      const today = getTodayStr();
+
+      state.workouts.forEach(workout => {
+        if (workout.date !== today || workout.exercise !== exerciseName) return;
+
+        const setNum = Number(workout.setNum);
+        if (Number.isInteger(setNum) && setNum > 0 && !sets.has(setNum)) {
+          sets.set(setNum, workout);
+        }
+      });
+
+      return sets;
     }
 
     function openAddRoutineModal() {
@@ -1336,7 +1423,9 @@
       if (!name) return;
       const targetReps = prompt("Enter target rep range (e.g. 8-12):", "8-12") || "8-12";
       const sets = parseInt(prompt("Enter number of working sets:", "3")) || 3;
-      const defaultDesc = `${sets} sets × ${targetReps} reps • Rest: 75s`;
+      const rest = promptRestDuration("Rest time between sets (seconds):", 75);
+      if (rest === null) return;
+      const defaultDesc = `${sets} sets × ${targetReps} reps`;
       const desc = prompt("Enter exercise description / target notes:", defaultDesc) || defaultDesc;
 
       if (!state.routines[activeRoutineDay]) {
@@ -1347,7 +1436,7 @@
         name: name.trim(),
         workingSets: sets,
         targetReps: targetReps,
-        rest: 75,
+        rest,
         desc: desc.trim()
       });
 
@@ -1360,18 +1449,43 @@
       if (!name) return;
       const targetReps = prompt("Edit target rep range:", ex.targetReps) || ex.targetReps;
       const sets = parseInt(prompt("Edit working sets:", ex.workingSets)) || ex.workingSets;
-      const currentDesc = ex.desc || `${ex.workingSets} sets × ${ex.targetReps} reps • Rest: ${ex.rest}s`;
+      const rest = promptRestDuration("Rest time between sets (seconds):", getExerciseRest(ex));
+      if (rest === null) return;
+      const currentDesc = (ex.desc || `${ex.workingSets} sets × ${ex.targetReps} reps`)
+        .replace(/\s*[•·]\s*Rest:\s*\d+\s*s?$/i, "");
       const desc = prompt("Edit exercise description / target notes:", currentDesc) || currentDesc;
 
       ex.name = name.trim();
       ex.targetReps = targetReps;
       ex.workingSets = sets;
+      ex.rest = rest;
       ex.desc = desc.trim();
       saveLocalState();
     }
 
+    function promptRestDuration(message, defaultValue) {
+      const value = prompt(message, String(defaultValue));
+      if (value === null) return null;
+      if (value.trim() === '') {
+        alert("Enter a rest time in seconds.");
+        return null;
+      }
+      const seconds = Number(value);
+      if (!Number.isInteger(seconds) || seconds < 0 || seconds > 3600) {
+        alert("Rest time must be a whole number between 0 and 3600 seconds.");
+        return null;
+      }
+      return seconds;
+    }
+
+    function getExerciseRest(exercise) {
+      const seconds = Number(exercise.rest);
+      return Number.isInteger(seconds) && seconds >= 0 && seconds <= 3600 ? seconds : 75;
+    }
+
     function removeExerciseFromRoutine(index) {
       if (confirm(`Remove this exercise from ${activeRoutineDay}?`)) {
+        editingSetExercise = null;
         state.routines[activeRoutineDay].splice(index, 1);
         saveLocalState();
       }
@@ -1575,26 +1689,62 @@
 
       container.innerHTML = exercises.map((ex, idx) => {
         let setsHTML = '';
+        const todaysSets = getTodaysExerciseSets(ex.name);
+        const isEditing = editingSetExercise &&
+          editingSetExercise.day === activeRoutineDay &&
+          editingSetExercise.index === idx;
+        let loggedCount = 0;
+
         for (let s = 1; s <= ex.workingSets; s++) {
+          const loggedSet = todaysSets.get(s);
           const lastSet = getLastSetData(ex.name, s);
           const weightPlaceholder = lastSet ? `${lastSet.weight}kg` : 'kg';
           const repsPlaceholder = lastSet ? `${lastSet.reps}r` : 'reps';
 
+          if (loggedSet) {
+            loggedCount++;
+            if (isEditing) {
+              setsHTML += `
+                <div class="set-row">
+                  <span class="set-label">Set ${s}</span>
+                  <input type="number" min="0" step="0.5" id="w_ex${idx}_s${s}" value="${loggedSet.weight}" inputmode="decimal" aria-label="Set ${s} weight in kilograms" />
+                  <input type="number" min="1" step="1" id="r_ex${idx}_s${s}" value="${loggedSet.reps}" inputmode="numeric" aria-label="Set ${s} reps" />
+                </div>
+              `;
+            } else {
+              setsHTML += `
+                <div class="set-row">
+                  <span class="set-label">Set ${s}</span>
+                  <span class="set-summary">${loggedSet.weight} kg × ${loggedSet.reps} reps</span>
+                  <button class="delete-btn" onclick="deleteWorkout('${loggedSet.id}')" title="Remove logged set" aria-label="Remove set ${s}">✕</button>
+                </div>
+              `;
+            }
+            continue;
+          }
+
           setsHTML += `
             <div class="set-row">
               <span class="set-label">Set ${s}</span>
-              <input type="number" step="0.5" id="w_ex${idx}_s${s}" placeholder="${weightPlaceholder}" inputmode="decimal" />
-              <input type="number" id="r_ex${idx}_s${s}" placeholder="${repsPlaceholder}" inputmode="numeric" />
+              <input type="number" min="0" step="0.5" id="w_ex${idx}_s${s}" placeholder="${weightPlaceholder}" inputmode="decimal" aria-label="Set ${s} weight in kilograms" />
+              <input type="number" min="1" step="1" id="r_ex${idx}_s${s}" placeholder="${repsPlaceholder}" inputmode="numeric" aria-label="Set ${s} reps" />
+              <button class="btn-small" style="background:var(--primary); color:#ffffff; border-color:var(--primary);" onclick="logSetAndStartRest(${idx}, ${s})">Log &amp; Rest</button>
             </div>
           `;
         }
 
+        const restSeconds = getExerciseRest(ex);
+        const isComplete = loggedCount === ex.workingSets;
         return `
           <div class="exercise-card">
             <div class="exercise-header">
               <div>
                 <div class="exercise-title">${idx + 1}. ${ex.name}</div>
-                <div class="exercise-meta">${ex.desc || `${ex.workingSets} sets × ${ex.targetReps} reps • Rest: ${ex.rest}s`}</div>
+                <div class="exercise-meta">${ex.desc || `${ex.workingSets} sets × ${ex.targetReps} reps`}</div>
+                <div class="exercise-meta">Rest timer: ${restSeconds} sec</div>
+                <div class="exercise-status ${isComplete ? 'complete' : ''}" aria-live="polite">
+                  ${isComplete ? '✓ Complete' : 'In progress'} · ${loggedCount}/${ex.workingSets} sets
+                </div>
               </div>
               <div class="exercise-tools">
                 <button onclick="editExercise(${idx})" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.85rem;" title="Edit exercise">✏️</button>
@@ -1602,44 +1752,193 @@
               </div>
             </div>
             ${setsHTML}
-            <button class="btn-small" style="width:100%; margin-top:8px; background:var(--primary); color:#ffffff; border:none; padding:8px;" onclick="saveExerciseSets('${ex.name.replace(/'/g, "\\'")}', ${idx}, ${ex.workingSets})">✓ Log Exercise</button>
+            ${isEditing ? `
+              <div class="exercise-set-actions">
+                <button class="btn-small" style="background:var(--primary); color:#ffffff; border-color:var(--primary);" onclick="saveEditedExerciseSets(${idx})">Save changes</button>
+                <button class="btn-small" onclick="cancelEditLoggedSets()">Cancel</button>
+              </div>
+            ` : (loggedCount > 0 ? `
+              <button class="btn-small" style="margin-top:8px;" onclick="editLoggedSets(${idx})">✏️ Edit logged sets</button>
+            ` : '')}
           </div>
         `;
       }).join('');
     }
 
-    function saveExerciseSets(exerciseName, exIndex, totalSets) {
-      let loggedCount = 0;
-      const todayStr = getTodayStr();
-
+    function captureExerciseDrafts(exIndex, totalSets, excludedSetNum = null) {
+      const drafts = [];
       for (let s = 1; s <= totalSets; s++) {
+        if (s === excludedSetNum) continue;
         const weightInput = document.getElementById(`w_ex${exIndex}_s${s}`);
         const repsInput = document.getElementById(`r_ex${exIndex}_s${s}`);
-        
-        if (weightInput && repsInput && weightInput.value !== '' && repsInput.value !== '') {
-          const weight = parseFloat(weightInput.value);
-          const reps = parseInt(repsInput.value);
-
-          if (!isNaN(weight) && !isNaN(reps)) {
-            state.workouts.unshift({
-              id: 'w_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7) + '_' + s,
-              date: todayStr,
-              exercise: exerciseName,
-              setNum: s,
-              weight,
-              reps
-            });
-            loggedCount++;
-          }
+        if (weightInput && repsInput) {
+          drafts.push({
+            setNum: s,
+            weight: weightInput.value,
+            reps: repsInput.value
+          });
         }
       }
+      return drafts;
+    }
 
-      if (loggedCount === 0) {
-        alert('Please enter weight and reps for at least one set before logging.');
+    function restoreExerciseDrafts(exIndex, drafts) {
+      drafts.forEach(draft => {
+        const weightInput = document.getElementById(`w_ex${exIndex}_s${draft.setNum}`);
+        const repsInput = document.getElementById(`r_ex${exIndex}_s${draft.setNum}`);
+        if (weightInput) weightInput.value = draft.weight;
+        if (repsInput) repsInput.value = draft.reps;
+      });
+    }
+
+    function editLoggedSets(exIndex) {
+      const exercise = (state.routines[activeRoutineDay] || [])[exIndex];
+      if (!exercise) return;
+      const drafts = captureExerciseDrafts(exIndex, exercise.workingSets);
+      editingSetExercise = { day: activeRoutineDay, index: exIndex };
+      renderRoutine();
+      restoreExerciseDrafts(exIndex, drafts);
+    }
+
+    function cancelEditLoggedSets() {
+      const editing = editingSetExercise;
+      if (!editing) return;
+      const exercise = (state.routines[editing.day] || [])[editing.index];
+      const drafts = exercise
+        ? captureExerciseDrafts(editing.index, exercise.workingSets)
+        : [];
+      editingSetExercise = null;
+      renderRoutine();
+      restoreExerciseDrafts(editing.index, drafts);
+    }
+
+    function saveEditedExerciseSets(exIndex) {
+      const exercise = (state.routines[activeRoutineDay] || [])[exIndex];
+      if (!exercise) return;
+      const todaysSets = getTodaysExerciseSets(exercise.name);
+      const updates = [];
+
+      for (let s = 1; s <= exercise.workingSets; s++) {
+        const workout = todaysSets.get(s);
+        if (!workout) continue;
+
+        const weightInput = document.getElementById(`w_ex${exIndex}_s${s}`);
+        const repsInput = document.getElementById(`r_ex${exIndex}_s${s}`);
+        const weight = Number(weightInput?.value);
+        const reps = Number(repsInput?.value);
+        if (!weightInput || !repsInput || weightInput.value === '' || repsInput.value === '' ||
+            !Number.isFinite(weight) || weight < 0 ||
+            !Number.isInteger(reps) || reps < 1) {
+          alert(`Enter a valid weight and whole-number rep count for set ${s}.`);
+          return;
+        }
+        updates.push({ workout, weight, reps });
+      }
+
+      const drafts = captureExerciseDrafts(exIndex, exercise.workingSets);
+      updates.forEach(({ workout, weight, reps }) => {
+        workout.weight = weight;
+        workout.reps = reps;
+      });
+      editingSetExercise = null;
+      saveLocalState();
+      restoreExerciseDrafts(exIndex, drafts);
+    }
+
+    function logSetAndStartRest(exIndex, setNum) {
+      const exercise = (state.routines[activeRoutineDay] || [])[exIndex];
+      const weightInput = document.getElementById(`w_ex${exIndex}_s${setNum}`);
+      const repsInput = document.getElementById(`r_ex${exIndex}_s${setNum}`);
+      if (!exercise || !weightInput || !repsInput) return;
+      if (getTodaysExerciseSets(exercise.name).has(setNum)) {
+        alert("This set is already logged. Use Edit logged sets to change it.");
+        renderRoutine();
         return;
       }
 
+      const weight = Number(weightInput.value);
+      const reps = Number(repsInput.value);
+      if (weightInput.value === '' || repsInput.value === '' ||
+          !Number.isFinite(weight) || weight < 0 ||
+          !Number.isInteger(reps) || reps < 1) {
+        alert("Enter a valid weight and whole-number rep count for this set.");
+        return;
+      }
+
+      const drafts = captureExerciseDrafts(exIndex, exercise.workingSets, setNum);
+
+      const todayStr = getTodayStr();
+      state.workouts.unshift({
+        id: 'w_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7) + '_' + setNum,
+        date: todayStr,
+        exercise: exercise.name,
+        setNum,
+        weight,
+        reps
+      });
       saveLocalState();
+      restoreExerciseDrafts(exIndex, drafts);
+      startRestTimer(exercise.name, setNum, getExerciseRest(exercise));
+    }
+
+    function startRestTimer(exerciseName, setNum, seconds) {
+      clearInterval(restTimer.intervalId);
+      restTimer = {
+        intervalId: null,
+        visible: true,
+        endAt: Date.now() + seconds * 1000,
+        duration: seconds,
+        label: `${exerciseName} • Set ${setNum}`,
+        finishedReason: ""
+      };
+      updateRestTimer();
+      restTimer.intervalId = setInterval(updateRestTimer, 250);
+    }
+
+    function updateRestTimer() {
+      if (!restTimer.visible) return;
+      const remaining = Math.max(0, Math.ceil((restTimer.endAt - Date.now()) / 1000));
+      const minutes = String(Math.floor(remaining / 60)).padStart(2, '0');
+      const seconds = String(remaining % 60).padStart(2, '0');
+      document.getElementById('restTimer').hidden = false;
+      document.getElementById('restTimerLabel').textContent = restTimer.label;
+      document.getElementById('restTimerCountdown').textContent = `${minutes}:${seconds}`;
+      document.getElementById('restTimerStatus').textContent = remaining > 0
+        ? 'Resting'
+        : (restTimer.finishedReason || 'Rest complete');
+
+      if (remaining === 0 && restTimer.intervalId) {
+        clearInterval(restTimer.intervalId);
+        restTimer.intervalId = null;
+        restTimer.finishedReason = 'Rest complete';
+        document.getElementById('restTimerStatus').textContent = restTimer.finishedReason;
+      }
+    }
+
+    function addRestTimerTime(seconds) {
+      if (!restTimer.visible) return;
+      const remaining = Math.max(0, Math.ceil((restTimer.endAt - Date.now()) / 1000));
+      restTimer.endAt = Date.now() + Math.min(3600, remaining + seconds) * 1000;
+      restTimer.finishedReason = "";
+      if (!restTimer.intervalId) restTimer.intervalId = setInterval(updateRestTimer, 250);
+      updateRestTimer();
+    }
+
+    function restartRestTimer() {
+      if (!restTimer.visible) return;
+      restTimer.endAt = Date.now() + restTimer.duration * 1000;
+      restTimer.finishedReason = "";
+      if (!restTimer.intervalId) restTimer.intervalId = setInterval(updateRestTimer, 250);
+      updateRestTimer();
+    }
+
+    function skipRestTimer() {
+      if (!restTimer.visible) return;
+      clearInterval(restTimer.intervalId);
+      restTimer.intervalId = null;
+      restTimer.endAt = Date.now();
+      restTimer.finishedReason = 'Rest skipped';
+      updateRestTimer();
     }
 
     function renderAll() {
@@ -1648,22 +1947,6 @@
       renderChart();
 
       const today = getTodayStr();
-      const todayWorkouts = state.workouts.filter(w => w.date === today);
-      const workoutListEl = document.getElementById('workoutList');
-      if (todayWorkouts.length === 0) {
-        workoutListEl.innerHTML = '<div class="empty-state">No sets logged today yet.</div>';
-      } else {
-        workoutListEl.innerHTML = todayWorkouts.map(w => `
-          <div class="log-item">
-            <div>
-              <div style="font-weight:600; font-size:0.9rem;">${w.exercise} (Set ${w.setNum})</div>
-              <div style="font-size:0.8rem; color:var(--text-muted);">${w.weight} kg × ${w.reps} reps</div>
-            </div>
-            <button class="delete-btn" onclick="deleteWorkout('${w.id}')">✕</button>
-          </div>
-        `).join('');
-      }
-
       const todayFood = state.nutrition.filter(f => f.date === today);
       const totals = todayFood.reduce((acc, item) => ({
         cal: acc.cal + item.cal,
