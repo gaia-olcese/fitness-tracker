@@ -267,6 +267,42 @@
       margin-top: 8px;
     }
 
+    .warmup-section {
+      padding: 12px;
+      margin: 12px 0;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--surface-light);
+    }
+
+    .warmup-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .warmup-header h3 {
+      font-size: 0.95rem;
+    }
+
+    .warmup-note,
+    .warmup-sync-status {
+      margin-top: 6px;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .warmup-list {
+      margin: 8px 0 0;
+      padding-left: 20px;
+      font-size: 0.85rem;
+    }
+
+    .warmup-list li + li {
+      margin-top: 3px;
+    }
+
     .rest-timer {
       display: flex;
       align-items: center;
@@ -313,6 +349,26 @@
     }
 
     input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.15);
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 160px;
+      resize: vertical;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      font: inherit;
+      font-size: 0.9rem;
+      text-align: left;
+    }
+
+    textarea:focus {
       outline: none;
       border-color: var(--primary);
       box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.15);
@@ -597,6 +653,22 @@
     </div>
   </div>
 
+  <div id="warmupModal" class="modal-overlay" style="display: none;" onclick="if(event.target===this) closeWarmupEditor()">
+    <div class="login-card" onclick="event.stopPropagation()">
+      <h2>Edit Warm-up</h2>
+      <p>Enter one exercise per line. Signed-in edits sync to your account.</p>
+      <div class="form-group" style="text-align: left;">
+        <label for="warmupEditorInput">Warm-up exercises</label>
+        <textarea id="warmupEditorInput" aria-describedby="warmupEditorStatus"></textarea>
+        <div id="warmupEditorStatus" class="warmup-sync-status" role="status" aria-live="polite"></div>
+      </div>
+      <div style="display: flex; gap: 8px; margin-top: 14px;">
+        <button type="button" class="btn-small" style="flex: 1; padding: 12px;" onclick="closeWarmupEditor()">Cancel</button>
+        <button type="button" class="btn-primary" id="warmupSaveButton" style="flex: 2; margin-top: 0; padding: 12px;" onclick="saveWarmupEditor()">Save</button>
+      </div>
+    </div>
+  </div>
+
   <header>
     <div class="brand-group">
       <h1>Fit<span>Log</span></h1>
@@ -620,6 +692,15 @@
           Workout Routine
           <button class="btn-small" onclick="openAddExerciseModal()">+ Add Exercise</button>
         </h2>
+        <section class="warmup-section" aria-labelledby="warmupHeading">
+          <div class="warmup-header">
+            <h3 id="warmupHeading">Warm-up</h3>
+            <button class="btn-small" onclick="openWarmupEditor()">✏️ Edit</button>
+          </div>
+          <p class="warmup-note">Consider a lighter warm-up set before your working sets. This warm-up list is a recommendation only; it is not logged or timed.</p>
+          <ul id="warmupExerciseList" class="warmup-list"></ul>
+          <div id="warmupSyncStatus" class="warmup-sync-status" role="status" aria-live="polite"></div>
+        </section>
         <div class="routine-selector" id="routineSelector"></div>
         <div class="routine-actions">
           <button class="btn-small" onclick="openRenameRoutineModal()">✏️ Rename Day</button>
@@ -876,13 +957,63 @@
     ];
 
     const DEFAULT_GOALS = { cal: 2000, pro: 130, carb: 220, fat: 65 };
+    const DEFAULT_WARMUP_EXERCISES = [
+      "Spiderman reach hamstring",
+      "Unilateral deadbugs",
+      "Reverse lunges",
+      "Walkouts",
+      "Band pull aparts"
+    ];
     
     let currentUser = localStorage.getItem('fitlog_user');
     let currentPassword = localStorage.getItem('fitlog_pass');
     let isAdmin = localStorage.getItem('fitlog_is_admin') === 'true';
 
     let savedData = JSON.parse(localStorage.getItem('fitlog_data')) || {};
+
+    function normalizeWarmupExercises(value) {
+      if (!Array.isArray(value) || value.length > 50) return null;
+      const exercises = [];
+      for (const item of value) {
+        if (typeof item !== 'string') return null;
+        const exercise = item.trim();
+        if (!exercise || exercise.length > 120) return null;
+        exercises.push(exercise);
+      }
+      return exercises;
+    }
+
+    function getWarmupStorageKey(username) {
+      const userKey = (username || 'guest').trim().toLowerCase() || 'guest';
+      return `fitlog_warmup_${userKey}`;
+    }
+
+    function getCachedWarmupExercises(username) {
+      const stored = localStorage.getItem(getWarmupStorageKey(username));
+      if (!stored) return null;
+      try {
+        return normalizeWarmupExercises(JSON.parse(stored));
+      } catch (error) {
+        console.error("Could not read the saved warm-up list:", error);
+        return null;
+      }
+    }
+
+    function cacheWarmupExercises(username, exercises) {
+      localStorage.setItem(getWarmupStorageKey(username), JSON.stringify(exercises));
+    }
     
+    function isWarmupSyncPending(username) {
+      return !!username && localStorage.getItem(`fitlog_warmup_pending_${username.toLowerCase()}`) === 'true';
+    }
+
+    function setWarmupSyncPending(username, pending) {
+      if (!username) return;
+      const key = `fitlog_warmup_pending_${username.toLowerCase()}`;
+      if (pending) localStorage.setItem(key, 'true');
+      else localStorage.removeItem(key);
+    }
+
     function getInitialRoutines(user) {
       if (savedData.routines && Object.keys(savedData.routines).length > 0) {
         return savedData.routines;
@@ -896,7 +1027,8 @@
       workouts: savedData.workouts || [],
       nutrition: savedData.nutrition || [],
       goals: savedData.goals || DEFAULT_GOALS,
-      routines: getInitialRoutines(currentUser)
+      routines: getInitialRoutines(currentUser),
+      warmupExercises: getCachedWarmupExercises(currentUser) || [...DEFAULT_WARMUP_EXERCISES]
     };
 
     let routineKeys = Object.keys(state.routines);
@@ -1072,12 +1204,15 @@
         localStorage.setItem('fitlog_user', currentUser);
         localStorage.setItem('fitlog_pass', currentPassword);
         localStorage.setItem('fitlog_is_admin', isAdmin ? 'true' : 'false');
+        state.warmupExercises = getCachedWarmupExercises(currentUser) || [...DEFAULT_WARMUP_EXERCISES];
+        document.getElementById('warmupSyncStatus').textContent = '';
 
         if (currentUser === 'gaia') state.routines = GAIA_ROUTINES;
         else if (currentUser === 'adam') state.routines = ADAM_ROUTINES;
         else state.routines = {};
 
         renderProfileBadge();
+        renderAll();
         loadApiKeySetting();
         document.getElementById('loginModal').style.display = 'none';
         await syncWithCloud();
@@ -1094,8 +1229,12 @@
       currentUser = null;
       currentPassword = null;
       isAdmin = false;
+      state.warmupExercises = [...DEFAULT_WARMUP_EXERCISES];
+      document.getElementById('warmupSyncStatus').textContent = '';
+      closeWarmupEditor();
       renderProfileBadge();
       loadApiKeySetting();
+      renderAll();
       document.getElementById('loginUsername').value = '';
       document.getElementById('loginPassword').value = '';
       document.getElementById('loginModal').style.display = 'flex';
@@ -1138,6 +1277,28 @@
         } else {
           state.workouts = cloudData.workouts || [];
           state.nutrition = cloudData.nutrition || [];
+        }
+
+        if (isWarmupSyncPending(currentUser)) {
+          state.warmupExercises = getCachedWarmupExercises(currentUser) || [...DEFAULT_WARMUP_EXERCISES];
+          try {
+            await saveWarmupExercisesToCloud(state.warmupExercises);
+            setWarmupSyncPending(currentUser, false);
+            document.getElementById('warmupSyncStatus').textContent = 'Warm-up list synced to your account.';
+          } catch (error) {
+            console.error("Could not sync the saved warm-up list:", error);
+            document.getElementById('warmupSyncStatus').textContent =
+              `Warm-up list is saved on this device; cloud sync is pending: ${error.message}`;
+          }
+        } else if (cloudData.warmupExercises === null || cloudData.warmupExercises === undefined) {
+          state.warmupExercises = getCachedWarmupExercises(currentUser) || [...DEFAULT_WARMUP_EXERCISES];
+        } else {
+          const cloudWarmupExercises = normalizeWarmupExercises(cloudData.warmupExercises);
+          if (cloudWarmupExercises === null) {
+            throw new Error("Cloud returned an invalid warm-up list.");
+          }
+          state.warmupExercises = cloudWarmupExercises;
+          cacheWarmupExercises(currentUser, cloudWarmupExercises);
         }
 
         if (!state.routines || Object.keys(state.routines).length === 0) {
@@ -1326,6 +1487,94 @@
       localStorage.setItem('fitlog_data', JSON.stringify(state));
       renderAll();
       pushToCloud();
+    }
+
+    function renderWarmupList() {
+      const list = document.getElementById('warmupExerciseList');
+      if (!state.warmupExercises.length) {
+        const emptyItem = document.createElement('li');
+        emptyItem.textContent = 'No warm-up exercises saved.';
+        list.replaceChildren(emptyItem);
+        return;
+      }
+
+      list.replaceChildren(...state.warmupExercises.map(exercise => {
+        const item = document.createElement('li');
+        item.textContent = exercise;
+        return item;
+      }));
+    }
+
+    function openWarmupEditor() {
+      document.getElementById('warmupEditorInput').value = state.warmupExercises.join('\n');
+      document.getElementById('warmupEditorStatus').textContent =
+        currentUser && currentPassword ? '' : 'Not logged in; changes will be saved on this device only.';
+      document.getElementById('warmupModal').style.display = 'flex';
+    }
+
+    function closeWarmupEditor() {
+      document.getElementById('warmupModal').style.display = 'none';
+    }
+
+    async function saveWarmupExercisesToCloud(exercises) {
+      const response = await fetch(`${WORKER_URL}/api/settings/warmup`, {
+        method: 'POST',
+        headers: {
+          "Content-Type": "application/json",
+          "X-Username": currentUser,
+          "X-Password": currentPassword
+        },
+        body: JSON.stringify({ warmupExercises: exercises })
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || `Warm-up sync failed (${response.status})`);
+      }
+    }
+
+    async function saveWarmupEditor() {
+      const input = document.getElementById('warmupEditorInput');
+      const status = document.getElementById('warmupEditorStatus');
+      const saveButton = document.getElementById('warmupSaveButton');
+      const exercises = normalizeWarmupExercises(
+        input.value.split(/\r?\n/).map(exercise => exercise.trim()).filter(Boolean)
+      );
+      if (exercises === null) {
+        status.textContent = 'Use up to 50 exercises, each no longer than 120 characters.';
+        return;
+      }
+
+      saveButton.disabled = true;
+      try {
+        state.warmupExercises = exercises;
+        cacheWarmupExercises(currentUser, exercises);
+        localStorage.setItem('fitlog_data', JSON.stringify(state));
+        renderWarmupList();
+      } catch (error) {
+        status.textContent = `Could not save the warm-up list on this device: ${error.message}`;
+        saveButton.disabled = false;
+        return;
+      }
+
+      const syncStatus = document.getElementById('warmupSyncStatus');
+      if (currentUser && currentPassword) {
+        setWarmupSyncPending(currentUser, true);
+        status.textContent = 'Saved on this device. Syncing to your account...';
+        try {
+          await saveWarmupExercisesToCloud(exercises);
+          setWarmupSyncPending(currentUser, false);
+          syncStatus.textContent = 'Warm-up list synced to your account.';
+        } catch (error) {
+          console.error("Could not sync the saved warm-up list:", error);
+          syncStatus.textContent =
+            `Warm-up list is saved on this device; cloud sync is pending: ${error.message}`;
+        }
+      } else {
+        syncStatus.textContent = 'Warm-up list saved on this device only.';
+      }
+
+      saveButton.disabled = false;
+      closeWarmupEditor();
     }
 
     function getTodayStr() {
@@ -1944,6 +2193,7 @@
     function renderAll() {
       if (!state.routines) state.routines = {};
       renderRoutine();
+      renderWarmupList();
       renderChart();
 
       const today = getTodayStr();
