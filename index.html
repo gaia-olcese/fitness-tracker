@@ -650,6 +650,27 @@
         <button type="button" class="btn-small" style="flex: 1; padding: 12px;" onclick="closeProfileModal()">Cancel</button>
         <button type="button" class="btn-primary" style="flex: 2; margin-top: 0; padding: 12px;" onclick="saveProfile()">Save</button>
       </div>
+      <button type="button" class="btn-small" style="width: 100%; margin-top: 10px; padding: 10px;" onclick="openChangePasswordModal()">Change Password</button>
+    </div>
+  </div>
+
+  <div id="passwordModal" class="modal-overlay" style="display: none;" onclick="if(event.target===this) closePasswordModal()">
+    <div class="login-card" onclick="event.stopPropagation()">
+      <h2>Change Password</h2>
+      <p>Choose a new password with at least 8 characters.</p>
+      <div class="form-group" style="text-align: left;">
+        <label for="currentPasswordInput">Current password</label>
+        <input type="password" id="currentPasswordInput" autocomplete="current-password" style="text-align: left; margin-bottom: 8px;" />
+        <label for="newPasswordInput">New password</label>
+        <input type="password" id="newPasswordInput" autocomplete="new-password" maxlength="128" style="text-align: left; margin-bottom: 8px;" />
+        <label for="confirmPasswordInput">Confirm new password</label>
+        <input type="password" id="confirmPasswordInput" autocomplete="new-password" maxlength="128" style="text-align: left;" />
+        <div id="passwordChangeStatus" class="warmup-sync-status" role="status" aria-live="polite"></div>
+      </div>
+      <div style="display: flex; gap: 8px; margin-top: 14px;">
+        <button type="button" class="btn-small" style="flex: 1; padding: 12px;" onclick="closePasswordModal()">Cancel</button>
+        <button type="button" class="btn-primary" id="changePasswordButton" style="flex: 2; margin-top: 0; padding: 12px;" onclick="changePassword()">Change Password</button>
+      </div>
     </div>
   </div>
 
@@ -1092,6 +1113,77 @@
       document.getElementById('profileModal').style.display = 'none';
     }
 
+    function openChangePasswordModal() {
+      if (!currentUser || !currentPassword) return;
+      closeProfileModal();
+      document.getElementById('currentPasswordInput').value = '';
+      document.getElementById('newPasswordInput').value = '';
+      document.getElementById('confirmPasswordInput').value = '';
+      document.getElementById('passwordChangeStatus').textContent = '';
+      document.getElementById('passwordModal').style.display = 'flex';
+      document.getElementById('currentPasswordInput').focus();
+    }
+
+    function closePasswordModal() {
+      document.getElementById('passwordModal').style.display = 'none';
+      document.getElementById('currentPasswordInput').value = '';
+      document.getElementById('newPasswordInput').value = '';
+      document.getElementById('confirmPasswordInput').value = '';
+      document.getElementById('passwordChangeStatus').textContent = '';
+    }
+
+    async function changePassword() {
+      const currentPasswordInput = document.getElementById('currentPasswordInput');
+      const newPasswordInput = document.getElementById('newPasswordInput');
+      const confirmPasswordInput = document.getElementById('confirmPasswordInput');
+      const status = document.getElementById('passwordChangeStatus');
+      const button = document.getElementById('changePasswordButton');
+      const enteredCurrentPassword = currentPasswordInput.value;
+      const newPassword = newPasswordInput.value;
+
+      if (!enteredCurrentPassword || !newPassword || !confirmPasswordInput.value) {
+        status.textContent = 'Please complete all password fields.';
+        return;
+      }
+      if (newPassword.length < 8 || newPassword.length > 128) {
+        status.textContent = 'Your new password must be between 8 and 128 characters.';
+        return;
+      }
+      if (newPassword !== confirmPasswordInput.value) {
+        status.textContent = 'The new passwords do not match.';
+        return;
+      }
+
+      button.disabled = true;
+      status.textContent = 'Updating password...';
+      try {
+        const response = await fetch(`${WORKER_URL}/api/account/password`, {
+          method: 'POST',
+          headers: {
+            "Content-Type": "application/json",
+            "X-Username": currentUser,
+            "X-Password": currentPassword
+          },
+          body: JSON.stringify({ currentPassword: enteredCurrentPassword, newPassword })
+        });
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+          throw new Error(result.error || `Password change failed (${response.status})`);
+        }
+
+        currentPassword = newPassword;
+        localStorage.setItem('fitlog_pass', currentPassword);
+        currentPasswordInput.value = '';
+        newPasswordInput.value = '';
+        confirmPasswordInput.value = '';
+        status.textContent = 'Password changed. Use the new password the next time you sign in on another device.';
+      } catch (error) {
+        status.textContent = error.message || 'Could not change your password. Please try again.';
+      } finally {
+        button.disabled = false;
+      }
+    }
+
     function updateProfilePreview() {
       const previewEl = document.getElementById('profilePreviewAvatar');
       const nameVal = document.getElementById('profileNameInput').value.trim() || "?";
@@ -1178,7 +1270,7 @@
 
     async function handleLogin() {
       const username = document.getElementById('loginUsername').value.trim().toLowerCase();
-      const password = document.getElementById('loginPassword').value.trim();
+      const password = document.getElementById('loginPassword').value;
       if (!username || !password) {
         alert("Please enter both username and password.");
         return;
