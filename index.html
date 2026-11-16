@@ -2541,9 +2541,9 @@ Your job is to help the user log their workouts and meals through conversation.
 
       appendChatMessage("Thinking...", 'assistant', true);
 
-      // Add a 15-second timeout guard so the chat never hangs indefinitely
+      // Allow slower Gemini responses while preventing requests from hanging indefinitely.
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      const timeoutId = setTimeout(() => controller.abort(), 60000);
 
       try {
         const requestModel = async model => {
@@ -2595,7 +2595,7 @@ Your job is to help the user log their workouts and meals through conversation.
       } catch (err) {
         aiConversationHistory.length = previousHistoryLength;
         if (err.name === 'AbortError') {
-          appendChatMessage("Error: Request timed out. Please check your internet connection or API key.", 'assistant');
+          appendChatMessage("Error: Gemini did not respond within 60 seconds. This does not necessarily mean your API key is invalid.", 'assistant');
         } else {
           appendChatMessage("Error: " + err.message, 'assistant');
         }
