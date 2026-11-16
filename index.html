@@ -973,7 +973,7 @@
       <div class="card" style="display: flex; flex-direction: column; height: 480px;">
         <h2>🎙️ FitLog AI Logger</h2>
         <p style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 8px;">
-          Chat or tap the mic to log meals or workouts. I'll ask follow-up questions if needed!
+          Chat or tap the mic to estimate meals or discuss workouts. Review and confirm any proposed log before it is saved.
         </p>
         <div id="aiChatLog" style="flex: 1; overflow-y: auto; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 10px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 8px;">
           <div style="background: var(--surface); padding: 8px 12px; border-radius: 10px; border: 1px solid var(--border); max-width: 85%; align-self: flex-start; font-size: 0.85rem;">
@@ -1402,6 +1402,7 @@
     }
 
     function logout() {
+      cancelPendingAiAction(false);
       localStorage.removeItem('fitlog_user');
       localStorage.removeItem('fitlog_pass');
       localStorage.removeItem('fitlog_is_admin');
@@ -2503,8 +2504,14 @@
     }
 
     let aiConversationHistory = [];
+    let pendingAiAction = null;
 
     async function sendAiMessage() {
+      if (pendingAiAction) {
+        appendChatMessage("Please confirm or cancel the pending log before sending another message.", 'assistant');
+        return;
+      }
+
       const input = document.getElementById('aiUserInput');
       if (!input) return;
       const text = input.value.trim();
@@ -2526,8 +2533,9 @@
 The user's active workout routines are: ${routinesStr}.
 Your job is to help the user log their workouts and meals through conversation.
 - If the user says something ambiguous (e.g. "I worked out"), ask clarifying questions (which exercise, sets, reps, weight?).
-- If the user specifies a workout or meal, extract the details.
-- When you have enough details to log a workout or meal, confirm what you are logging AND include a JSON action block at the end of your response in this exact format:
+- For workouts, use only details the user provided; ask about missing exercise, set, weight, or rep details instead of inventing them.
+- For meals, ask for portion or ingredient details when they are too vague to estimate responsibly. Present calories and macros as estimates, not exact measurements.
+- When you have enough details, propose the workout or meal and ask the user to confirm before it is logged. Include a JSON action block at the end of the response in this exact format. Never claim an item has been saved before the user confirms:
   For workouts: \`\`\`json
 {"action": "log_workout", "exercise": "...", "sets": [{"setNum": 1, "weight": 40, "reps": 10}, ...]}
 \`\`\`
@@ -2542,7 +2550,7 @@ Your job is to help the user log their workouts and meals through conversation.
       appendChatMessage("Thinking...", 'assistant', true);
 
       const requestTimeoutMs = 20000;
-      let activeModel = 'gemini-3.8-flash';
+      let activeModel = 'gemini-3.5-flash-lite';
       try {
         const requestModel = async model => {
           const controller = new AbortController();
@@ -2563,30 +2571,34 @@ Your job is to help the user log their workouts and meals through conversation.
           }
         };
 
-        let result = null;
-        try {
-          result = await requestModel(activeModel);
-        } catch (error) {
-          if (error.name !== 'AbortError') throw error;
-        }
-
-        if (result?.response.status === 503) {
-          const thinkingBubble = document.getElementById('aiThinkingBubble');
-          if (thinkingBubble) thinkingBubble.textContent = 'The main model is busy; retrying...';
-          await new Promise(resolve => setTimeout(resolve, 750));
+        const tryModel = async model => {
+          activeModel = model;
           try {
-            result = await requestModel(activeModel);
+            return await requestModel(model);
           } catch (error) {
             if (error.name !== 'AbortError') throw error;
-            result = null;
+            return null;
           }
+        };
+
+        let result = await tryModel(activeModel);
+        if (result?.response.status === 503) {
+          const thinkingBubble = document.getElementById('aiThinkingBubble');
+          if (thinkingBubble) thinkingBubble.textContent = 'Flash-Lite is busy; retrying...';
+          await new Promise(resolve => setTimeout(resolve, 750));
+          result = await tryModel(activeModel);
         }
 
         if (!result || result.response.status === 503) {
-          activeModel = 'gemini-3.5-flash-lite';
+          activeModel = 'gemini-3.8-flash';
           const thinkingBubble = document.getElementById('aiThinkingBubble');
-          if (thinkingBubble) thinkingBubble.textContent = 'The main model did not respond; trying a backup...';
-          result = await requestModel(activeModel);
+          if (thinkingBubble) thinkingBubble.textContent = 'Flash-Lite is unavailable; trying Gemini 3.8...';
+          result = await tryModel(activeModel);
+        }
+        if (!result) {
+          const error = new Error('Request timed out');
+          error.name = 'AbortError';
+          throw error;
         }
 
         const { response, data } = result;
@@ -2605,9 +2617,15 @@ Your job is to help the user log their workouts and meals through conversation.
         if (jsonMatch) {
           try {
             const actionData = JSON.parse(jsonMatch[1]);
-            executeAiAction(actionData);
+            const validatedAction = validateAiAction(actionData);
+            if (validatedAction) {
+              showAiActionConfirmation(validatedAction);
+            } else {
+              appendChatMessage("I couldn't prepare that log safely. Please clarify the details and try again.", 'assistant');
+            }
           } catch (e) {
             console.error("Failed to parse AI action JSON", e);
+            appendChatMessage("I couldn't prepare that log because the action details were invalid. Please try again.", 'assistant');
           }
         }
 
@@ -2641,11 +2659,144 @@ Your job is to help the user log their workouts and meals through conversation.
       if (bubble) bubble.remove();
     }
 
+    function validateAiAction(actionData) {
+      if (actionData?.action === 'log_workout' &&
+          typeof actionData.exercise === 'string' &&
+          actionData.exercise.trim() &&
+          Array.isArray(actionData.sets) &&
+          actionData.sets.length > 0 &&
+          actionData.sets.length <= 50) {
+        const setNumbers = new Set();
+        const sets = [];
+        for (const set of actionData.sets) {
+          const toNumber = value => {
+            if (typeof value !== 'number' && (typeof value !== 'string' || !value.trim())) return NaN;
+            return Number(value);
+          };
+          const setNum = toNumber(set?.setNum);
+          const weight = toNumber(set?.weight);
+          const reps = toNumber(set?.reps);
+          if (!Number.isInteger(setNum) || setNum < 1 ||
+              !Number.isFinite(weight) || weight < 0 ||
+              !Number.isInteger(reps) || reps < 1 ||
+              setNumbers.has(setNum)) {
+            return null;
+          }
+          setNumbers.add(setNum);
+          sets.push({ setNum, weight, reps });
+        }
+        return {
+          action: 'log_workout',
+          exercise: actionData.exercise.trim(),
+          sets
+        };
+      }
+
+      if (actionData?.action === 'log_food' &&
+          typeof actionData.food === 'string' &&
+          actionData.food.trim()) {
+        const values = ['cal', 'pro', 'carb', 'fat'].map(key => {
+          const value = actionData[key];
+          if (typeof value !== 'number' && (typeof value !== 'string' || !value.trim())) return NaN;
+          return Number(value);
+        });
+        if (values.every(value => Number.isFinite(value) && value >= 0)) {
+          return {
+            action: 'log_food',
+            food: actionData.food.trim(),
+            cal: values[0],
+            pro: values[1],
+            carb: values[2],
+            fat: values[3]
+          };
+        }
+      }
+
+      return null;
+    }
+
+    function showAiActionConfirmation(actionData) {
+      const logEl = document.getElementById('aiChatLog');
+      const preview = document.createElement('div');
+      preview.style.cssText = 'background: var(--surface); padding: 10px 12px; border-radius: 10px; border: 1px solid var(--primary); max-width: 95%; font-size: 0.85rem;';
+
+      const heading = document.createElement('div');
+      heading.style.cssText = 'font-weight: 700; margin-bottom: 6px;';
+      heading.textContent = actionData.action === 'log_workout'
+        ? 'Review workout before logging'
+        : 'Review meal estimate before logging';
+      preview.appendChild(heading);
+
+      const details = document.createElement('div');
+      details.style.cssText = 'margin-bottom: 10px; white-space: pre-line;';
+      details.textContent = actionData.action === 'log_workout'
+        ? `${actionData.exercise}\n${actionData.sets.map(set => `Set ${set.setNum}: ${set.weight} kg × ${set.reps} reps`).join('\n')}`
+        : `${actionData.food}\n${actionData.cal} kcal · ${actionData.pro}g protein · ${actionData.carb}g carbs · ${actionData.fat}g fat\nAI-generated estimate; check the portions and macros.`;
+      preview.appendChild(details);
+
+      const actions = document.createElement('div');
+      actions.style.cssText = 'display: flex; gap: 8px;';
+      const confirmButton = document.createElement('button');
+      confirmButton.type = 'button';
+      confirmButton.className = 'btn-small';
+      confirmButton.style.cssText = 'background: var(--primary); color: #fff; border-color: var(--primary);';
+      confirmButton.textContent = 'Confirm & Log';
+      confirmButton.addEventListener('click', confirmPendingAiAction);
+
+      const cancelButton = document.createElement('button');
+      cancelButton.type = 'button';
+      cancelButton.className = 'btn-small';
+      cancelButton.textContent = 'Cancel';
+      cancelButton.addEventListener('click', () => cancelPendingAiAction(true));
+
+      actions.append(confirmButton, cancelButton);
+      preview.appendChild(actions);
+      logEl.appendChild(preview);
+      logEl.scrollTop = logEl.scrollHeight;
+      pendingAiAction = { actionData, preview };
+      confirmButton.focus();
+    }
+
+    function confirmPendingAiAction() {
+      if (!pendingAiAction) return;
+      const { actionData, preview } = pendingAiAction;
+      const error = executeAiAction(actionData);
+      pendingAiAction = null;
+      preview.remove();
+      const decision = error
+        ? `I confirmed the proposed log, but FitLog did not save it: ${error}`
+        : "I confirmed the proposed log, and FitLog saved it.";
+      aiConversationHistory.push(
+        { role: "user", parts: [{ text: decision }] },
+        { role: "model", parts: [{ text: error || "The confirmed log was saved." }] }
+      );
+      appendChatMessage(error || "✅ Successfully logged. You can review or edit the entry in FitLog.", 'assistant');
+    }
+
+    function cancelPendingAiAction(showMessage = true) {
+      if (!pendingAiAction) return;
+      const { actionData } = pendingAiAction;
+      pendingAiAction.preview.remove();
+      pendingAiAction = null;
+      aiConversationHistory.push(
+        { role: "user", parts: [{ text: `I cancelled the proposed ${actionData.action === 'log_workout' ? 'workout' : 'meal'} log. Nothing was saved.` }] },
+        { role: "model", parts: [{ text: "Understood; the proposed log was cancelled and nothing was saved." }] }
+      );
+      if (showMessage) appendChatMessage("Cancelled; nothing was logged.", 'assistant');
+    }
+
     function executeAiAction(actionData) {
+      const validatedAction = validateAiAction(actionData);
+      if (!validatedAction) return "The proposed log was invalid, so nothing was saved.";
+
       const todayStr = getTodayStr();
-      if (actionData.action === 'log_workout' && actionData.sets && actionData.exercise) {
+      if (validatedAction.action === 'log_workout') {
+        const existingSets = getTodaysExerciseSets(validatedAction.exercise);
+        if (validatedAction.sets.some(set => existingSets.has(set.setNum))) {
+          return "One or more of those sets are already logged today. Nothing was added; review the workout and edit existing sets if needed.";
+        }
         const routineWasComplete = isRoutineComplete(activeRoutineDay);
-        actionData.sets.forEach(s => {
+        validatedAction.sets.forEach(s => {
           state.workouts.unshift({
             id: 'w_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7) + '_' + s.setNum,
             date: todayStr,
@@ -2657,20 +2808,19 @@ Your job is to help the user log their workouts and meals through conversation.
         });
         saveLocalState();
         if (!routineWasComplete) maybeCelebrateWorkoutCompletion(activeRoutineDay);
-        appendChatMessage("✅ Successfully logged workout to your history!", 'assistant');
-      } else if (actionData.action === 'log_food' && actionData.food) {
+      } else {
         state.nutrition.unshift({
           id: 'n_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
           date: todayStr,
-          food: actionData.food,
-          cal: Number(actionData.cal) || 0,
-          pro: Number(actionData.pro) || 0,
-          carb: Number(actionData.carb) || 0,
-          fat: Number(actionData.fat) || 0
+          food: validatedAction.food,
+          cal: validatedAction.cal,
+          pro: validatedAction.pro,
+          carb: validatedAction.carb,
+          fat: validatedAction.fat
         });
         saveLocalState();
-        appendChatMessage("✅ Successfully logged meal to your nutrition tracker!", 'assistant');
       }
+      return null;
     }
 
     let recognition = null;
