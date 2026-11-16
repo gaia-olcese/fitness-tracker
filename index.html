@@ -597,6 +597,82 @@
       font-size: 0.85rem;
       padding: 20px 0;
     }
+
+    .celebration-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 110;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      background: rgba(15, 23, 42, 0.65);
+    }
+
+    .celebration-overlay[hidden] {
+      display: none;
+    }
+
+    .celebration-card {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      max-width: 360px;
+      padding: 28px 24px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      animation: celebration-pop 350ms ease-out both;
+    }
+
+    .celebration-card h2 {
+      margin-bottom: 8px;
+      color: var(--primary);
+      font-size: 1.4rem;
+    }
+
+    .celebration-card p {
+      margin-bottom: 16px;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    .celebration-confetti {
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+    }
+
+    .confetti-piece {
+      position: absolute;
+      top: -18px;
+      width: 9px;
+      height: 14px;
+      border-radius: 2px;
+      animation: confetti-fall 3s ease-in both;
+    }
+
+    @keyframes celebration-pop {
+      from { opacity: 0; transform: scale(0.85); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    @keyframes confetti-fall {
+      to {
+        opacity: 0.85;
+        transform: translate3d(var(--confetti-drift), 105vh, 0) rotate(var(--confetti-spin));
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .celebration-card,
+      .confetti-piece {
+        animation: none;
+      }
+    }
   </style>
 </head>
 <body>
@@ -687,6 +763,16 @@
         <button type="button" class="btn-small" style="flex: 1; padding: 12px;" onclick="closeWarmupEditor()">Cancel</button>
         <button type="button" class="btn-primary" id="warmupSaveButton" style="flex: 2; margin-top: 0; padding: 12px;" onclick="saveWarmupEditor()">Save</button>
       </div>
+    </div>
+  </div>
+
+  <div id="workoutCelebration" class="celebration-overlay" hidden onclick="if(event.target===this) closeWorkoutCelebration()">
+    <div id="workoutCelebrationConfetti" class="celebration-confetti" aria-hidden="true"></div>
+    <div class="celebration-card" role="dialog" aria-modal="true" aria-labelledby="workoutCelebrationTitle" aria-describedby="workoutCelebrationMessage">
+      <div style="font-size: 2.5rem; margin-bottom: 8px;" aria-hidden="true">🎉</div>
+      <h2 id="workoutCelebrationTitle">Workout complete!</h2>
+      <p id="workoutCelebrationMessage">Congratulations on finishing your workout.</p>
+      <button type="button" class="btn-primary" onclick="closeWorkoutCelebration()">Done</button>
     </div>
   </div>
 
@@ -1066,6 +1152,8 @@
       finishedReason: ""
     };
     let editingSetExercise = null;
+    let celebratedWorkoutKeys = new Set();
+    let celebrationConfettiTimeout = null;
 
     function getUserProfile() {
       if (!currentUser) return { name: "Guest", avatar: "" };
@@ -1719,6 +1807,73 @@
       return sets;
     }
 
+    function isRoutineComplete(day) {
+      const exercises = state.routines[day] || [];
+      return exercises.length > 0 && exercises.every(exercise => {
+        const plannedSets = Number(exercise.workingSets);
+        return Number.isInteger(plannedSets) &&
+          plannedSets > 0 &&
+          getTodaysExerciseSets(exercise.name).size >= plannedSets;
+      });
+    }
+
+    function maybeCelebrateWorkoutCompletion(day) {
+      if (!isRoutineComplete(day)) return;
+
+      const userKey = (currentUser || 'guest').trim().toLowerCase();
+      const key = `fitlog_workout_celebrated_${encodeURIComponent(userKey)}_${getTodayStr()}_${encodeURIComponent(day)}`;
+      if (celebratedWorkoutKeys.has(key)) return;
+
+      try {
+        if (localStorage.getItem(key) === 'true') {
+          celebratedWorkoutKeys.add(key);
+          return;
+        }
+        localStorage.setItem(key, 'true');
+      } catch (error) {
+        console.error("Could not save workout celebration status:", error);
+      }
+
+      celebratedWorkoutKeys.add(key);
+      showWorkoutCelebration(day);
+    }
+
+    function showWorkoutCelebration(day) {
+      const overlay = document.getElementById('workoutCelebration');
+      const confetti = document.getElementById('workoutCelebrationConfetti');
+      document.getElementById('workoutCelebrationMessage').textContent =
+        `Congratulations on completing ${day}! Great work showing up for yourself.`;
+      overlay.hidden = false;
+      confetti.replaceChildren();
+
+      if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        const colors = ['#0284c7', '#0d9488', '#d97706', '#db2777', '#7c3aed', '#65a30d'];
+        for (let i = 0; i < 60; i++) {
+          const piece = document.createElement('span');
+          piece.className = 'confetti-piece';
+          piece.style.left = `${Math.random() * 100}%`;
+          piece.style.backgroundColor = colors[i % colors.length];
+          piece.style.animationDelay = `${Math.random() * 0.8}s`;
+          piece.style.setProperty('--confetti-drift', `${Math.random() * 200 - 100}px`);
+          piece.style.setProperty('--confetti-spin', `${Math.random() * 720 - 360}deg`);
+          confetti.appendChild(piece);
+        }
+      }
+
+      if (celebrationConfettiTimeout) clearTimeout(celebrationConfettiTimeout);
+      celebrationConfettiTimeout = setTimeout(() => confetti.replaceChildren(), 4000);
+      overlay.querySelector('button').focus();
+    }
+
+    function closeWorkoutCelebration() {
+      document.getElementById('workoutCelebration').hidden = true;
+      document.getElementById('workoutCelebrationConfetti').replaceChildren();
+      if (celebrationConfettiTimeout) {
+        clearTimeout(celebrationConfettiTimeout);
+        celebrationConfettiTimeout = null;
+      }
+    }
+
     function openAddRoutineModal() {
       const name = prompt("Enter new workout day name (e.g. Wednesday, Legs, Push):");
       if (!name) return;
@@ -2206,6 +2361,7 @@
         return;
       }
 
+      const routineWasComplete = isRoutineComplete(activeRoutineDay);
       const drafts = captureExerciseDrafts(exIndex, exercise.workingSets, setNum);
 
       const todayStr = getTodayStr();
@@ -2219,6 +2375,7 @@
       });
       saveLocalState();
       restoreExerciseDrafts(exIndex, drafts);
+      if (!routineWasComplete) maybeCelebrateWorkoutCompletion(activeRoutineDay);
       startRestTimer(exercise.name, setNum, getExerciseRest(exercise));
     }
 
@@ -2379,6 +2536,7 @@ Your job is to help the user log their workouts and meals through conversation.
 \`\`\`
   If you need more info, just reply naturally with questions without the json block.`;
 
+      const previousHistoryLength = aiConversationHistory.length;
       aiConversationHistory.push({ role: "user", parts: [{ text }] });
 
       appendChatMessage("Thinking...", 'assistant', true);
@@ -2388,21 +2546,34 @@ Your job is to help the user log their workouts and meals through conversation.
       const timeoutId = setTimeout(() => controller.abort(), 15000);
 
       try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            system_instruction: { parts: [{ text: systemPrompt }] },
-            contents: aiConversationHistory
-          }),
-          signal: controller.signal
-        });
+        const requestModel = async model => {
+          const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              system_instruction: { parts: [{ text: systemPrompt }] },
+              contents: aiConversationHistory
+            }),
+            signal: controller.signal
+          });
+          return { response, data: await response.json() };
+        };
 
-        clearTimeout(timeoutId);
-        const data = await response.json();
+        let result = await requestModel('gemini-3.8-flash');
+        if (result.response.status === 503) {
+          await new Promise(resolve => setTimeout(resolve, 750));
+          result = await requestModel('gemini-3.8-flash');
+        }
+        if (result.response.status === 503) {
+          const thinkingBubble = document.getElementById('aiThinkingBubble');
+          if (thinkingBubble) thinkingBubble.textContent = 'The main model is busy; trying a backup...';
+          result = await requestModel('gemini-3.5-flash-lite');
+        }
 
+        const { response, data } = result;
         if (!response.ok) {
-          throw new Error(data.error?.message || 'API request failed');
+          const status = data.error?.status ? ` ${data.error.status}` : '';
+          throw new Error(`Gemini API ${response.status}${status}: ${data.error?.message || 'Request failed'}`);
         }
 
         const replyText = data.candidates?.[0]?.content?.parts?.[0]?.text || "I didn't catch that. Could you clarify?";
@@ -2422,12 +2593,14 @@ Your job is to help the user log their workouts and meals through conversation.
         }
 
       } catch (err) {
+        aiConversationHistory.length = previousHistoryLength;
         if (err.name === 'AbortError') {
           appendChatMessage("Error: Request timed out. Please check your internet connection or API key.", 'assistant');
         } else {
           appendChatMessage("Error: " + err.message, 'assistant');
         }
       } finally {
+        clearTimeout(timeoutId);
         removeThinkingBubble();
       }
     }
@@ -2453,6 +2626,7 @@ Your job is to help the user log their workouts and meals through conversation.
     function executeAiAction(actionData) {
       const todayStr = getTodayStr();
       if (actionData.action === 'log_workout' && actionData.sets && actionData.exercise) {
+        const routineWasComplete = isRoutineComplete(activeRoutineDay);
         actionData.sets.forEach(s => {
           state.workouts.unshift({
             id: 'w_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7) + '_' + s.setNum,
@@ -2464,6 +2638,7 @@ Your job is to help the user log their workouts and meals through conversation.
           });
         });
         saveLocalState();
+        if (!routineWasComplete) maybeCelebrateWorkoutCompletion(activeRoutineDay);
         appendChatMessage("✅ Successfully logged workout to your history!", 'assistant');
       } else if (actionData.action === 'log_food' && actionData.food) {
         state.nutrition.unshift({
