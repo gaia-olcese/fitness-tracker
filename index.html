@@ -2541,33 +2541,52 @@ Your job is to help the user log their workouts and meals through conversation.
 
       appendChatMessage("Thinking...", 'assistant', true);
 
-      // Allow slower Gemini responses while preventing requests from hanging indefinitely.
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 60000);
-
+      const requestTimeoutMs = 20000;
+      let activeModel = 'gemini-3.8-flash';
       try {
         const requestModel = async model => {
-          const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              system_instruction: { parts: [{ text: systemPrompt }] },
-              contents: aiConversationHistory
-            }),
-            signal: controller.signal
-          });
-          return { response, data: await response.json() };
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), requestTimeoutMs);
+          try {
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                system_instruction: { parts: [{ text: systemPrompt }] },
+                contents: aiConversationHistory
+              }),
+              signal: controller.signal
+            });
+            return { response, data: await response.json() };
+          } finally {
+            clearTimeout(timeoutId);
+          }
         };
 
-        let result = await requestModel('gemini-3.8-flash');
-        if (result.response.status === 503) {
-          await new Promise(resolve => setTimeout(resolve, 750));
-          result = await requestModel('gemini-3.8-flash');
+        let result = null;
+        try {
+          result = await requestModel(activeModel);
+        } catch (error) {
+          if (error.name !== 'AbortError') throw error;
         }
-        if (result.response.status === 503) {
+
+        if (result?.response.status === 503) {
           const thinkingBubble = document.getElementById('aiThinkingBubble');
-          if (thinkingBubble) thinkingBubble.textContent = 'The main model is busy; trying a backup...';
-          result = await requestModel('gemini-3.5-flash-lite');
+          if (thinkingBubble) thinkingBubble.textContent = 'The main model is busy; retrying...';
+          await new Promise(resolve => setTimeout(resolve, 750));
+          try {
+            result = await requestModel(activeModel);
+          } catch (error) {
+            if (error.name !== 'AbortError') throw error;
+            result = null;
+          }
+        }
+
+        if (!result || result.response.status === 503) {
+          activeModel = 'gemini-3.5-flash-lite';
+          const thinkingBubble = document.getElementById('aiThinkingBubble');
+          if (thinkingBubble) thinkingBubble.textContent = 'The main model did not respond; trying a backup...';
+          result = await requestModel(activeModel);
         }
 
         const { response, data } = result;
@@ -2595,12 +2614,11 @@ Your job is to help the user log their workouts and meals through conversation.
       } catch (err) {
         aiConversationHistory.length = previousHistoryLength;
         if (err.name === 'AbortError') {
-          appendChatMessage("Error: Gemini did not respond within 60 seconds. This does not necessarily mean your API key is invalid.", 'assistant');
+          appendChatMessage(`Error: ${activeModel} did not respond within ${requestTimeoutMs / 1000} seconds. This does not necessarily mean your API key is invalid.`, 'assistant');
         } else {
           appendChatMessage("Error: " + err.message, 'assistant');
         }
       } finally {
-        clearTimeout(timeoutId);
         removeThinkingBubble();
       }
     }
