@@ -927,6 +927,25 @@
         <div id="routineContainer"></div>
       </div>
 
+      <div class="card">
+        <h2>Workout Diary</h2>
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">
+          Keep one private note per day, synced with your account.
+        </p>
+        <div class="form-group">
+          <label for="workoutNoteDate">Workout date</label>
+          <input type="date" id="workoutNoteDate" onchange="handleWorkoutNoteDateChange()" />
+        </div>
+        <div class="form-group">
+          <label for="workoutNoteInput">Notes</label>
+          <textarea id="workoutNoteInput" maxlength="5000" oninput="updateWorkoutNoteDraft()" placeholder="How did the workout feel? Add cues, energy, or anything you want to remember."></textarea>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <button type="button" class="btn-primary" style="margin-top: 0;" onclick="saveWorkoutNote()">Save note</button>
+          <div id="workoutNoteStatus" class="warmup-sync-status" style="flex: 1; min-width: 0;" role="status" aria-live="polite"></div>
+        </div>
+      </div>
+
     </div>
 
     <!-- Progress Tab -->
@@ -965,6 +984,16 @@
         </p>
         <div class="chart-wrapper">
           <canvas id="maxWeightChart"></canvas>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Estimated 1RM Progression (kg)</h2>
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">
+          Epley estimate from the strongest logged set of 1–10 reps per exercise and date. A logged single uses its actual weight; sets over 10 reps are excluded.
+        </p>
+        <div class="chart-wrapper">
+          <canvas id="estimated1RMChart"></canvas>
         </div>
       </div>
     </div>
@@ -1316,6 +1345,7 @@
     let state = {
       workouts: savedData.workouts || [],
       nutrition: savedData.nutrition || [],
+      workoutNotes: loadCachedWorkoutNotes(currentUser),
       goals: savedData.goals || DEFAULT_GOALS,
       routines: getInitialRoutines(currentUser),
       warmupExercises: getCachedWarmupExercises(currentUser) || [...DEFAULT_WARMUP_EXERCISES]
@@ -1327,6 +1357,10 @@
     let selectedChartExercise = "";
     let volumeChartInstance = null;
     let maxWeightChartInstance = null;
+    let estimated1RMChartInstance = null;
+    let selectedWorkoutNoteDate = getTodayStr();
+    let workoutNoteDrafts = {};
+    let workoutNoteSyncQueue = Promise.resolve();
     let pendingAvatarData = "";
     let restTimer = {
       intervalId: null,
@@ -1379,6 +1413,83 @@
       }
 
       localStorage.removeItem(getProfileSyncPendingKey(username));
+    }
+
+    function isValidWorkoutNoteDate(value) {
+      if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+      const parsedDate = new Date(`${value}T00:00:00.000Z`);
+      return Number.isFinite(parsedDate.getTime()) && parsedDate.toISOString().slice(0, 10) === value;
+    }
+
+    function normalizeWorkoutNotes(value) {
+      if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+      return Object.fromEntries(Object.entries(value).filter(([date, note]) =>
+        isValidWorkoutNoteDate(date) && typeof note === 'string' && note.length <= 5000 && note.trim()
+      ));
+    }
+
+    function getWorkoutNotesCacheKey(username = currentUser) {
+      return `fitlog_workout_notes_${username ? username.toLowerCase() : 'guest'}`;
+    }
+
+    function getCachedWorkoutNotes(username = currentUser) {
+      return normalizeWorkoutNotes(JSON.parse(localStorage.getItem(getWorkoutNotesCacheKey(username))) || {});
+    }
+
+    function cacheWorkoutNotes(notes, username = currentUser) {
+      localStorage.setItem(getWorkoutNotesCacheKey(username), JSON.stringify(normalizeWorkoutNotes(notes)));
+    }
+
+    function getPendingWorkoutNotes(username = currentUser) {
+      if (!username) return {};
+      const key = `fitlog_workout_note_pending_${username.toLowerCase()}`;
+      const pending = JSON.parse(localStorage.getItem(key)) || {};
+      if (!pending || typeof pending !== 'object' || Array.isArray(pending)) return {};
+      return Object.fromEntries(Object.entries(pending).filter(([date, note]) =>
+        isValidWorkoutNoteDate(date) && typeof note === 'string' && note.length <= 5000
+      ));
+    }
+
+    function cachePendingWorkoutNotes(notes, username = currentUser) {
+      if (!username) return;
+      const key = `fitlog_workout_note_pending_${username.toLowerCase()}`;
+      localStorage.setItem(key, JSON.stringify(notes));
+    }
+
+    async function saveWorkoutNoteToCloud(date, note, username = currentUser, password = currentPassword) {
+      if (!username || !password) throw new Error('Sign in to sync workout notes.');
+
+      const task = workoutNoteSyncQueue.then(async () => {
+        if (username !== currentUser || password !== currentPassword) return;
+        const response = await fetch(`${WORKER_URL}/api/workout-notes`, {
+          method: 'POST',
+          headers: {
+            "Content-Type": "application/json",
+            "X-Username": username,
+            "X-Password": password
+          },
+          body: JSON.stringify({ date, note })
+        });
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+          throw new Error(result.error || `Workout note sync failed (${response.status})`);
+        }
+
+        const pending = getPendingWorkoutNotes(username);
+        if (Object.prototype.hasOwnProperty.call(pending, date) && pending[date] === note) {
+          delete pending[date];
+          cachePendingWorkoutNotes(pending, username);
+        }
+      });
+      workoutNoteSyncQueue = task.catch(() => {});
+      return task;
+    }
+
+    async function syncPendingWorkoutNotes(username = currentUser, password = currentPassword) {
+      const pending = getPendingWorkoutNotes(username);
+      for (const [date, note] of Object.entries(pending)) {
+        await saveWorkoutNoteToCloud(date, note, username, password);
+      }
     }
 
     function getUserProfile() {
@@ -1600,10 +1711,12 @@
         currentUser = data.username;
         currentPassword = password;
         isAdmin = data.is_admin;
+        workoutNoteDrafts = {};
 
         localStorage.setItem('fitlog_user', currentUser);
         localStorage.setItem('fitlog_pass', currentPassword);
         localStorage.setItem('fitlog_is_admin', isAdmin ? 'true' : 'false');
+        state.workoutNotes = getCachedWorkoutNotes(currentUser);
         state.warmupExercises = getCachedWarmupExercises(currentUser) || [...DEFAULT_WARMUP_EXERCISES];
         document.getElementById('warmupSyncStatus').textContent = '';
 
@@ -1631,6 +1744,8 @@
       currentUser = null;
       currentPassword = null;
       isAdmin = false;
+      workoutNoteDrafts = {};
+      state.workoutNotes = getCachedWorkoutNotes();
       state.warmupExercises = [...DEFAULT_WARMUP_EXERCISES];
       document.getElementById('warmupSyncStatus').textContent = '';
       closeWarmupEditor();
@@ -1646,6 +1761,7 @@
       if (!currentUser || !currentPassword) return;
       setSyncButtonStatus('loader-2', 'Syncing...');
       let profileSyncFailed = false;
+      let workoutNotesSyncFailed = false;
 
       try {
         if (isProfileSyncPending()) {
@@ -1658,6 +1774,13 @@
               profileSyncFailed = true;
             }
           }
+        }
+
+        try {
+          await syncPendingWorkoutNotes(currentUser, currentPassword);
+        } catch (error) {
+          console.error("Could not sync pending workout notes:", error);
+          workoutNotesSyncFailed = true;
         }
 
         const response = await fetch(`${WORKER_URL}/api/data`, {
@@ -1681,6 +1804,26 @@
         if (!Array.isArray(cloudData.workouts) || !Array.isArray(cloudData.nutrition)) {
           throw new Error('Cloud returned invalid workout or nutrition data.');
         }
+        if (!Array.isArray(cloudData.workoutNotes)) {
+          throw new Error('Cloud returned invalid workout diary data.');
+        }
+
+        const cloudWorkoutNotes = {};
+        for (const entry of cloudData.workoutNotes) {
+          if (!entry || !isValidWorkoutNoteDate(entry.date) ||
+              typeof entry.note !== 'string' || entry.note.length > 5000) {
+            throw new Error('Cloud returned an invalid workout diary note.');
+          }
+          if (entry.note.trim()) cloudWorkoutNotes[entry.date] = entry.note;
+        }
+        const pendingWorkoutNotes = getPendingWorkoutNotes();
+        for (const [date, note] of Object.entries(pendingWorkoutNotes)) {
+          if (note) cloudWorkoutNotes[date] = note;
+          else delete cloudWorkoutNotes[date];
+        }
+        state.workoutNotes = cloudWorkoutNotes;
+        cacheWorkoutNotes(state.workoutNotes);
+        workoutNotesSyncFailed = Object.keys(pendingWorkoutNotes).length > 0;
 
         if (!isProfileSyncPending()) {
           if (cloudData.profile) {
@@ -1787,8 +1930,8 @@
           pushToCloud();
         }
         if (isAdmin) fetchAdminUsers();
-        if (profileSyncFailed) {
-          setSyncButtonStatus('cloud-off', 'Profile pending');
+        if (profileSyncFailed || workoutNotesSyncFailed) {
+          setSyncButtonStatus('cloud-off', profileSyncFailed ? 'Profile pending' : 'Notes pending');
         } else {
           setSyncButtonStatus('cloud-check', 'Synced');
           setTimeout(() => setSyncButtonStatus('cloud', 'Sync'), 2000);
@@ -2092,6 +2235,87 @@
       return new Date().toISOString().split('T')[0];
     }
 
+    function renderWorkoutDiary() {
+      const dateInput = document.getElementById('workoutNoteDate');
+      const noteInput = document.getElementById('workoutNoteInput');
+      const status = document.getElementById('workoutNoteStatus');
+      if (!dateInput || !noteInput || !status) return;
+
+      dateInput.value = selectedWorkoutNoteDate;
+      const hasDraft = Object.prototype.hasOwnProperty.call(workoutNoteDrafts, selectedWorkoutNoteDate);
+      const note = hasDraft ? workoutNoteDrafts[selectedWorkoutNoteDate] : state.workoutNotes[selectedWorkoutNoteDate] || '';
+      noteInput.value = note;
+      const pending = getPendingWorkoutNotes();
+      if (hasDraft) {
+        status.textContent = 'Unsaved edits; save this note to keep them.';
+      } else if (Object.prototype.hasOwnProperty.call(pending, selectedWorkoutNoteDate)) {
+        status.textContent = 'Saved on this device; cloud sync is pending.';
+      } else if (note && currentUser) {
+        status.textContent = 'Saved and synced with your account.';
+      } else if (note) {
+        status.textContent = 'Saved on this device only.';
+      } else {
+        status.textContent = 'No note saved for this date.';
+      }
+    }
+
+    function handleWorkoutNoteDateChange() {
+      const date = document.getElementById('workoutNoteDate').value;
+      if (!isValidWorkoutNoteDate(date)) return;
+      selectedWorkoutNoteDate = date;
+      renderWorkoutDiary();
+    }
+
+    function updateWorkoutNoteDraft() {
+      const noteInput = document.getElementById('workoutNoteInput');
+      if (noteInput) {
+        workoutNoteDrafts[selectedWorkoutNoteDate] = noteInput.value;
+        const status = document.getElementById('workoutNoteStatus');
+        if (status) status.textContent = 'Unsaved edits; save this note to keep them.';
+      }
+    }
+
+    async function saveWorkoutNote() {
+      const date = document.getElementById('workoutNoteDate').value;
+      const noteInput = document.getElementById('workoutNoteInput');
+      const rawNote = noteInput.value;
+      if (!isValidWorkoutNoteDate(date) || rawNote.length > 5000) {
+        alert('Choose a valid date and keep the note under 5000 characters.');
+        return;
+      }
+
+      selectedWorkoutNoteDate = date;
+      const note = rawNote.trim() ? rawNote : '';
+      delete workoutNoteDrafts[date];
+      const notes = getCachedWorkoutNotes();
+      if (note) notes[date] = note;
+      else delete notes[date];
+      state.workoutNotes = notes;
+      cacheWorkoutNotes(notes);
+
+      if (!currentUser) {
+        renderWorkoutDiary();
+        return;
+      }
+
+      const pending = getPendingWorkoutNotes();
+      pending[date] = note;
+      cachePendingWorkoutNotes(pending);
+      renderWorkoutDiary();
+      let syncError = '';
+      try {
+        await saveWorkoutNoteToCloud(date, note);
+      } catch (error) {
+        console.error('Workout note is saved locally but could not be synced:', error);
+        syncError = error instanceof Error ? error.message : String(error);
+      }
+      renderWorkoutDiary();
+      if (syncError) {
+        document.getElementById('workoutNoteStatus').textContent =
+          `Saved locally; cloud sync pending: ${syncError}`;
+      }
+    }
+
     function switchTab(tabName, btn) {
       document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
       document.querySelectorAll('nav button').forEach(el => el.classList.remove('active'));
@@ -2385,6 +2609,16 @@
       );
     }
 
+    function estimateOneRepMax(workout) {
+      const weight = Number(workout.weight);
+      const reps = Number(workout.reps);
+      if (!Number.isFinite(weight) || weight < 0 ||
+          !Number.isInteger(reps) || reps < 1 || reps > 10) {
+        return null;
+      }
+      return reps === 1 ? weight : weight * (1 + reps / 30);
+    }
+
     function renderChart() {
       renderChartFilters();
       const chartWorkouts = getChartWorkouts();
@@ -2501,6 +2735,68 @@
               x: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { color: '#e2e8f0' } },
               y: {
                 title: { display: true, text: 'Max Weight (kg)', color: '#64748b' },
+                ticks: { color: '#64748b', font: { size: 10 } },
+                grid: { color: '#e2e8f0' }
+              }
+            }
+          }
+        });
+      }
+
+      // --- 3. ESTIMATED ONE-REP-MAX CHART ---
+      const estimated1RMContext = document.getElementById('estimated1RMChart');
+      if (estimated1RMContext) {
+        const datesSet = new Set();
+        const exercisesSet = new Set();
+        const estimated1RMMap = {};
+
+        chartWorkouts.forEach(workout => {
+          const estimate = estimateOneRepMax(workout);
+          if (estimate === null) return;
+          datesSet.add(workout.date);
+          exercisesSet.add(workout.exercise);
+          if (!estimated1RMMap[workout.exercise]) estimated1RMMap[workout.exercise] = {};
+          const currentMax = estimated1RMMap[workout.exercise][workout.date] ?? -Infinity;
+          estimated1RMMap[workout.exercise][workout.date] = Math.max(currentMax, estimate);
+        });
+
+        const sortedDates = Array.from(datesSet).sort();
+        const exercises = Array.from(exercisesSet);
+        const datasets = exercises.map((exercise, index) => {
+          const color = LINE_COLORS[index % LINE_COLORS.length];
+          return {
+            label: exercise,
+            data: sortedDates.map(date => {
+              const estimate = estimated1RMMap[exercise][date];
+              return estimate === undefined ? null : Math.round(estimate * 10) / 10;
+            }),
+            borderColor: color,
+            backgroundColor: color,
+            borderWidth: 2,
+            tension: 0.25,
+            spanGaps: true,
+            pointRadius: 4
+          };
+        });
+
+        if (estimated1RMChartInstance) estimated1RMChartInstance.destroy();
+        estimated1RMChartInstance = new Chart(estimated1RMContext, {
+          type: 'line',
+          data: { labels: sortedDates, datasets },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'nearest', intersect: false },
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: { color: '#334155', boxWidth: 12, font: { size: 11 } }
+              }
+            },
+            scales: {
+              x: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { color: '#e2e8f0' } },
+              y: {
+                title: { display: true, text: 'Estimated 1RM (kg)', color: '#64748b' },
                 ticks: { color: '#64748b', font: { size: 10 } },
                 grid: { color: '#e2e8f0' }
               }
@@ -2869,6 +3165,7 @@
       if (!state.routines) state.routines = {};
       renderRoutine();
       renderWarmupList();
+      renderWorkoutDiary();
       renderChart();
 
       const today = getTodayStr();
