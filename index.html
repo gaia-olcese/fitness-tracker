@@ -96,8 +96,8 @@
     }
 
     .profile-avatar {
-      width: 24px;
-      height: 24px;
+      width: 28px;
+      height: 28px;
       border-radius: 50%;
       background: var(--primary);
       color: #ffffff;
@@ -111,14 +111,10 @@
     }
 
     .profile-avatar img {
-      width: 100%;
-      height: 100%;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
       object-fit: cover;
-    }
-
-    .profile-avatar .lucide {
-      width: 18px;
-      height: 18px;
     }
 
     .profile-name {
@@ -603,40 +599,38 @@
     .avatar-preview-large img {
       width: 100%;
       height: 100%;
+      border-radius: 50%;
       object-fit: cover;
     }
 
     .avatar-picker {
-      display: flex;
-      justify-content: center;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      justify-items: center;
       gap: 8px;
       margin-bottom: 12px;
-      flex-wrap: wrap;
     }
 
     .avatar-option {
-      width: 36px;
-      height: 36px;
+      width: 52px;
+      height: 52px;
       border-radius: 50%;
       border: 1px solid var(--border);
-      background: var(--surface-light);
-      font-size: 1.1rem;
+      background: var(--surface);
       cursor: pointer;
+      overflow: hidden;
+      padding: 0;
     }
 
     .avatar-option:active {
       background: var(--border);
     }
 
-    .avatar-option .lucide {
-      width: 20px;
-      height: 20px;
-      vertical-align: middle;
-    }
-
-    .avatar-preview-large .lucide {
-      width: 36px;
-      height: 36px;
+    .avatar-option img {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
     }
 
     nav {
@@ -798,18 +792,14 @@
       <div class="avatar-preview-large" id="profilePreviewAvatar">G</div>
 
       <div class="avatar-picker">
-        <button type="button" class="avatar-option" onclick="selectPresetAvatar('lucide:dumbbell')" aria-label="Dumbbell icon avatar" title="Dumbbell"><i data-lucide="dumbbell" aria-hidden="true"></i></button>
-        <button type="button" class="avatar-option" onclick="selectPresetAvatar('lucide:activity')" aria-label="Activity icon avatar" title="Activity"><i data-lucide="activity" aria-hidden="true"></i></button>
-        <button type="button" class="avatar-option" onclick="selectPresetAvatar('lucide:cat')" aria-label="Cat icon avatar" title="Cat"><i data-lucide="cat" aria-hidden="true"></i></button>
-        <button type="button" class="avatar-option" onclick="selectPresetAvatar('lucide:sprout')" aria-label="Sprout icon avatar" title="Sprout"><i data-lucide="sprout" aria-hidden="true"></i></button>
-        <button type="button" class="avatar-option" onclick="selectPresetAvatar('lucide:zap')" aria-label="Zap icon avatar" title="Zap"><i data-lucide="zap" aria-hidden="true"></i></button>
-        <button type="button" class="avatar-option" onclick="selectPresetAvatar('lucide:flame')" aria-label="Flame icon avatar" title="Flame"><i data-lucide="flame" aria-hidden="true"></i></button>
-        <button type="button" class="avatar-option" onclick="selectPresetAvatar('💪')" aria-label="Flexed biceps emoji avatar" title="Flexed biceps">💪</button>
-        <button type="button" class="avatar-option" onclick="selectPresetAvatar('🏋️')" aria-label="Weightlifting emoji avatar" title="Weightlifting">🏋️</button>
-        <button type="button" class="avatar-option" onclick="selectPresetAvatar('🐱')" aria-label="Cat emoji avatar" title="Cat">🐱</button>
-        <button type="button" class="avatar-option" onclick="selectPresetAvatar('🌱')" aria-label="Seedling emoji avatar" title="Seedling">🌱</button>
-        <button type="button" class="avatar-option" onclick="selectPresetAvatar('⚡')" aria-label="Lightning emoji avatar" title="Lightning">⚡</button>
-        <button type="button" class="avatar-option" onclick="selectPresetAvatar('🔥')" aria-label="Fire emoji avatar" title="Fire">🔥</button>
+        <button type="button" class="avatar-option" onclick="selectPresetAvatar('Felix')" aria-label="Felix critter avatar" title="Felix"><img src="https://api.dicebear.com/10.x/critters/svg?backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf,d9f2d9&amp;seed=Felix" alt="" /></button>
+        <button type="button" class="avatar-option" onclick="selectPresetAvatar('Milo')" aria-label="Milo critter avatar" title="Milo"><img src="https://api.dicebear.com/10.x/critters/svg?backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf,d9f2d9&amp;seed=Milo" alt="" /></button>
+        <button type="button" class="avatar-option" onclick="selectPresetAvatar('Luna')" aria-label="Luna critter avatar" title="Luna"><img src="https://api.dicebear.com/10.x/critters/svg?backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf,d9f2d9&amp;seed=Luna" alt="" /></button>
+        <button type="button" class="avatar-option" onclick="selectPresetAvatar('Ziggy')" aria-label="Ziggy critter avatar" title="Ziggy"><img src="https://api.dicebear.com/10.x/critters/svg?backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf,d9f2d9&amp;seed=Ziggy" alt="" /></button>
+        <button type="button" class="avatar-option" onclick="selectPresetAvatar('Pip')" aria-label="Pip critter avatar" title="Pip"><img src="https://api.dicebear.com/10.x/critters/svg?backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf,d9f2d9&amp;seed=Pip" alt="" /></button>
+        <button type="button" class="avatar-option" onclick="selectPresetAvatar('Nova')" aria-label="Nova critter avatar" title="Nova"><img src="https://api.dicebear.com/10.x/critters/svg?backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf,d9f2d9&amp;seed=Nova" alt="" /></button>
+        <button type="button" class="avatar-option" onclick="selectPresetAvatar('Bramble')" aria-label="Bramble critter avatar" title="Bramble"><img src="https://api.dicebear.com/10.x/critters/svg?backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf,d9f2d9&amp;seed=Bramble" alt="" /></button>
+        <button type="button" class="avatar-option" onclick="selectPresetAvatar('Cosmo')" aria-label="Cosmo critter avatar" title="Cosmo"><img src="https://api.dicebear.com/10.x/critters/svg?backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf,d9f2d9&amp;seed=Cosmo" alt="" /></button>
       </div>
 
       <button type="button" class="btn-small" onclick="clearCustomAvatar()" style="margin-bottom: 12px;">Reset avatar</button>
@@ -1159,13 +1149,26 @@
 
   <script>
     const WORKER_URL = "https://fitlog-api.gaia-olcese.workers.dev";
-    const PROFILE_AVATAR_ICONS = new Set([
-      "dumbbell", "activity", "cat", "sprout", "zap", "flame"
-    ]);
-    const PROFILE_AVATAR_VALUES = new Set([
-      "", ...Array.from(PROFILE_AVATAR_ICONS, icon => `lucide:${icon}`),
-      "💪", "🏋️", "🐱", "🌱", "⚡", "🔥"
-    ]);
+    const PROFILE_AVATAR_SEEDS = ["Felix", "Milo", "Luna", "Ziggy", "Pip", "Nova", "Bramble", "Cosmo"];
+    const PROFILE_AVATAR_BACKGROUND_COLORS = "b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf,d9f2d9";
+    const DEFAULT_PROFILE_AVATAR = getProfileAvatarUrl("Felix");
+    const PROFILE_AVATAR_VALUES = new Set(PROFILE_AVATAR_SEEDS.map(getProfileAvatarUrl));
+
+    function getProfileAvatarUrl(seed) {
+      return `https://api.dicebear.com/10.x/critters/svg?backgroundColor=${PROFILE_AVATAR_BACKGROUND_COLORS}&seed=${seed}`;
+    }
+
+    function isValidProfileAvatar(avatar) {
+      return typeof avatar === "string" && (
+        PROFILE_AVATAR_VALUES.has(avatar) ||
+        (avatar.length <= 100000 &&
+          /^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(avatar))
+      );
+    }
+
+    function normalizeProfileAvatar(avatar) {
+      return avatar && isValidProfileAvatar(avatar) ? avatar : DEFAULT_PROFILE_AVATAR;
+    }
     let lucideLoadErrorReported = false;
     let cloudPushQueue = Promise.resolve();
 
@@ -1493,10 +1496,14 @@
     }
 
     function getUserProfile() {
-      if (!currentUser) return { name: "Guest", avatar: "" };
-      return getCachedUserProfile() || {
+      if (!currentUser) return { name: "Guest", avatar: DEFAULT_PROFILE_AVATAR };
+      const profile = getCachedUserProfile();
+      if (profile) {
+        return { ...profile, avatar: normalizeProfileAvatar(profile.avatar) };
+      }
+      return {
         name: currentUser.charAt(0).toUpperCase() + currentUser.slice(1),
-        avatar: ""
+        avatar: DEFAULT_PROFILE_AVATAR
       };
     }
 
@@ -1529,7 +1536,7 @@
       if (!currentUser) return;
       const profile = getUserProfile();
       document.getElementById('profileNameInput').value = profile.name;
-      pendingAvatarData = profile.avatar || "";
+      pendingAvatarData = normalizeProfileAvatar(profile.avatar);
       updateProfilePreview();
       document.getElementById('profileModal').style.display = 'flex';
     }
@@ -1617,7 +1624,7 @@
     }
 
     function renderProfileAvatar(element, avatar, fallback, imageAlt) {
-      if (avatar && avatar.startsWith('data:image')) {
+      if (avatar && (avatar.startsWith('http') || avatar.startsWith('data:image'))) {
         const image = document.createElement('img');
         image.src = avatar;
         image.alt = imageAlt;
@@ -1625,35 +1632,25 @@
         return;
       }
 
-      const iconName = avatar && avatar.startsWith('lucide:') ? avatar.slice(7) : null;
-      if (PROFILE_AVATAR_ICONS.has(iconName)) {
-        const icon = document.createElement('i');
-        icon.dataset.lucide = iconName;
-        icon.setAttribute('aria-hidden', 'true');
-        element.replaceChildren(icon);
-        refreshLucideIcons();
-        return;
-      }
-
-      element.textContent = avatar && !iconName ? avatar : fallback;
+      element.textContent = fallback;
     }
 
-    function selectPresetAvatar(avatar) {
-      if (!PROFILE_AVATAR_VALUES.has(avatar)) return;
-      pendingAvatarData = avatar;
+    function selectPresetAvatar(seed) {
+      if (!PROFILE_AVATAR_SEEDS.includes(seed)) return;
+      pendingAvatarData = getProfileAvatarUrl(seed);
       updateProfilePreview();
     }
 
     function clearCustomAvatar() {
-      pendingAvatarData = "";
+      pendingAvatarData = DEFAULT_PROFILE_AVATAR;
       updateProfilePreview();
     }
 
     async function saveProfile() {
       if (!currentUser) return;
       const newName = document.getElementById('profileNameInput').value.trim();
-      if (!newName || newName.length > 60 || !PROFILE_AVATAR_VALUES.has(pendingAvatarData)) {
-        alert("Enter a display name of 1 to 60 characters and choose a standard avatar.");
+      if (!newName || newName.length > 60 || !isValidProfileAvatar(pendingAvatarData)) {
+        alert("Enter a display name of 1 to 60 characters and choose a valid avatar.");
         return;
       }
 
@@ -1828,11 +1825,13 @@
         if (!isProfileSyncPending()) {
           if (cloudData.profile) {
             if (typeof cloudData.profile.name !== 'string' ||
-                typeof cloudData.profile.avatar !== 'string' ||
-                !PROFILE_AVATAR_VALUES.has(cloudData.profile.avatar)) {
+                typeof cloudData.profile.avatar !== 'string') {
               throw new Error('Cloud returned an invalid profile.');
             }
-            cacheUserProfile(currentUser, cloudData.profile);
+            cacheUserProfile(currentUser, {
+              ...cloudData.profile,
+              avatar: normalizeProfileAvatar(cloudData.profile.avatar)
+            });
           } else {
             const cachedProfile = getCachedUserProfile();
             if (cachedProfile) {
@@ -1840,7 +1839,7 @@
                 name: typeof cachedProfile.name === 'string' && cachedProfile.name.trim()
                   ? cachedProfile.name.trim()
                   : cloudData.accountDisplayName || currentUser,
-                avatar: PROFILE_AVATAR_VALUES.has(cachedProfile.avatar) ? cachedProfile.avatar : ""
+                avatar: normalizeProfileAvatar(cachedProfile.avatar)
               };
               cacheUserProfile(currentUser, profile);
               localStorage.setItem(getProfileSyncPendingKey(), 'true');
@@ -1853,7 +1852,7 @@
             } else {
               cacheUserProfile(currentUser, {
                 name: cloudData.accountDisplayName || currentUser,
-                avatar: ""
+                avatar: DEFAULT_PROFILE_AVATAR
               });
             }
           }
@@ -2118,11 +2117,14 @@
         return;
       }
 
-      listEl.innerHTML = users.map(u => `
+      listEl.innerHTML = users.map((u, index) => `
         <div class="log-item">
-          <div>
-            <div style="font-weight:600; font-size:0.9rem;">${u.display_name} (${u.username}) ${u.is_admin ? '<i data-lucide="shield-check" aria-hidden="true"></i> [Admin]' : ''}</div>
-            <div style="font-size:0.75rem; color:var(--text-muted);">Created: ${u.created_at || 'N/A'}</div>
+          <div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
+            <div class="profile-avatar" data-admin-avatar-index="${index}" aria-hidden="true"></div>
+            <div>
+              <div style="font-weight:600; font-size:0.9rem;">${u.display_name} (${u.username}) ${u.is_admin ? '<i data-lucide="shield-check" aria-hidden="true"></i> [Admin]' : ''}</div>
+              <div style="font-size:0.75rem; color:var(--text-muted);">Created: ${u.created_at || 'N/A'}</div>
+            </div>
           </div>
           <div style="display: flex; gap: 6px;">
             <button class="btn-small" onclick="editUserPrompt('${u.username}', '${u.display_name || ''}')">Edit</button>
@@ -2130,6 +2132,15 @@
           </div>
         </div>
       `).join('');
+      listEl.querySelectorAll('[data-admin-avatar-index]').forEach(element => {
+        const user = users[Number(element.dataset.adminAvatarIndex)];
+        renderProfileAvatar(
+          element,
+          normalizeProfileAvatar(user.avatar),
+          (user.display_name || user.username || "?").charAt(0).toUpperCase(),
+          `${user.display_name || user.username} avatar`
+        );
+      });
       refreshLucideIcons();
     }
 
