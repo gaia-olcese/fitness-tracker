@@ -7,6 +7,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <title>FitLog</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://unpkg.com/lucide@latest" defer></script>
   <style>
     :root {
       --bg: #F4F6F9;
@@ -27,6 +28,13 @@
       margin: 0;
       padding: 0;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    .lucide {
+      width: 1em;
+      height: 1em;
+      vertical-align: -0.15em;
+      display: inline-block;
     }
 
     body {
@@ -106,6 +114,11 @@
       width: 100%;
       height: 100%;
       object-fit: cover;
+    }
+
+    .profile-avatar .lucide {
+      width: 18px;
+      height: 18px;
     }
 
     .profile-name {
@@ -593,7 +606,7 @@
       object-fit: cover;
     }
 
-    .emoji-picker {
+    .avatar-picker {
       display: flex;
       justify-content: center;
       gap: 8px;
@@ -601,7 +614,7 @@
       flex-wrap: wrap;
     }
 
-    .emoji-btn {
+    .avatar-option {
       width: 36px;
       height: 36px;
       border-radius: 50%;
@@ -611,8 +624,19 @@
       cursor: pointer;
     }
 
-    .emoji-btn:active {
+    .avatar-option:active {
       background: var(--border);
+    }
+
+    .avatar-option .lucide {
+      width: 20px;
+      height: 20px;
+      vertical-align: middle;
+    }
+
+    .avatar-preview-large .lucide {
+      width: 36px;
+      height: 36px;
     }
 
     nav {
@@ -658,8 +682,10 @@
       color: var(--primary);
     }
 
-    nav button span.icon {
-      font-size: 1.25rem;
+    #mainNav .lucide {
+      width: 22px;
+      height: 22px;
+      vertical-align: 0;
     }
 
     .empty-state {
@@ -771,18 +797,24 @@
 
       <div class="avatar-preview-large" id="profilePreviewAvatar">G</div>
 
-      <div class="emoji-picker">
-        <button type="button" class="emoji-btn" onclick="selectPresetAvatar('💪')">💪</button>
-        <button type="button" class="emoji-btn" onclick="selectPresetAvatar('🏋️')">🏋️</button>
-        <button type="button" class="emoji-btn" onclick="selectPresetAvatar('🐱')">🐱</button>
-        <button type="button" class="emoji-btn" onclick="selectPresetAvatar('🌱')">🌱</button>
-        <button type="button" class="emoji-btn" onclick="selectPresetAvatar('⚡')">⚡</button>
-        <button type="button" class="emoji-btn" onclick="selectPresetAvatar('🔥')">🔥</button>
+      <div class="avatar-picker">
+        <button type="button" class="avatar-option" onclick="selectPresetAvatar('lucide:dumbbell')" aria-label="Dumbbell icon avatar" title="Dumbbell"><i data-lucide="dumbbell" aria-hidden="true"></i></button>
+        <button type="button" class="avatar-option" onclick="selectPresetAvatar('lucide:activity')" aria-label="Activity icon avatar" title="Activity"><i data-lucide="activity" aria-hidden="true"></i></button>
+        <button type="button" class="avatar-option" onclick="selectPresetAvatar('lucide:cat')" aria-label="Cat icon avatar" title="Cat"><i data-lucide="cat" aria-hidden="true"></i></button>
+        <button type="button" class="avatar-option" onclick="selectPresetAvatar('lucide:sprout')" aria-label="Sprout icon avatar" title="Sprout"><i data-lucide="sprout" aria-hidden="true"></i></button>
+        <button type="button" class="avatar-option" onclick="selectPresetAvatar('lucide:zap')" aria-label="Zap icon avatar" title="Zap"><i data-lucide="zap" aria-hidden="true"></i></button>
+        <button type="button" class="avatar-option" onclick="selectPresetAvatar('lucide:flame')" aria-label="Flame icon avatar" title="Flame"><i data-lucide="flame" aria-hidden="true"></i></button>
+        <button type="button" class="avatar-option" onclick="selectPresetAvatar('💪')" aria-label="Flexed biceps emoji avatar" title="Flexed biceps">💪</button>
+        <button type="button" class="avatar-option" onclick="selectPresetAvatar('🏋️')" aria-label="Weightlifting emoji avatar" title="Weightlifting">🏋️</button>
+        <button type="button" class="avatar-option" onclick="selectPresetAvatar('🐱')" aria-label="Cat emoji avatar" title="Cat">🐱</button>
+        <button type="button" class="avatar-option" onclick="selectPresetAvatar('🌱')" aria-label="Seedling emoji avatar" title="Seedling">🌱</button>
+        <button type="button" class="avatar-option" onclick="selectPresetAvatar('⚡')" aria-label="Lightning emoji avatar" title="Lightning">⚡</button>
+        <button type="button" class="avatar-option" onclick="selectPresetAvatar('🔥')" aria-label="Fire emoji avatar" title="Fire">🔥</button>
       </div>
 
       <div class="form-group">
         <label class="btn-small" style="display: inline-block; padding: 8px 14px; cursor: pointer;">
-          📷 Upload Photo
+          <i data-lucide="camera" aria-hidden="true"></i> Upload Photo
           <input type="file" id="avatarFileInput" accept="image/*" style="display: none;" onchange="handleAvatarUpload(event)" />
         </label>
         <button type="button" class="btn-small" onclick="clearCustomAvatar()" style="margin-left: 6px;">Reset</button>
@@ -840,7 +872,7 @@
   <div id="workoutCelebration" class="celebration-overlay" hidden onclick="if(event.target===this) closeWorkoutCelebration()">
     <div id="workoutCelebrationConfetti" class="celebration-confetti" aria-hidden="true"></div>
     <div class="celebration-card" role="dialog" aria-modal="true" aria-labelledby="workoutCelebrationTitle" aria-describedby="workoutCelebrationMessage">
-      <div style="font-size: 2.5rem; margin-bottom: 8px;" aria-hidden="true">🎉</div>
+      <div style="font-size: 2.5rem; margin-bottom: 8px;" aria-hidden="true"><i data-lucide="party-popper"></i></div>
       <h2 id="workoutCelebrationTitle">Workout complete!</h2>
       <p id="workoutCelebrationMessage">Congratulations on finishing your workout.</p>
       <button type="button" class="btn-primary" onclick="closeWorkoutCelebration()">Done</button>
@@ -856,8 +888,8 @@
       </div>
     </div>
     <div class="header-actions">
-      <button class="btn-small" onclick="syncWithCloud()" id="syncBtn">☁️ Sync</button>
-      <button class="btn-small" onclick="logout()">Logout</button>
+      <button class="btn-small" onclick="syncWithCloud()" id="syncBtn"><i data-lucide="cloud" aria-hidden="true"></i> Sync</button>
+      <button class="btn-small" onclick="logout()"><i data-lucide="log-out" aria-hidden="true"></i> Logout</button>
     </div>
   </header>
 
@@ -886,7 +918,7 @@
         <section class="warmup-section" aria-labelledby="warmupHeading">
           <div class="warmup-header">
             <h3 id="warmupHeading">Warm-up</h3>
-            <button class="btn-small" onclick="openWarmupEditor()">✏️ Edit</button>
+            <button class="btn-small" onclick="openWarmupEditor()"><i data-lucide="pencil" aria-hidden="true"></i> Edit</button>
           </div>
           <p class="warmup-note">Recommended exercises for a dynamic warm-up to start your gym session. And don't forget a light warm-up set before your working sets!</p>
           <ul id="warmupExerciseList" class="warmup-list"></ul>
@@ -894,9 +926,9 @@
         </section>
         <div class="routine-selector" id="routineSelector"></div>
         <div class="routine-actions">
-          <button class="btn-small" onclick="openRenameRoutineModal()">✏️ Rename Day</button>
+          <button class="btn-small" onclick="openRenameRoutineModal()"><i data-lucide="pencil" aria-hidden="true"></i> Rename Day</button>
           <button class="btn-small" onclick="openAddRoutineModal()">+ Add New Day</button>
-          <button class="btn-small" onclick="deleteCurrentRoutine()" style="color:var(--danger)">🗑️ Delete Day</button>
+          <button class="btn-small" onclick="deleteCurrentRoutine()" style="color:var(--danger)"><i data-lucide="trash-2" aria-hidden="true"></i> Delete Day</button>
         </div>
         <div id="routineContainer"></div>
       </div>
@@ -1033,7 +1065,7 @@
     <!-- AI Tab -->
     <div id="tab-ai" class="tab-content">
       <div class="card">
-        <h2>🤖 AI Assistant Settings</h2>
+        <h2><i data-lucide="bot" aria-hidden="true"></i> AI Assistant Settings</h2>
         <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 10px;">
           Enter your personal Gemini API key so you can log workouts and meals by voice or chat without sharing quotas.
         </p>
@@ -1045,7 +1077,7 @@
 
         <div style="background: var(--surface-light); padding: 14px; border-radius: 12px; border: 1px solid var(--border); font-size: 0.85rem; color: var(--text);">
           <div style="font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
-            <span>🔑</span> How to get your free Gemini API key:
+            <i data-lucide="key" aria-hidden="true"></i> How to get your free Gemini API key:
           </div>
           <p style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 10px; line-height: 1.3;">
             FitLog uses your own free Google AI key so you can chat or use voice logging without limits. It takes under 60 seconds:
@@ -1060,7 +1092,7 @@
       </div>
 
       <div class="card" style="display: flex; flex-direction: column; height: 480px;">
-        <h2>🎙️ FitLog AI Logger</h2>
+        <h2><i data-lucide="sparkles" aria-hidden="true"></i> FitLog AI Logger</h2>
         <p style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 8px;">
           Chat or tap the mic to estimate meals or discuss workouts. Review and confirm any proposed log before it is saved.
         </p>
@@ -1070,7 +1102,7 @@
           </div>
         </div>
         <div style="display: flex; gap: 6px;">
-          <button class="btn-small" id="aiMicBtn" onclick="toggleVoiceRecording()" style="padding: 10px 14px; font-size: 1.1rem;" title="Voice Input">🎙️</button>
+          <button class="btn-small" id="aiMicBtn" onclick="toggleVoiceRecording()" style="padding: 10px 14px; font-size: 1.1rem;" title="Voice Input" aria-label="Voice input"><i data-lucide="mic" aria-hidden="true"></i></button>
           <input type="text" id="aiUserInput" placeholder="e.g. Log 3 sets of 10kg bench press for 10 reps..." style="text-align: left; flex: 1;" onkeydown="if(event.key==='Enter') sendAiMessage()" />
           <button class="btn-small" onclick="sendAiMessage()" style="background: var(--primary); color: #fff; padding: 10px 14px; font-weight: 600;">Send</button>
         </div>
@@ -1081,29 +1113,51 @@
 
   <nav id="mainNav">
     <button class="active" onclick="switchTab('workouts', this)">
-      <span class="icon">🏋️</span>
+      <span class="icon"><i data-lucide="dumbbell" aria-hidden="true"></i></span>
       Workouts
     </button>
     <button onclick="switchTab('progress', this)">
-      <span class="icon">📈</span>
+      <span class="icon"><i data-lucide="trending-up" aria-hidden="true"></i></span>
       Progress
     </button>
     <button onclick="switchTab('nutrition', this)">
-      <span class="icon">🥗</span>
+      <span class="icon"><i data-lucide="utensils" aria-hidden="true"></i></span>
       Nutrition
     </button>
     <button id="adminNavBtn" style="display: none;" onclick="switchTab('admin', this)">
-      <span class="icon">🛡️</span>
+      <span class="icon"><i data-lucide="shield-check" aria-hidden="true"></i></span>
       Admin
     </button>
     <button id="aiNavBtn" style="display: none;" onclick="switchTab('ai', this)">
-      <span class="icon">🎙️</span>
+      <span class="icon"><i data-lucide="sparkles" aria-hidden="true"></i></span>
       AI Log
     </button>
   </nav>
 
   <script>
     const WORKER_URL = "https://fitlog-api.gaia-olcese.workers.dev";
+    const PROFILE_AVATAR_ICONS = new Set([
+      "dumbbell", "activity", "cat", "sprout", "zap", "flame"
+    ]);
+    let lucideLoadErrorReported = false;
+
+    function refreshLucideIcons() {
+      if (!window.lucide || typeof window.lucide.createIcons !== 'function') {
+        if (!lucideLoadErrorReported) {
+          console.error("Lucide icons could not be loaded from the CDN.");
+          lucideLoadErrorReported = true;
+        }
+        return;
+      }
+      window.lucide.createIcons({ attrs: { 'stroke-width': 2 } });
+    }
+
+    function setSyncButtonStatus(iconName, label) {
+      const button = document.getElementById('syncBtn');
+      if (!button) return;
+      button.innerHTML = `<i data-lucide="${iconName}" aria-hidden="true"></i> ${label}`;
+      refreshLucideIcons();
+    }
 
     const GAIA_ROUTINES = {
       "Monday": [
@@ -1259,13 +1313,12 @@
 
       nameEl.textContent = profile.name || "User";
 
-      if (profile.avatar && profile.avatar.startsWith('data:image')) {
-        avatarEl.innerHTML = `<img src="${profile.avatar}" alt="${profile.name}" />`;
-      } else if (profile.avatar) {
-        avatarEl.textContent = profile.avatar;
-      } else {
-        avatarEl.textContent = (profile.name || "?").charAt(0).toUpperCase();
-      }
+      renderProfileAvatar(
+        avatarEl,
+        profile.avatar,
+        (profile.name || "?").charAt(0).toUpperCase(),
+        profile.name || "Profile photo"
+      );
 
       // Show/Hide Admin Nav Button & AI Nav Button
       const adminBtn = document.getElementById('adminNavBtn');
@@ -1366,17 +1419,33 @@
       const previewEl = document.getElementById('profilePreviewAvatar');
       const nameVal = document.getElementById('profileNameInput').value.trim() || "?";
 
-      if (pendingAvatarData && pendingAvatarData.startsWith('data:image')) {
-        previewEl.innerHTML = `<img src="${pendingAvatarData}" alt="Preview" />`;
-      } else if (pendingAvatarData) {
-        previewEl.textContent = pendingAvatarData;
-      } else {
-        previewEl.textContent = nameVal.charAt(0).toUpperCase();
-      }
+      renderProfileAvatar(previewEl, pendingAvatarData, nameVal.charAt(0).toUpperCase(), "Avatar preview");
     }
 
-    function selectPresetAvatar(emoji) {
-      pendingAvatarData = emoji;
+    function renderProfileAvatar(element, avatar, fallback, imageAlt) {
+      if (avatar && avatar.startsWith('data:image')) {
+        const image = document.createElement('img');
+        image.src = avatar;
+        image.alt = imageAlt;
+        element.replaceChildren(image);
+        return;
+      }
+
+      const iconName = avatar && avatar.startsWith('lucide:') ? avatar.slice(7) : null;
+      if (PROFILE_AVATAR_ICONS.has(iconName)) {
+        const icon = document.createElement('i');
+        icon.dataset.lucide = iconName;
+        icon.setAttribute('aria-hidden', 'true');
+        element.replaceChildren(icon);
+        refreshLucideIcons();
+        return;
+      }
+
+      element.textContent = avatar && !iconName ? avatar : fallback;
+    }
+
+    function selectPresetAvatar(avatar) {
+      pendingAvatarData = avatar;
       updateProfilePreview();
     }
 
@@ -1432,6 +1501,7 @@
     }
 
     window.addEventListener('DOMContentLoaded', () => {
+      refreshLucideIcons();
       document.getElementById('profileNameInput').addEventListener('input', () => {
         if (!pendingAvatarData) updateProfilePreview();
       });
@@ -1444,6 +1514,7 @@
       }
       loadApiKeySetting();
       renderAll();
+      refreshLucideIcons();
     });
 
     async function handleLogin() {
@@ -1514,8 +1585,7 @@
 
     async function syncWithCloud() {
       if (!currentUser || !currentPassword) return;
-      const btn = document.getElementById('syncBtn');
-      if (btn) btn.textContent = '⏳ Syncing...';
+      setSyncButtonStatus('loader-2', 'Syncing...');
 
       try {
         const response = await fetch(`${WORKER_URL}/api/data`, {
@@ -1581,15 +1651,15 @@
 
         saveLocalState();
         if (isAdmin) fetchAdminUsers();
-        if (btn) btn.textContent = '☁️ Synced';
-        setTimeout(() => { if (btn) btn.textContent = '☁️ Sync'; }, 2000);
+        setSyncButtonStatus('cloud-check', 'Synced');
+        setTimeout(() => setSyncButtonStatus('cloud', 'Sync'), 2000);
       } catch (err) {
         if (!state.routines || Object.keys(state.routines).length === 0) {
           if (currentUser === 'gaia') state.routines = GAIA_ROUTINES;
           else if (currentUser === 'adam') state.routines = ADAM_ROUTINES;
           else state.routines = {};
         }
-        if (btn) btn.textContent = '⚠️ Offline';
+        setSyncButtonStatus('cloud-off', 'Offline');
         renderAll();
       }
     }
@@ -1738,21 +1808,23 @@
 
       if (!users || users.length === 0) {
         listEl.innerHTML = '<div class="empty-state">No users found.</div>';
+        refreshLucideIcons();
         return;
       }
 
       listEl.innerHTML = users.map(u => `
         <div class="log-item">
           <div>
-            <div style="font-weight:600; font-size:0.9rem;">${u.display_name} (${u.username}) ${u.is_admin ? '🛡️ [Admin]' : ''}</div>
+            <div style="font-weight:600; font-size:0.9rem;">${u.display_name} (${u.username}) ${u.is_admin ? '<i data-lucide="shield-check" aria-hidden="true"></i> [Admin]' : ''}</div>
             <div style="font-size:0.75rem; color:var(--text-muted);">Created: ${u.created_at || 'N/A'}</div>
           </div>
           <div style="display: flex; gap: 6px;">
             <button class="btn-small" onclick="editUserPrompt('${u.username}', '${u.display_name || ''}')">Edit</button>
-            ${u.username !== currentUser ? `<button class="delete-btn" onclick="deleteUserAccount('${u.username}')">✕</button>` : ''}
+            ${u.username !== currentUser ? `<button class="delete-btn" onclick="deleteUserAccount('${u.username}')" aria-label="Delete user account"><i data-lucide="x" aria-hidden="true"></i></button>` : ''}
           </div>
         </div>
       `).join('');
+      refreshLucideIcons();
     }
 
     function saveLocalState() {
@@ -2336,11 +2408,13 @@
 
       if (Object.keys(state.routines).length === 0) {
         container.innerHTML = '<div class="empty-state">No workout routines yet. Tap "+ Add New Day" above to create your first routine!</div>';
+        refreshLucideIcons();
         return;
       }
 
       if (exercises.length === 0) {
         container.innerHTML = '<div class="empty-state">No exercises in this routine yet. Tap "+ Add Exercise" above.</div>';
+        refreshLucideIcons();
         return;
       }
 
@@ -2373,7 +2447,7 @@
                 <div class="set-row">
                   <span class="set-label">Set ${s}</span>
                   <span class="set-summary">${loggedSet.weight} kg × ${loggedSet.reps} reps</span>
-                  <button class="delete-btn" onclick="deleteWorkout('${loggedSet.id}')" title="Remove logged set" aria-label="Remove set ${s}">✕</button>
+                  <button class="delete-btn" onclick="deleteWorkout('${loggedSet.id}')" title="Remove logged set" aria-label="Remove set ${s}"><i data-lucide="x" aria-hidden="true"></i></button>
                 </div>
               `;
             }
@@ -2385,7 +2459,7 @@
               <span class="set-label">Set ${s}</span>
               <input type="number" min="0" step="0.5" id="w_ex${idx}_s${s}" placeholder="${weightPlaceholder}" inputmode="decimal" aria-label="Set ${s} weight in kilograms" />
               <input type="number" min="1" step="1" id="r_ex${idx}_s${s}" placeholder="${repsPlaceholder}" inputmode="numeric" aria-label="Set ${s} reps" />
-              <button class="btn-small" style="background:var(--primary); color:#ffffff; border-color:var(--primary);" onclick="logSetAndStartRest(${idx}, ${s})">Log &amp; Rest</button>
+              <button class="btn-small" style="background:var(--primary); color:#ffffff; border-color:var(--primary);" onclick="logSetAndStartRest(${idx}, ${s})"><i data-lucide="check" aria-hidden="true"></i> Log &amp; Rest</button>
             </div>
           `;
         }
@@ -2400,12 +2474,12 @@
                 <div class="exercise-meta">${ex.desc || `${ex.workingSets} sets × ${ex.targetReps} reps`}</div>
                 <div class="exercise-meta">Rest timer: ${restSeconds} sec</div>
                 <div class="exercise-status ${isComplete ? 'complete' : ''}" aria-live="polite">
-                  ${isComplete ? '✓ Complete' : 'In progress'} · ${loggedCount}/${ex.workingSets} sets
+                  ${isComplete ? '<i data-lucide="check" aria-hidden="true"></i> Complete' : 'In progress'} · ${loggedCount}/${ex.workingSets} sets
                 </div>
               </div>
               <div class="exercise-tools">
-                <button onclick="editExercise(${idx})" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.85rem;" title="Edit exercise">✏️</button>
-                <button onclick="removeExerciseFromRoutine(${idx})" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.9rem;" title="Remove exercise">✕</button>
+                <button onclick="editExercise(${idx})" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.85rem;" title="Edit exercise" aria-label="Edit exercise"><i data-lucide="pencil" aria-hidden="true"></i></button>
+                <button onclick="removeExerciseFromRoutine(${idx})" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.9rem;" title="Remove exercise" aria-label="Remove exercise"><i data-lucide="x" aria-hidden="true"></i></button>
               </div>
             </div>
             ${setsHTML}
@@ -2415,11 +2489,12 @@
                 <button class="btn-small" onclick="cancelEditLoggedSets()">Cancel</button>
               </div>
             ` : (loggedCount > 0 ? `
-              <button class="btn-small" style="margin-top:8px;" onclick="editLoggedSets(${idx})">✏️ Edit logged sets</button>
+              <button class="btn-small" style="margin-top:8px;" onclick="editLoggedSets(${idx})"><i data-lucide="pencil" aria-hidden="true"></i> Edit logged sets</button>
             ` : '')}
           </div>
         `;
       }).join('');
+      refreshLucideIcons();
     }
 
     function captureExerciseDrafts(exIndex, totalSets, excludedSetNum = null) {
@@ -2658,10 +2733,11 @@
               <div style="font-weight:600; font-size:0.9rem;">${f.food}</div>
               <div style="font-size:0.8rem; color:var(--text-muted);">${f.cal} kcal • ${f.pro}g P • ${f.carb}g C • ${f.fat}g F</div>
             </div>
-            <button class="delete-btn" onclick="deleteFood('${f.id}')">✕</button>
+            <button class="delete-btn" onclick="deleteFood('${f.id}')" aria-label="Delete food log"><i data-lucide="x" aria-hidden="true"></i></button>
           </div>
         `).join('');
       }
+      refreshLucideIcons();
     }
 
     // --- AI CHAT & API KEY LOGIC ---
@@ -2821,7 +2897,7 @@ Your job is to help the user log their workouts and meals through conversation.
       }
     }
 
-    function appendChatMessage(text, sender, isThinking = false) {
+    function appendChatMessage(text, sender, isThinking = false, iconName = null) {
       const logEl = document.getElementById('aiChatLog');
       if (!logEl) return;
       const div = document.createElement('div');
@@ -2829,8 +2905,15 @@ Your job is to help the user log their workouts and meals through conversation.
       div.style.cssText = sender === 'user'
         ? 'background: var(--primary); color: #fff; padding: 8px 12px; border-radius: 10px; max-width: 85%; align-self: flex-end; font-size: 0.85rem;'
         : 'background: var(--surface); color: var(--text); padding: 8px 12px; border-radius: 10px; border: 1px solid var(--border); max-width: 85%; align-self: flex-start; font-size: 0.85rem;';
-      div.textContent = text;
+      if (iconName) {
+        const icon = document.createElement('i');
+        icon.dataset.lucide = iconName;
+        icon.setAttribute('aria-hidden', 'true');
+        div.append(icon, document.createTextNode(' '));
+      }
+      div.append(document.createTextNode(text));
       logEl.appendChild(div);
+      if (iconName) refreshLucideIcons();
       logEl.scrollTop = logEl.scrollHeight;
     }
 
@@ -2950,7 +3033,7 @@ Your job is to help the user log their workouts and meals through conversation.
         { role: "user", parts: [{ text: decision }] },
         { role: "model", parts: [{ text: error || "The confirmed log was saved." }] }
       );
-      appendChatMessage(error || "✅ Successfully logged. You can review or edit the entry in FitLog.", 'assistant');
+      appendChatMessage(error || "Successfully logged. You can review or edit the entry in FitLog.", 'assistant', false, error ? null : 'check');
     }
 
     function cancelPendingAiAction(showMessage = true) {
