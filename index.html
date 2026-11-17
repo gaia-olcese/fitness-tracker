@@ -9,16 +9,16 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root {
-      --bg: #f8fafc;
-      --surface: #ffffff;
-      --surface-light: #f1f5f9;
-      --text: #1e293b;
-      --text-muted: #64748b;
-      --primary: #0284c7;
-      --primary-hover: #0369a1;
-      --accent: #0ea5e9;
-      --danger: #ef4444;
-      --border: #e2e8f0;
+      --bg: #F4F6F9;
+      --surface: #FFFFFF;
+      --surface-light: #FFF1EE;
+      --text: #0A1F44;
+      --text-muted: #526582;
+      --primary: #FF6F61;
+      --primary-hover: #E85A4F;
+      --accent: #4682B4;
+      --danger: #D9383A;
+      --border: #DCE3EC;
       --radius: 14px;
     }
 
@@ -37,12 +37,13 @@
     }
 
     header {
-      background: var(--surface);
+      background: #0A1F44;
+      color: #FFFFFF;
       padding: 12px 16px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border-bottom: 1px solid var(--border);
+      border-bottom: 1px solid #25467D;
       position: sticky;
       top: 0;
       z-index: 10;
@@ -72,8 +73,9 @@
       display: flex;
       align-items: center;
       gap: 7px;
-      background: var(--surface-light);
-      border: 1px solid var(--border);
+      background: #163263;
+      border: 1px solid #25467D;
+      color: #FFFFFF;
       padding: 4px 10px 4px 5px;
       border-radius: 999px;
       cursor: pointer;
@@ -82,7 +84,7 @@
     }
 
     .profile-pill:active {
-      background: var(--border);
+      background: #25467D;
     }
 
     .profile-avatar {
@@ -109,7 +111,7 @@
     .profile-name {
       font-size: 0.8rem;
       font-weight: 600;
-      color: var(--text);
+      color: #FFFFFF;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -133,8 +135,18 @@
       cursor: pointer;
     }
 
+    header .btn-small {
+      background: #163263;
+      color: #FFFFFF;
+      border-color: #25467D;
+    }
+
     .btn-small:active {
       background: var(--border);
+    }
+
+    header .btn-small:active {
+      background: #25467D;
     }
 
     .container {
@@ -362,7 +374,7 @@
     input:focus {
       outline: none;
       border-color: var(--primary);
-      box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.15);
+      box-shadow: 0 0 0 2px rgba(255, 111, 97, 0.2);
     }
 
     textarea {
@@ -389,6 +401,42 @@
       position: relative;
       height: 360px;
       width: 100%;
+    }
+
+    .chart-filters {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .chart-filter-field label {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .chart-filter-field select {
+      width: 100%;
+      padding: 9px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--text);
+      font: inherit;
+      font-size: 0.9rem;
+    }
+
+    .chart-filter-field select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(255, 111, 97, 0.2);
+    }
+
+    @media (max-width: 420px) {
+      .chart-filters {
+        grid-template-columns: 1fr;
+      }
     }
 
     .macro-summary {
@@ -858,6 +906,20 @@
     <!-- Progress Tab -->
     <div id="tab-progress" class="tab-content">
       <div class="card">
+        <h2>Filter graphs</h2>
+        <div class="chart-filters">
+          <div class="chart-filter-field">
+            <label for="chartRoutineFilter">Workout day</label>
+            <select id="chartRoutineFilter" onchange="handleChartRoutineChange()"></select>
+          </div>
+          <div class="chart-filter-field">
+            <label for="chartExerciseFilter">Exercise</label>
+            <select id="chartExerciseFilter" onchange="handleChartExerciseChange()"></select>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
         <h2>Volume Progression (kg)</h2>
         <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">
           Total volume (Weight × Reps) per session. Tap legend items to toggle lines.
@@ -1083,8 +1145,7 @@
     };
 
     const LINE_COLORS = [
-      '#0284c7', '#0d9488', '#d97706', '#db2777', '#7c3aed', '#0891b2',
-      '#e11d48', '#65a30d', '#ca8a04', '#4f46e5', '#0d9488', '#f97316'
+      '#FF6F61', '#0A1F44', '#4682B4', '#F59E0B', '#0D9488', '#8B5CF6', '#EC4899', '#64748B'
     ];
 
     const DEFAULT_GOALS = { cal: 2000, pro: 130, carb: 220, fat: 65 };
@@ -1164,6 +1225,8 @@
 
     let routineKeys = Object.keys(state.routines);
     let activeRoutineDay = routineKeys.length > 0 ? routineKeys[0] : "";
+    let selectedChartRoutineDay = routineKeys.length > 0 ? routineKeys[0] : "";
+    let selectedChartExercise = "";
     let volumeChartInstance = null;
     let maxWeightChartInstance = null;
     let pendingAvatarData = "";
@@ -2013,7 +2076,80 @@
       }
     }
 
+    function getChartExerciseNames() {
+      if (!selectedChartRoutineDay) {
+        return Array.from(new Set(state.workouts.map(workout => workout.exercise).filter(Boolean))).sort();
+      }
+
+      const routine = state.routines[selectedChartRoutineDay] || [];
+      return Array.from(new Set(routine.map(exercise => exercise.name).filter(Boolean)));
+    }
+
+    function renderChartFilters() {
+      const dayFilter = document.getElementById('chartRoutineFilter');
+      const exerciseFilter = document.getElementById('chartExerciseFilter');
+      if (!dayFilter || !exerciseFilter) return;
+
+      const routineDays = Object.keys(state.routines || {});
+      if (selectedChartRoutineDay && !routineDays.includes(selectedChartRoutineDay)) {
+        selectedChartRoutineDay = routineDays[0] || "";
+        selectedChartExercise = "";
+      }
+
+      const dayOptions = [{ value: "", label: "All workout days" }, ...routineDays.map(day => ({
+        value: day,
+        label: day
+      }))];
+      dayFilter.replaceChildren(...dayOptions.map(({ value, label }) => {
+        const option = document.createElement('option');
+        option.value = value;
+        option.textContent = label;
+        return option;
+      }));
+      dayFilter.value = selectedChartRoutineDay;
+
+      const exerciseNames = getChartExerciseNames();
+      if (selectedChartExercise && !exerciseNames.includes(selectedChartExercise)) {
+        selectedChartExercise = "";
+      }
+      const exerciseOptions = [{
+        value: "",
+        label: selectedChartRoutineDay ? "All exercises for this day" : "All exercises"
+      }, ...exerciseNames.map(name => ({ value: name, label: name }))];
+      exerciseFilter.replaceChildren(...exerciseOptions.map(({ value, label }) => {
+        const option = document.createElement('option');
+        option.value = value;
+        option.textContent = label;
+        return option;
+      }));
+      exerciseFilter.value = selectedChartExercise;
+    }
+
+    function handleChartRoutineChange() {
+      selectedChartRoutineDay = document.getElementById('chartRoutineFilter').value;
+      selectedChartExercise = "";
+      renderChart();
+    }
+
+    function handleChartExerciseChange() {
+      selectedChartExercise = document.getElementById('chartExerciseFilter').value;
+      renderChart();
+    }
+
+    function getChartWorkouts() {
+      const routineExercises = selectedChartRoutineDay
+        ? new Set(getChartExerciseNames())
+        : null;
+      return state.workouts.filter(workout =>
+        (!routineExercises || routineExercises.has(workout.exercise)) &&
+        (!selectedChartExercise || workout.exercise === selectedChartExercise)
+      );
+    }
+
     function renderChart() {
+      renderChartFilters();
+      const chartWorkouts = getChartWorkouts();
+
       // --- 1. VOLUME CHART ---
       const volCtx = document.getElementById('volumeChart');
       if (volCtx) {
@@ -2021,7 +2157,7 @@
         const exercisesSet = new Set();
         const volumeMap = {};
 
-        state.workouts.forEach(w => {
+        chartWorkouts.forEach(w => {
           datesSet.add(w.date);
           exercisesSet.add(w.exercise);
           if (!volumeMap[w.exercise]) volumeMap[w.exercise] = {};
@@ -2080,7 +2216,7 @@
         const exercisesSet = new Set();
         const maxWeightMap = {};
 
-        state.workouts.forEach(w => {
+        chartWorkouts.forEach(w => {
           datesSet.add(w.date);
           exercisesSet.add(w.exercise);
           if (!maxWeightMap[w.exercise]) maxWeightMap[w.exercise] = {};
