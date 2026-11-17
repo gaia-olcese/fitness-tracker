@@ -812,17 +812,11 @@
         <button type="button" class="avatar-option" onclick="selectPresetAvatar('🔥')" aria-label="Fire emoji avatar" title="Fire">🔥</button>
       </div>
 
-      <div class="form-group">
-        <label class="btn-small" style="display: inline-block; padding: 8px 14px; cursor: pointer;">
-          <i data-lucide="camera" aria-hidden="true"></i> Upload Photo
-          <input type="file" id="avatarFileInput" accept="image/*" style="display: none;" onchange="handleAvatarUpload(event)" />
-        </label>
-        <button type="button" class="btn-small" onclick="clearCustomAvatar()" style="margin-left: 6px;">Reset</button>
-      </div>
+      <button type="button" class="btn-small" onclick="clearCustomAvatar()" style="margin-bottom: 12px;">Reset avatar</button>
 
       <div class="form-group" style="text-align: left; margin-top: 12px;">
         <label for="profileNameInput">Display Name</label>
-        <input type="text" id="profileNameInput" placeholder="Your name" style="text-align: left;" />
+        <input type="text" id="profileNameInput" placeholder="Your name" maxlength="60" style="text-align: left;" />
       </div>
 
       <div style="display: flex; gap: 8px; margin-top: 14px;">
@@ -1139,6 +1133,10 @@
     const PROFILE_AVATAR_ICONS = new Set([
       "dumbbell", "activity", "cat", "sprout", "zap", "flame"
     ]);
+    const PROFILE_AVATAR_VALUES = new Set([
+      "", ...Array.from(PROFILE_AVATAR_ICONS, icon => `lucide:${icon}`),
+      "💪", "🏋️", "🐱", "🌱", "⚡", "🔥"
+    ]);
     let lucideLoadErrorReported = false;
     let cloudPushQueue = Promise.resolve();
 
@@ -1342,11 +1340,53 @@
     let celebratedWorkoutKeys = new Set();
     let celebrationConfettiTimeout = null;
 
+    function getCachedUserProfile(username = currentUser) {
+      if (!username) return null;
+      const allProfiles = JSON.parse(localStorage.getItem('fitlog_profiles')) || {};
+      return allProfiles[username] || null;
+    }
+
+    function cacheUserProfile(username, profile) {
+      const allProfiles = JSON.parse(localStorage.getItem('fitlog_profiles')) || {};
+      allProfiles[username] = profile;
+      localStorage.setItem('fitlog_profiles', JSON.stringify(allProfiles));
+    }
+
+    function getProfileSyncPendingKey(username = currentUser) {
+      return username ? `fitlog_profile_pending_${username.toLowerCase()}` : null;
+    }
+
+    function isProfileSyncPending(username = currentUser) {
+      const key = getProfileSyncPendingKey(username);
+      return !!key && localStorage.getItem(key) === 'true';
+    }
+
+    async function saveProfileToCloud(profile, username = currentUser) {
+      if (!username || !currentPassword) throw new Error('You must be signed in to sync your profile.');
+
+      const response = await fetch(`${WORKER_URL}/api/profile`, {
+        method: 'POST',
+        headers: {
+          "Content-Type": "application/json",
+          "X-Username": username,
+          "X-Password": currentPassword
+        },
+        body: JSON.stringify(profile)
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || `Profile sync failed (${response.status})`);
+      }
+
+      localStorage.removeItem(getProfileSyncPendingKey(username));
+    }
+
     function getUserProfile() {
       if (!currentUser) return { name: "Guest", avatar: "" };
-      const allProfiles = JSON.parse(localStorage.getItem('fitlog_profiles')) || {};
-      if (allProfiles[currentUser]) return allProfiles[currentUser];
-      return { name: currentUser.charAt(0).toUpperCase() + currentUser.slice(1), avatar: "" };
+      return getCachedUserProfile() || {
+        name: currentUser.charAt(0).toUpperCase() + currentUser.slice(1),
+        avatar: ""
+      };
     }
 
     function renderProfileBadge() {
@@ -1488,59 +1528,35 @@
     }
 
     function selectPresetAvatar(avatar) {
+      if (!PROFILE_AVATAR_VALUES.has(avatar)) return;
       pendingAvatarData = avatar;
       updateProfilePreview();
     }
 
     function clearCustomAvatar() {
       pendingAvatarData = "";
-      document.getElementById('avatarFileInput').value = "";
       updateProfilePreview();
     }
 
-    function handleAvatarUpload(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        const img = new Image();
-        img.onload = function() {
-          const canvas = document.createElement('canvas');
-          const size = 128;
-          canvas.width = size;
-          canvas.height = size;
-          const ctx = canvas.getContext('2d');
-
-          const minSide = Math.min(img.width, img.height);
-          const sx = (img.width - minSide) / 2;
-          const sy = (img.height - minSide) / 2;
-          ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, size, size);
-
-          pendingAvatarData = canvas.toDataURL('image/jpeg', 0.8);
-          updateProfilePreview();
-        };
-        img.src = e.target.result;
-      };
-      reader.readAsDataURL(file);
-    }
-
-    function saveProfile() {
+    async function saveProfile() {
       if (!currentUser) return;
       const newName = document.getElementById('profileNameInput').value.trim();
-      if (!newName) {
-        alert("Please enter a display name.");
+      if (!newName || newName.length > 60 || !PROFILE_AVATAR_VALUES.has(pendingAvatarData)) {
+        alert("Enter a display name of 1 to 60 characters and choose a standard avatar.");
         return;
       }
 
-      const allProfiles = JSON.parse(localStorage.getItem('fitlog_profiles')) || {};
-      allProfiles[currentUser] = {
-        name: newName,
-        avatar: pendingAvatarData
-      };
-      localStorage.setItem('fitlog_profiles', JSON.stringify(allProfiles));
+      const profile = { name: newName, avatar: pendingAvatarData };
+      cacheUserProfile(currentUser, profile);
+      localStorage.setItem(getProfileSyncPendingKey(), 'true');
       renderProfileBadge();
       closeProfileModal();
+      try {
+        await saveProfileToCloud(profile);
+      } catch (error) {
+        console.error("Profile was saved locally but could not be synced:", error);
+        alert(`Profile saved on this device, but cloud sync failed: ${error.message}`);
+      }
     }
 
     window.addEventListener('DOMContentLoaded', () => {
@@ -1629,8 +1645,21 @@
     async function syncWithCloud() {
       if (!currentUser || !currentPassword) return;
       setSyncButtonStatus('loader-2', 'Syncing...');
+      let profileSyncFailed = false;
 
       try {
+        if (isProfileSyncPending()) {
+          const pendingProfile = getCachedUserProfile();
+          if (pendingProfile) {
+            try {
+              await saveProfileToCloud(pendingProfile);
+            } catch (error) {
+              console.error("Could not sync the pending profile change:", error);
+              profileSyncFailed = true;
+            }
+          }
+        }
+
         const response = await fetch(`${WORKER_URL}/api/data`, {
           method: 'GET',
           headers: {
@@ -1652,6 +1681,42 @@
         if (!Array.isArray(cloudData.workouts) || !Array.isArray(cloudData.nutrition)) {
           throw new Error('Cloud returned invalid workout or nutrition data.');
         }
+
+        if (!isProfileSyncPending()) {
+          if (cloudData.profile) {
+            if (typeof cloudData.profile.name !== 'string' ||
+                typeof cloudData.profile.avatar !== 'string' ||
+                !PROFILE_AVATAR_VALUES.has(cloudData.profile.avatar)) {
+              throw new Error('Cloud returned an invalid profile.');
+            }
+            cacheUserProfile(currentUser, cloudData.profile);
+          } else {
+            const cachedProfile = getCachedUserProfile();
+            if (cachedProfile) {
+              const profile = {
+                name: typeof cachedProfile.name === 'string' && cachedProfile.name.trim()
+                  ? cachedProfile.name.trim()
+                  : cloudData.accountDisplayName || currentUser,
+                avatar: PROFILE_AVATAR_VALUES.has(cachedProfile.avatar) ? cachedProfile.avatar : ""
+              };
+              cacheUserProfile(currentUser, profile);
+              localStorage.setItem(getProfileSyncPendingKey(), 'true');
+              try {
+                await saveProfileToCloud(profile);
+              } catch (error) {
+                console.error("Could not migrate the saved profile to the cloud:", error);
+                profileSyncFailed = true;
+              }
+            } else {
+              cacheUserProfile(currentUser, {
+                name: cloudData.accountDisplayName || currentUser,
+                avatar: ""
+              });
+            }
+          }
+          renderProfileBadge();
+        }
+        if (isProfileSyncPending()) profileSyncFailed = true;
 
         const cloudWorkoutIds = new Set(cloudData.workouts.map(workout => String(workout.id)));
         const cloudNutritionIds = new Set(cloudData.nutrition.map(item => String(item.id)));
@@ -1722,8 +1787,12 @@
           pushToCloud();
         }
         if (isAdmin) fetchAdminUsers();
-        setSyncButtonStatus('cloud-check', 'Synced');
-        setTimeout(() => setSyncButtonStatus('cloud', 'Sync'), 2000);
+        if (profileSyncFailed) {
+          setSyncButtonStatus('cloud-off', 'Profile pending');
+        } else {
+          setSyncButtonStatus('cloud-check', 'Synced');
+          setTimeout(() => setSyncButtonStatus('cloud', 'Sync'), 2000);
+        }
       } catch (err) {
         if (!state.routines || Object.keys(state.routines).length === 0) {
           if (currentUser === 'gaia') state.routines = GAIA_ROUTINES;
