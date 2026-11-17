@@ -1225,7 +1225,7 @@
 
     let routineKeys = Object.keys(state.routines);
     let activeRoutineDay = routineKeys.length > 0 ? routineKeys[0] : "";
-    let selectedChartRoutineDay = routineKeys.length > 0 ? routineKeys[0] : "";
+    let selectedChartRoutineDay = "";
     let selectedChartExercise = "";
     let volumeChartInstance = null;
     let maxWeightChartInstance = null;
@@ -2092,7 +2092,7 @@
 
       const routineDays = Object.keys(state.routines || {});
       if (selectedChartRoutineDay && !routineDays.includes(selectedChartRoutineDay)) {
-        selectedChartRoutineDay = routineDays[0] || "";
+        selectedChartRoutineDay = "";
         selectedChartExercise = "";
       }
 
