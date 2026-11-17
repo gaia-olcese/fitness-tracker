@@ -917,6 +917,9 @@
             <select id="chartExerciseFilter" onchange="handleChartExerciseChange()"></select>
           </div>
         </div>
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 10px;">
+          Workout day narrows the exercise list. Charts include all logged sessions for the selected exercise, including across routines.
+        </p>
       </div>
 
       <div class="card">
@@ -2114,7 +2117,7 @@
       }
       const exerciseOptions = [{
         value: "",
-        label: selectedChartRoutineDay ? "All exercises for this day" : "All exercises"
+        label: "All exercises"
       }, ...exerciseNames.map(name => ({ value: name, label: name }))];
       exerciseFilter.replaceChildren(...exerciseOptions.map(({ value, label }) => {
         const option = document.createElement('option');
@@ -2137,11 +2140,7 @@
     }
 
     function getChartWorkouts() {
-      const routineExercises = selectedChartRoutineDay
-        ? new Set(getChartExerciseNames())
-        : null;
       return state.workouts.filter(workout =>
-        (!routineExercises || routineExercises.has(workout.exercise)) &&
         (!selectedChartExercise || workout.exercise === selectedChartExercise)
       );
     }
