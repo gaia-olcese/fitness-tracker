@@ -1140,6 +1140,49 @@
       "dumbbell", "activity", "cat", "sprout", "zap", "flame"
     ]);
     let lucideLoadErrorReported = false;
+    let cloudPushQueue = Promise.resolve();
+
+    function getPendingCloudChanges(username = currentUser) {
+      const empty = {
+        deletedWorkoutIds: [],
+        deletedNutritionIds: [],
+        updatedWorkoutIds: [],
+        updatedNutritionIds: []
+      };
+      if (!username) return empty;
+
+      const key = `fitlog_pending_cloud_changes_${username.toLowerCase()}`;
+      const stored = localStorage.getItem(key);
+      if (!stored) return empty;
+      const pending = JSON.parse(stored);
+      if (Object.keys(empty).some(field => !Array.isArray(pending[field]))) {
+        throw new Error('Saved pending cloud changes are invalid.');
+      }
+      return Object.fromEntries(
+        Object.keys(empty).map(field => [field, [...new Set(pending[field].map(String))]])
+      );
+    }
+
+    function savePendingCloudChanges(username, changes) {
+      const key = `fitlog_pending_cloud_changes_${username.toLowerCase()}`;
+      const hasChanges = Object.values(changes).some(ids => ids.length > 0);
+      if (hasChanges) localStorage.setItem(key, JSON.stringify(changes));
+      else localStorage.removeItem(key);
+    }
+
+    function queueCloudRecordChange(type, id, action) {
+      if (!currentUser) return;
+      const pending = getPendingCloudChanges();
+      const suffix = type === 'workout' ? 'Workout' : 'Nutrition';
+      const idValue = String(id);
+      const deletedKey = `deleted${suffix}Ids`;
+      const updatedKey = `updated${suffix}Ids`;
+      const targetKey = action === 'delete' ? deletedKey : updatedKey;
+      const otherKey = action === 'delete' ? updatedKey : deletedKey;
+      pending[otherKey] = pending[otherKey].filter(value => value !== idValue);
+      if (!pending[targetKey].includes(idValue)) pending[targetKey].push(idValue);
+      savePendingCloudChanges(currentUser, pending);
+    }
 
     function refreshLucideIcons() {
       if (!window.lucide || typeof window.lucide.createIcons !== 'function') {
@@ -1606,20 +1649,45 @@
         }
 
         const cloudData = await response.json();
-        
-        if (cloudData.workouts.length === 0 && currentUser === 'gaia') {
-          try {
-            const seedRes = await fetch('fitlog_weeks1_5.json');
-            if (seedRes.ok) {
-              const seedData = await seedRes.json();
-              state.workouts = seedData.workouts;
-              await pushToCloud();
-            }
-          } catch (e) {}
-        } else {
-          state.workouts = cloudData.workouts || [];
-          state.nutrition = cloudData.nutrition || [];
+        if (!Array.isArray(cloudData.workouts) || !Array.isArray(cloudData.nutrition)) {
+          throw new Error('Cloud returned invalid workout or nutrition data.');
         }
+
+        const cloudWorkoutIds = new Set(cloudData.workouts.map(workout => String(workout.id)));
+        const cloudNutritionIds = new Set(cloudData.nutrition.map(item => String(item.id)));
+        const pending = getPendingCloudChanges();
+        const pendingWorkoutDeletes = new Set(pending.deletedWorkoutIds);
+        const pendingNutritionDeletes = new Set(pending.deletedNutritionIds);
+        const pendingWorkoutUpdates = new Set(pending.updatedWorkoutIds);
+        const pendingNutritionUpdates = new Set(pending.updatedNutritionIds);
+        const localWorkoutsById = new Map(state.workouts.map(workout => [String(workout.id), workout]));
+        const localNutritionById = new Map(state.nutrition.map(item => [String(item.id), item]));
+        const hasLocalOnlyRecords =
+          state.workouts.some(workout => !cloudWorkoutIds.has(String(workout.id))) ||
+          state.nutrition.some(item => !cloudNutritionIds.has(String(item.id)));
+        const mergedWorkouts = new Map(cloudData.workouts.map(workout => [String(workout.id), workout]));
+        const mergedNutrition = new Map(cloudData.nutrition.map(item => [String(item.id), item]));
+        for (const workout of state.workouts) {
+          if (!mergedWorkouts.has(String(workout.id))) {
+            mergedWorkouts.set(String(workout.id), workout);
+          }
+        }
+        for (const item of state.nutrition) {
+          if (!mergedNutrition.has(String(item.id))) {
+            mergedNutrition.set(String(item.id), item);
+          }
+        }
+
+        state.workouts = Array.from(mergedWorkouts.values())
+          .filter(workout => !pendingWorkoutDeletes.has(String(workout.id)))
+          .map(workout => pendingWorkoutUpdates.has(String(workout.id))
+            ? localWorkoutsById.get(String(workout.id)) || workout
+            : workout);
+        state.nutrition = Array.from(mergedNutrition.values())
+          .filter(item => !pendingNutritionDeletes.has(String(item.id)))
+          .map(item => pendingNutritionUpdates.has(String(item.id))
+            ? localNutritionById.get(String(item.id)) || item
+            : item);
 
         if (isWarmupSyncPending(currentUser)) {
           state.warmupExercises = getCachedWarmupExercises(currentUser) || [...DEFAULT_WARMUP_EXERCISES];
@@ -1649,7 +1717,10 @@
           else state.routines = {};
         }
 
-        saveLocalState();
+        saveLocalStateLocally();
+        if (hasLocalOnlyRecords || Object.values(pending).some(ids => ids.length > 0)) {
+          pushToCloud();
+        }
         if (isAdmin) fetchAdminUsers();
         setSyncButtonStatus('cloud-check', 'Synced');
         setTimeout(() => setSyncButtonStatus('cloud', 'Sync'), 2000);
@@ -1659,6 +1730,7 @@
           else if (currentUser === 'adam') state.routines = ADAM_ROUTINES;
           else state.routines = {};
         }
+        console.error('Cloud sync failed; local state was not uploaded:', err);
         setSyncButtonStatus('cloud-off', 'Offline');
         renderAll();
       }
@@ -1666,20 +1738,42 @@
 
     async function pushToCloud() {
       if (!currentUser || !currentPassword) return;
-      try {
-        await fetch(`${WORKER_URL}/api/sync`, {
+
+      const username = currentUser;
+      const password = currentPassword;
+      const pending = getPendingCloudChanges(username);
+      const snapshot = {
+        workouts: state.workouts.map(workout => ({ ...workout })),
+        nutrition: state.nutrition.map(item => ({ ...item })),
+        ...pending
+      };
+      cloudPushQueue = cloudPushQueue.then(async () => {
+        if (username !== currentUser || password !== currentPassword) return;
+        const response = await fetch(`${WORKER_URL}/api/sync`, {
           method: 'POST',
           headers: {
             "Content-Type": "application/json",
-            "X-Username": currentUser,
-            "X-Password": currentPassword
+            "X-Username": username,
+            "X-Password": password
           },
-          body: JSON.stringify({
-            workouts: state.workouts,
-            nutrition: state.nutrition
-          })
+          body: JSON.stringify(snapshot)
         });
-      } catch (err) {}
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+          throw new Error(result.error || `Cloud sync failed (${response.status})`);
+        }
+
+        const remaining = getPendingCloudChanges(username);
+        for (const field of Object.keys(pending)) {
+          const sentIds = new Set(pending[field]);
+          remaining[field] = remaining[field].filter(id => !sentIds.has(id));
+        }
+        savePendingCloudChanges(username, remaining);
+      }).catch(error => {
+        console.error('Could not sync changes to the cloud; local data is preserved:', error);
+        if (username === currentUser) setSyncButtonStatus('cloud-off', 'Offline');
+      });
+      return cloudPushQueue;
     }
 
     async function fetchAdminUsers() {
@@ -1827,9 +1921,13 @@
       refreshLucideIcons();
     }
 
-    function saveLocalState() {
+    function saveLocalStateLocally() {
       localStorage.setItem('fitlog_data', JSON.stringify(state));
       renderAll();
+    }
+
+    function saveLocalState() {
+      saveLocalStateLocally();
       pushToCloud();
     }
 
@@ -1945,6 +2043,7 @@
     }
 
     function deleteWorkout(id) {
+      queueCloudRecordChange('workout', id, 'delete');
       state.workouts = state.workouts.filter(w => w.id !== id);
       saveLocalState();
     }
@@ -2369,6 +2468,7 @@
     }
 
     function deleteFood(id) {
+      queueCloudRecordChange('nutrition', id, 'delete');
       state.nutrition = state.nutrition.filter(f => f.id !== id);
       saveLocalState();
     }
@@ -2571,6 +2671,7 @@
       updates.forEach(({ workout, weight, reps }) => {
         workout.weight = weight;
         workout.reps = reps;
+        queueCloudRecordChange('workout', workout.id, 'update');
       });
       editingSetExercise = null;
       saveLocalState();
