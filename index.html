@@ -1345,7 +1345,7 @@
     let state = {
       workouts: savedData.workouts || [],
       nutrition: savedData.nutrition || [],
-      workoutNotes: loadCachedWorkoutNotes(currentUser),
+      workoutNotes: getCachedWorkoutNotes(currentUser),
       goals: savedData.goals || DEFAULT_GOALS,
       routines: getInitialRoutines(currentUser),
       warmupExercises: getCachedWarmupExercises(currentUser) || [...DEFAULT_WARMUP_EXERCISES]
