@@ -423,6 +423,31 @@
       width: 100%;
     }
 
+    .workout-note-history {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .workout-note-entry {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      background: var(--surface);
+    }
+
+    .workout-note-entry summary {
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .workout-note-entry p {
+      margin-top: 8px;
+      color: var(--text-muted);
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
     .chart-filters {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -962,6 +987,25 @@
         <div id="routineContainer"></div>
       </div>
 
+      <div class="card">
+        <h2>Workout Note</h2>
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">
+          Add or update a note for the selected workout date.
+        </p>
+        <div class="form-group">
+          <label for="workoutNoteDate">Workout date</label>
+          <input type="date" id="workoutNoteDate" onchange="handleWorkoutNoteDateChange()" />
+        </div>
+        <div class="form-group">
+          <label for="workoutNoteInput">Notes</label>
+          <textarea id="workoutNoteInput" maxlength="5000" oninput="updateWorkoutNoteDraft()" placeholder="How did the workout feel? Add cues, energy, or anything you want to remember."></textarea>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <button type="button" class="btn-primary" style="margin-top: 0;" onclick="saveWorkoutNote()">Save note</button>
+          <div id="workoutNoteStatus" class="warmup-sync-status" style="flex: 1; min-width: 0;" role="status" aria-live="polite"></div>
+        </div>
+      </div>
+
     </div>
 
     <!-- Progress Tab -->
@@ -1016,20 +1060,9 @@
       <div class="card">
         <h2>Workout Diary</h2>
         <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">
-          Keep one private note per day, synced with your account.
+          Saved notes, newest first. Select a date to inspect its note.
         </p>
-        <div class="form-group">
-          <label for="workoutNoteDate">Workout date</label>
-          <input type="date" id="workoutNoteDate" onchange="handleWorkoutNoteDateChange()" />
-        </div>
-        <div class="form-group">
-          <label for="workoutNoteInput">Notes</label>
-          <textarea id="workoutNoteInput" maxlength="5000" oninput="updateWorkoutNoteDraft()" placeholder="How did the workout feel? Add cues, energy, or anything you want to remember."></textarea>
-        </div>
-        <div style="display: flex; align-items: center; gap: 12px;">
-          <button type="button" class="btn-primary" style="margin-top: 0;" onclick="saveWorkoutNote()">Save note</button>
-          <div id="workoutNoteStatus" class="warmup-sync-status" style="flex: 1; min-width: 0;" role="status" aria-live="polite"></div>
-        </div>
+        <div id="workoutNoteHistory" class="workout-note-history"></div>
       </div>
     </div>
 
@@ -2371,6 +2404,43 @@
       } else {
         status.textContent = '';
       }
+      renderWorkoutNoteHistory();
+    }
+
+    function renderWorkoutNoteHistory() {
+      const historyEl = document.getElementById('workoutNoteHistory');
+      if (!historyEl) return;
+
+      const savedNotes = Object.entries(state.workoutNotes)
+        .filter(([date, note]) => isValidWorkoutNoteDate(date) && typeof note === 'string' && note.trim())
+        .sort(([dateA], [dateB]) => dateB.localeCompare(dateA));
+
+      if (savedNotes.length === 0) {
+        const emptyState = document.createElement('div');
+        emptyState.className = 'empty-state';
+        emptyState.textContent = 'No saved workout notes yet.';
+        historyEl.replaceChildren(emptyState);
+        return;
+      }
+
+      const entries = savedNotes.map(([date, note]) => {
+        const [year, month, day] = date.split('-').map(Number);
+        const entry = document.createElement('details');
+        entry.className = 'workout-note-entry';
+
+        const summary = document.createElement('summary');
+        summary.textContent = new Date(year, month - 1, day).toLocaleDateString(undefined, {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        });
+
+        const noteText = document.createElement('p');
+        noteText.textContent = note;
+        entry.append(summary, noteText);
+        return entry;
+      });
+      historyEl.replaceChildren(...entries);
     }
 
     function handleWorkoutNoteDateChange() {
