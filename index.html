@@ -177,6 +177,15 @@
       padding: 16px;
     }
 
+    .cloud-sync-notice {
+      padding: 8px 16px;
+      background: var(--surface-light);
+      border-bottom: 1px solid var(--border);
+      color: var(--danger);
+      font-size: 0.8rem;
+      overflow-wrap: anywhere;
+    }
+
     .tab-content {
       display: none;
     }
@@ -948,6 +957,7 @@
       <button class="btn-small" onclick="logout()"><i data-lucide="log-out" aria-hidden="true"></i> Logout</button>
     </div>
   </header>
+  <div id="cloudSyncNotice" class="cloud-sync-notice" role="status" aria-live="polite" hidden></div>
 
   <div id="restTimer" class="rest-timer" role="status" aria-live="polite" hidden>
     <div>
@@ -1326,6 +1336,13 @@
       if (!button) return;
       button.innerHTML = `<i data-lucide="${iconName}" aria-hidden="true"></i> ${label}`;
       refreshLucideIcons();
+    }
+
+    function setCloudSyncNotice(message) {
+      const notice = document.getElementById('cloudSyncNotice');
+      if (!notice) return;
+      notice.textContent = message;
+      notice.hidden = !message;
     }
 
     const GAIA_ROUTINES = {
@@ -2070,13 +2087,16 @@
         if (!isCurrentSync()) return;
         saveLocalStateLocally();
         if (hasLocalOnlyRecords || Object.values(pending).some(ids => ids.length > 0)) {
-          pushToCloud();
+          const pushSucceeded = await pushToCloud();
+          if (!isCurrentSync()) return;
+          if (!pushSucceeded) return;
         }
         if (isAdmin) fetchAdminUsers();
         if (profileSyncFailed || workoutNotesSyncFailed) {
           setSyncButtonStatus('cloud-off', profileSyncFailed ? 'Profile pending' : 'Notes pending');
         } else {
           setSyncButtonStatus('cloud-check', 'Synced');
+          setCloudSyncNotice('');
           setTimeout(() => {
             if (isCurrentSync()) setSyncButtonStatus('cloud', 'Sync');
           }, 2000);
@@ -2090,6 +2110,7 @@
         }
         console.error('Cloud sync failed; local state was not uploaded:', err);
         setSyncButtonStatus('cloud-off', 'Offline');
+        setCloudSyncNotice(`Cloud refresh failed: ${err.message}`);
         renderAll();
       } finally {
         activeCloudSyncUsers.delete(username);
@@ -2129,9 +2150,23 @@
           remaining[field] = remaining[field].filter(id => !sentIds.has(id));
         }
         savePendingCloudChanges(username, remaining);
+        if (username === currentUser && password === currentPassword) {
+          setCloudSyncNotice('');
+          setSyncButtonStatus('cloud-check', 'Synced');
+          setTimeout(() => {
+            if (username === currentUser && password === currentPassword) {
+              setSyncButtonStatus('cloud', 'Sync');
+            }
+          }, 2000);
+        }
+        return true;
       }).catch(error => {
         console.error('Could not sync changes to the cloud; local data is preserved:', error);
-        if (username === currentUser) setSyncButtonStatus('cloud-off', 'Offline');
+        if (username === currentUser) {
+          setSyncButtonStatus('cloud-off', 'Offline');
+          setCloudSyncNotice(`Cloud upload failed: ${error.message}`);
+        }
+        return false;
       });
       return cloudPushQueue;
     }
