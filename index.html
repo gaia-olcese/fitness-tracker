@@ -2,9 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#FF6F61" />
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="apple-touch-icon" href="/icon-192.png" />
   <title>FitLog</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://unpkg.com/lucide@latest" defer></script>
@@ -564,6 +567,9 @@
       border-radius: var(--radius);
       width: 100%;
       max-width: 360px;
+      max-height: calc(100vh - 40px);
+      max-height: calc(100dvh - 40px);
+      overflow-y: auto;
       text-align: center;
       box-shadow: 0 10px 25px rgba(0,0,0,0.1);
     }
@@ -603,23 +609,46 @@
       object-fit: cover;
     }
 
-    .avatar-picker {
+    .avatar-picker-layout {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      justify-items: center;
+      grid-template-columns: minmax(0, 1fr) 88px;
+      align-items: center;
       gap: 8px;
       margin-bottom: 12px;
     }
 
+    .avatar-picker {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      justify-items: center;
+      gap: 6px;
+      max-height: 200px;
+      overflow-y: auto;
+      padding: 2px;
+    }
+
     .avatar-option {
-      width: 52px;
-      height: 52px;
+      width: 44px;
+      height: 44px;
       border-radius: 50%;
       border: 1px solid var(--border);
       background: var(--surface);
       cursor: pointer;
       overflow: hidden;
       padding: 0;
+    }
+
+    .avatar-shuffle-button {
+      width: 88px;
+      min-height: 64px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      padding: 8px 6px;
+      line-height: 1.2;
+      white-space: normal;
     }
 
     .avatar-option:active {
@@ -791,15 +820,26 @@
 
       <div class="avatar-preview-large" id="profilePreviewAvatar">G</div>
 
-      <div class="avatar-picker">
-        <button type="button" class="avatar-option" onclick="selectPresetAvatar('Felix')" aria-label="Felix critter avatar" title="Felix"><img src="https://api.dicebear.com/10.x/critters/svg?backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf,d9f2d9&amp;seed=Felix" alt="" /></button>
-        <button type="button" class="avatar-option" onclick="selectPresetAvatar('Milo')" aria-label="Milo critter avatar" title="Milo"><img src="https://api.dicebear.com/10.x/critters/svg?backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf,d9f2d9&amp;seed=Milo" alt="" /></button>
-        <button type="button" class="avatar-option" onclick="selectPresetAvatar('Luna')" aria-label="Luna critter avatar" title="Luna"><img src="https://api.dicebear.com/10.x/critters/svg?backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf,d9f2d9&amp;seed=Luna" alt="" /></button>
-        <button type="button" class="avatar-option" onclick="selectPresetAvatar('Ziggy')" aria-label="Ziggy critter avatar" title="Ziggy"><img src="https://api.dicebear.com/10.x/critters/svg?backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf,d9f2d9&amp;seed=Ziggy" alt="" /></button>
-        <button type="button" class="avatar-option" onclick="selectPresetAvatar('Pip')" aria-label="Pip critter avatar" title="Pip"><img src="https://api.dicebear.com/10.x/critters/svg?backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf,d9f2d9&amp;seed=Pip" alt="" /></button>
-        <button type="button" class="avatar-option" onclick="selectPresetAvatar('Nova')" aria-label="Nova critter avatar" title="Nova"><img src="https://api.dicebear.com/10.x/critters/svg?backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf,d9f2d9&amp;seed=Nova" alt="" /></button>
-        <button type="button" class="avatar-option" onclick="selectPresetAvatar('Bramble')" aria-label="Bramble critter avatar" title="Bramble"><img src="https://api.dicebear.com/10.x/critters/svg?backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf,d9f2d9&amp;seed=Bramble" alt="" /></button>
-        <button type="button" class="avatar-option" onclick="selectPresetAvatar('Cosmo')" aria-label="Cosmo critter avatar" title="Cosmo"><img src="https://api.dicebear.com/10.x/critters/svg?backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf,d9f2d9&amp;seed=Cosmo" alt="" /></button>
+      <div class="avatar-picker-layout">
+        <div class="avatar-picker">
+          <button type="button" class="avatar-option" onclick="selectPresetAvatar('Felix')" aria-label="Felix critter avatar" title="Felix"><img src="https://api.dicebear.com/10.x/critters/svg?backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf,d9f2d9&amp;seed=Felix" alt="" /></button>
+          <button type="button" class="avatar-option" onclick="selectPresetAvatar('Milo')" aria-label="Milo critter avatar" title="Milo"><img src="https://api.dicebear.com/10.x/critters/svg?backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf,d9f2d9&amp;seed=Milo" alt="" /></button>
+          <button type="button" class="avatar-option" onclick="selectPresetAvatar('Luna')" aria-label="Luna critter avatar" title="Luna"><img src="https://api.dicebear.com/10.x/critters/svg?backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf,d9f2d9&amp;seed=Luna" alt="" /></button>
+          <button type="button" class="avatar-option" onclick="selectPresetAvatar('Ziggy')" aria-label="Ziggy critter avatar" title="Ziggy"><img src="https://api.dicebear.com/10.x/critters/svg?backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf,d9f2d9&amp;seed=Ziggy" alt="" /></button>
+          <button type="button" class="avatar-option" onclick="selectPresetAvatar('Pip')" aria-label="Pip critter avatar" title="Pip"><img src="https://api.dicebear.com/10.x/critters/svg?backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf,d9f2d9&amp;seed=Pip" alt="" /></button>
+          <button type="button" class="avatar-option" onclick="selectPresetAvatar('Nova')" aria-label="Nova critter avatar" title="Nova"><img src="https://api.dicebear.com/10.x/critters/svg?backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf,d9f2d9&amp;seed=Nova" alt="" /></button>
+          <button type="button" class="avatar-option" onclick="selectPresetAvatar('Bramble')" aria-label="Bramble critter avatar" title="Bramble"><img src="https://api.dicebear.com/10.x/critters/svg?backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf,d9f2d9&amp;seed=Bramble" alt="" /></button>
+          <button type="button" class="avatar-option" onclick="selectPresetAvatar('Cosmo')" aria-label="Cosmo critter avatar" title="Cosmo"><img src="https://api.dicebear.com/10.x/critters/svg?backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf,d9f2d9&amp;seed=Cosmo" alt="" /></button>
+          <button type="button" class="avatar-option" onclick="selectPresetAvatar('Mochi')" aria-label="Mochi critter avatar" title="Mochi"><img src="https://api.dicebear.com/10.x/critters/svg?backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf,d9f2d9&amp;seed=Mochi" alt="" /></button>
+          <button type="button" class="avatar-option" onclick="selectPresetAvatar('Clover')" aria-label="Clover critter avatar" title="Clover"><img src="https://api.dicebear.com/10.x/critters/svg?backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf,d9f2d9&amp;seed=Clover" alt="" /></button>
+          <button type="button" class="avatar-option" onclick="selectPresetAvatar('Pebble')" aria-label="Pebble critter avatar" title="Pebble"><img src="https://api.dicebear.com/10.x/critters/svg?backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf,d9f2d9&amp;seed=Pebble" alt="" /></button>
+          <button type="button" class="avatar-option" onclick="selectPresetAvatar('Sprout')" aria-label="Sprout critter avatar" title="Sprout"><img src="https://api.dicebear.com/10.x/critters/svg?backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf,d9f2d9&amp;seed=Sprout" alt="" /></button>
+          <button type="button" class="avatar-option" onclick="selectPresetAvatar('Gizmo')" aria-label="Gizmo critter avatar" title="Gizmo"><img src="https://api.dicebear.com/10.x/critters/svg?backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf,d9f2d9&amp;seed=Gizmo" alt="" /></button>
+          <button type="button" class="avatar-option" onclick="selectPresetAvatar('Ollie')" aria-label="Ollie critter avatar" title="Ollie"><img src="https://api.dicebear.com/10.x/critters/svg?backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf,d9f2d9&amp;seed=Ollie" alt="" /></button>
+          <button type="button" class="avatar-option" onclick="selectPresetAvatar('Bean')" aria-label="Bean critter avatar" title="Bean"><img src="https://api.dicebear.com/10.x/critters/svg?backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf,d9f2d9&amp;seed=Bean" alt="" /></button>
+          <button type="button" class="avatar-option" onclick="selectPresetAvatar('Waffle')" aria-label="Waffle critter avatar" title="Waffle"><img src="https://api.dicebear.com/10.x/critters/svg?backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf,d9f2d9&amp;seed=Waffle" alt="" /></button>
+        </div>
+        <button type="button" class="btn-small avatar-shuffle-button" onclick="randomizeProfileAvatar()"><i data-lucide="shuffle" aria-hidden="true"></i> Shuffle / Randomize</button>
       </div>
 
       <button type="button" class="btn-small" onclick="clearCustomAvatar()" style="margin-bottom: 12px;">Reset avatar</button>
@@ -1149,18 +1189,23 @@
 
   <script>
     const WORKER_URL = "https://fitlog-api.gaia-olcese.workers.dev";
-    const PROFILE_AVATAR_SEEDS = ["Felix", "Milo", "Luna", "Ziggy", "Pip", "Nova", "Bramble", "Cosmo"];
+    const PROFILE_AVATAR_SEEDS = [
+      "Felix", "Milo", "Luna", "Ziggy", "Pip", "Nova", "Bramble", "Cosmo",
+      "Mochi", "Clover", "Pebble", "Sprout", "Gizmo", "Ollie", "Bean", "Waffle"
+    ];
     const PROFILE_AVATAR_BACKGROUND_COLORS = "b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf,d9f2d9";
     const DEFAULT_PROFILE_AVATAR = getProfileAvatarUrl("Felix");
     const PROFILE_AVATAR_VALUES = new Set(PROFILE_AVATAR_SEEDS.map(getProfileAvatarUrl));
+    const DICEBEAR_PROFILE_AVATAR_PATTERN = /^https:\/\/api\.dicebear\.com\/10\.x\/critters\/svg\?backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf,d9f2d9&seed=[A-Za-z0-9_-]{1,80}$/;
 
     function getProfileAvatarUrl(seed) {
-      return `https://api.dicebear.com/10.x/critters/svg?backgroundColor=${PROFILE_AVATAR_BACKGROUND_COLORS}&seed=${seed}`;
+      return `https://api.dicebear.com/10.x/critters/svg?backgroundColor=${PROFILE_AVATAR_BACKGROUND_COLORS}&seed=${encodeURIComponent(seed)}`;
     }
 
     function isValidProfileAvatar(avatar) {
       return typeof avatar === "string" && (
         PROFILE_AVATAR_VALUES.has(avatar) ||
+        DICEBEAR_PROFILE_AVATAR_PATTERN.test(avatar) ||
         (avatar.length <= 100000 &&
           /^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(avatar))
       );
@@ -1637,6 +1682,14 @@
 
     function selectPresetAvatar(seed) {
       if (!PROFILE_AVATAR_SEEDS.includes(seed)) return;
+      pendingAvatarData = getProfileAvatarUrl(seed);
+      updateProfilePreview();
+    }
+
+    function randomizeProfileAvatar() {
+      const randomBytes = new Uint8Array(16);
+      crypto.getRandomValues(randomBytes);
+      const seed = `FitLog-${Array.from(randomBytes, byte => byte.toString(16).padStart(2, '0')).join('')}`;
       pendingAvatarData = getProfileAvatarUrl(seed);
       updateProfilePreview();
     }
