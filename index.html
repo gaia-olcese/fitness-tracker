@@ -1266,6 +1266,7 @@
     }
     let lucideLoadErrorReported = false;
     let cloudPushQueue = Promise.resolve();
+    const activeCloudSyncUsers = new Set();
 
     function getPendingCloudChanges(username = currentUser) {
       const empty = {
@@ -1807,6 +1808,12 @@
         renderProfileBadge();
         syncWithCloud();
       }
+      const syncWhenVisible = () => {
+        if (document.visibilityState === 'visible') syncWithCloud();
+      };
+      document.addEventListener('visibilitychange', syncWhenVisible);
+      window.addEventListener('focus', syncWhenVisible);
+      window.setInterval(syncWhenVisible, 60_000);
       loadApiKeySetting();
       renderAll();
       refreshLucideIcons();
@@ -1882,6 +1889,8 @@
       if (!currentUser || !currentPassword) return;
       const username = currentUser;
       const password = currentPassword;
+      if (activeCloudSyncUsers.has(username)) return;
+      activeCloudSyncUsers.add(username);
       const isCurrentSync = () => username === currentUser && password === currentPassword;
       setSyncButtonStatus('loader-2', 'Syncing...');
       let profileSyncFailed = false;
@@ -2082,6 +2091,8 @@
         console.error('Cloud sync failed; local state was not uploaded:', err);
         setSyncButtonStatus('cloud-off', 'Offline');
         renderAll();
+      } finally {
+        activeCloudSyncUsers.delete(username);
       }
     }
 
