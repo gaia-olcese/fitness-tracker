@@ -1336,7 +1336,17 @@
     let currentPassword = localStorage.getItem('fitlog_pass');
     let isAdmin = localStorage.getItem('fitlog_is_admin') === 'true';
 
-    let savedData = JSON.parse(localStorage.getItem('fitlog_data')) || {};
+    function getAppDataStorageKey(username) {
+      const userKey = (username || 'guest').trim().toLowerCase() || 'guest';
+      return `fitlog_data_${userKey}`;
+    }
+
+    function getCachedAppData(username) {
+      // The legacy fitlog_data key was shared across accounts, so it is never imported.
+      return JSON.parse(localStorage.getItem(getAppDataStorageKey(username))) || {};
+    }
+
+    let savedData = getCachedAppData(currentUser);
 
     function normalizeWarmupExercises(value) {
       if (!Array.isArray(value) || value.length > 50) return null;
@@ -1381,13 +1391,13 @@
       else localStorage.removeItem(key);
     }
 
-    function getInitialRoutines(user) {
-      if (savedData.routines && Object.keys(savedData.routines).length > 0) {
-        return savedData.routines;
+    function getInitialRoutines(user, data = savedData) {
+      if (data.routines && Object.keys(data.routines).length > 0) {
+        return data.routines;
       }
       if (user === 'gaia') return GAIA_ROUTINES;
       if (user === 'adam') return ADAM_ROUTINES;
-      return savedData.routines || {};
+      return data.routines || {};
     }
 
     let state = {
@@ -1409,6 +1419,20 @@
     let selectedWorkoutNoteDate = getTodayStr();
     let workoutNoteDrafts = {};
     let workoutNoteSyncQueue = Promise.resolve();
+
+    function loadCachedAppDataForUser(username) {
+      savedData = getCachedAppData(username);
+      state.workouts = Array.isArray(savedData.workouts) ? savedData.workouts : [];
+      state.nutrition = Array.isArray(savedData.nutrition) ? savedData.nutrition : [];
+      state.goals = savedData.goals || DEFAULT_GOALS;
+      state.routines = getInitialRoutines(username, savedData);
+      state.workoutNotes = getCachedWorkoutNotes(username);
+      state.warmupExercises = getCachedWarmupExercises(username) || [...DEFAULT_WARMUP_EXERCISES];
+      routineKeys = Object.keys(state.routines);
+      activeRoutineDay = routineKeys.length > 0 ? routineKeys[0] : "";
+      selectedChartRoutineDay = "";
+      selectedChartExercise = "";
+    }
     let pendingAvatarData = "";
     let restTimer = {
       intervalId: null,
@@ -1443,15 +1467,15 @@
       return !!key && localStorage.getItem(key) === 'true';
     }
 
-    async function saveProfileToCloud(profile, username = currentUser) {
-      if (!username || !currentPassword) throw new Error('You must be signed in to sync your profile.');
+    async function saveProfileToCloud(profile, username = currentUser, password = currentPassword) {
+      if (!username || !password) throw new Error('You must be signed in to sync your profile.');
 
       const response = await fetch(`${WORKER_URL}/api/profile`, {
         method: 'POST',
         headers: {
           "Content-Type": "application/json",
           "X-Username": username,
-          "X-Password": currentPassword
+          "X-Password": password
         },
         body: JSON.stringify(profile)
       });
@@ -1762,17 +1786,12 @@
         currentPassword = password;
         isAdmin = data.is_admin;
         workoutNoteDrafts = {};
+        loadCachedAppDataForUser(currentUser);
 
         localStorage.setItem('fitlog_user', currentUser);
         localStorage.setItem('fitlog_pass', currentPassword);
         localStorage.setItem('fitlog_is_admin', isAdmin ? 'true' : 'false');
-        state.workoutNotes = getCachedWorkoutNotes(currentUser);
-        state.warmupExercises = getCachedWarmupExercises(currentUser) || [...DEFAULT_WARMUP_EXERCISES];
         document.getElementById('warmupSyncStatus').textContent = '';
-
-        if (currentUser === 'gaia') state.routines = GAIA_ROUTINES;
-        else if (currentUser === 'adam') state.routines = ADAM_ROUTINES;
-        else state.routines = {};
 
         renderProfileBadge();
         renderAll();
@@ -1787,16 +1806,17 @@
     function logout() {
       cancelPendingAiAction(false);
       hideRestTimer();
+      if (currentUser) {
+        localStorage.setItem(getAppDataStorageKey(currentUser), JSON.stringify(state));
+      }
       localStorage.removeItem('fitlog_user');
       localStorage.removeItem('fitlog_pass');
       localStorage.removeItem('fitlog_is_admin');
-      localStorage.removeItem('fitlog_data');
       currentUser = null;
       currentPassword = null;
       isAdmin = false;
       workoutNoteDrafts = {};
-      state.workoutNotes = getCachedWorkoutNotes();
-      state.warmupExercises = [...DEFAULT_WARMUP_EXERCISES];
+      loadCachedAppDataForUser(null);
       document.getElementById('warmupSyncStatus').textContent = '';
       closeWarmupEditor();
       renderProfileBadge();
@@ -1809,37 +1829,43 @@
 
     async function syncWithCloud() {
       if (!currentUser || !currentPassword) return;
+      const username = currentUser;
+      const password = currentPassword;
+      const isCurrentSync = () => username === currentUser && password === currentPassword;
       setSyncButtonStatus('loader-2', 'Syncing...');
       let profileSyncFailed = false;
       let workoutNotesSyncFailed = false;
 
       try {
-        if (isProfileSyncPending()) {
-          const pendingProfile = getCachedUserProfile();
+        if (isProfileSyncPending(username)) {
+          const pendingProfile = getCachedUserProfile(username);
           if (pendingProfile) {
             try {
-              await saveProfileToCloud(pendingProfile);
+              await saveProfileToCloud(pendingProfile, username, password);
             } catch (error) {
               console.error("Could not sync the pending profile change:", error);
               profileSyncFailed = true;
             }
           }
         }
+        if (!isCurrentSync()) return;
 
         try {
-          await syncPendingWorkoutNotes(currentUser, currentPassword);
+          await syncPendingWorkoutNotes(username, password);
         } catch (error) {
           console.error("Could not sync pending workout notes:", error);
           workoutNotesSyncFailed = true;
         }
+        if (!isCurrentSync()) return;
 
         const response = await fetch(`${WORKER_URL}/api/data`, {
           method: 'GET',
           headers: {
-            "X-Username": currentUser,
-            "X-Password": currentPassword
+            "X-Username": username,
+            "X-Password": password
           }
         });
+        if (!isCurrentSync()) return;
 
         if (!response.ok) {
           if (response.status === 401) {
@@ -1851,6 +1877,7 @@
         }
 
         const cloudData = await response.json();
+        if (!isCurrentSync()) return;
         if (!Array.isArray(cloudData.workouts) || !Array.isArray(cloudData.nutrition)) {
           throw new Error('Cloud returned invalid workout or nutrition data.');
         }
@@ -1866,56 +1893,57 @@
           }
           if (entry.note.trim()) cloudWorkoutNotes[entry.date] = entry.note;
         }
-        const pendingWorkoutNotes = getPendingWorkoutNotes();
+        const pendingWorkoutNotes = getPendingWorkoutNotes(username);
         for (const [date, note] of Object.entries(pendingWorkoutNotes)) {
           if (note) cloudWorkoutNotes[date] = note;
           else delete cloudWorkoutNotes[date];
         }
         state.workoutNotes = cloudWorkoutNotes;
-        cacheWorkoutNotes(state.workoutNotes);
+        cacheWorkoutNotes(state.workoutNotes, username);
         workoutNotesSyncFailed = Object.keys(pendingWorkoutNotes).length > 0;
 
-        if (!isProfileSyncPending()) {
+        if (!isProfileSyncPending(username)) {
           if (cloudData.profile) {
             if (typeof cloudData.profile.name !== 'string' ||
                 typeof cloudData.profile.avatar !== 'string') {
               throw new Error('Cloud returned an invalid profile.');
             }
-            cacheUserProfile(currentUser, {
+            cacheUserProfile(username, {
               ...cloudData.profile,
               avatar: normalizeProfileAvatar(cloudData.profile.avatar)
             });
           } else {
-            const cachedProfile = getCachedUserProfile();
+            const cachedProfile = getCachedUserProfile(username);
             if (cachedProfile) {
               const profile = {
                 name: typeof cachedProfile.name === 'string' && cachedProfile.name.trim()
                   ? cachedProfile.name.trim()
-                  : cloudData.accountDisplayName || currentUser,
+                  : cloudData.accountDisplayName || username,
                 avatar: normalizeProfileAvatar(cachedProfile.avatar)
               };
-              cacheUserProfile(currentUser, profile);
-              localStorage.setItem(getProfileSyncPendingKey(), 'true');
+              cacheUserProfile(username, profile);
+              localStorage.setItem(getProfileSyncPendingKey(username), 'true');
               try {
-                await saveProfileToCloud(profile);
+                await saveProfileToCloud(profile, username, password);
               } catch (error) {
                 console.error("Could not migrate the saved profile to the cloud:", error);
                 profileSyncFailed = true;
               }
+              if (!isCurrentSync()) return;
             } else {
-              cacheUserProfile(currentUser, {
-                name: cloudData.accountDisplayName || currentUser,
+              cacheUserProfile(username, {
+                name: cloudData.accountDisplayName || username,
                 avatar: DEFAULT_PROFILE_AVATAR
               });
             }
           }
           renderProfileBadge();
         }
-        if (isProfileSyncPending()) profileSyncFailed = true;
+        if (isProfileSyncPending(username)) profileSyncFailed = true;
 
         const cloudWorkoutIds = new Set(cloudData.workouts.map(workout => String(workout.id)));
         const cloudNutritionIds = new Set(cloudData.nutrition.map(item => String(item.id)));
-        const pending = getPendingCloudChanges();
+        const pending = getPendingCloudChanges(username);
         const pendingWorkoutDeletes = new Set(pending.deletedWorkoutIds);
         const pendingNutritionDeletes = new Set(pending.deletedNutritionIds);
         const pendingWorkoutUpdates = new Set(pending.updatedWorkoutIds);
@@ -1949,34 +1977,37 @@
             ? localNutritionById.get(String(item.id)) || item
             : item);
 
-        if (isWarmupSyncPending(currentUser)) {
-          state.warmupExercises = getCachedWarmupExercises(currentUser) || [...DEFAULT_WARMUP_EXERCISES];
+        if (isWarmupSyncPending(username)) {
+          state.warmupExercises = getCachedWarmupExercises(username) || [...DEFAULT_WARMUP_EXERCISES];
           try {
-            await saveWarmupExercisesToCloud(state.warmupExercises);
-            setWarmupSyncPending(currentUser, false);
+            await saveWarmupExercisesToCloud(state.warmupExercises, username, password);
+            if (!isCurrentSync()) return;
+            setWarmupSyncPending(username, false);
             document.getElementById('warmupSyncStatus').textContent = 'Warm-up list synced to your account.';
           } catch (error) {
+            if (!isCurrentSync()) return;
             console.error("Could not sync the saved warm-up list:", error);
             document.getElementById('warmupSyncStatus').textContent =
               `Warm-up list is saved on this device; cloud sync is pending: ${error.message}`;
           }
         } else if (cloudData.warmupExercises === null || cloudData.warmupExercises === undefined) {
-          state.warmupExercises = getCachedWarmupExercises(currentUser) || [...DEFAULT_WARMUP_EXERCISES];
+          state.warmupExercises = getCachedWarmupExercises(username) || [...DEFAULT_WARMUP_EXERCISES];
         } else {
           const cloudWarmupExercises = normalizeWarmupExercises(cloudData.warmupExercises);
           if (cloudWarmupExercises === null) {
             throw new Error("Cloud returned an invalid warm-up list.");
           }
           state.warmupExercises = cloudWarmupExercises;
-          cacheWarmupExercises(currentUser, cloudWarmupExercises);
+          cacheWarmupExercises(username, cloudWarmupExercises);
         }
 
         if (!state.routines || Object.keys(state.routines).length === 0) {
-          if (currentUser === 'gaia') state.routines = GAIA_ROUTINES;
-          else if (currentUser === 'adam') state.routines = ADAM_ROUTINES;
+          if (username === 'gaia') state.routines = GAIA_ROUTINES;
+          else if (username === 'adam') state.routines = ADAM_ROUTINES;
           else state.routines = {};
         }
 
+        if (!isCurrentSync()) return;
         saveLocalStateLocally();
         if (hasLocalOnlyRecords || Object.values(pending).some(ids => ids.length > 0)) {
           pushToCloud();
@@ -1986,12 +2017,15 @@
           setSyncButtonStatus('cloud-off', profileSyncFailed ? 'Profile pending' : 'Notes pending');
         } else {
           setSyncButtonStatus('cloud-check', 'Synced');
-          setTimeout(() => setSyncButtonStatus('cloud', 'Sync'), 2000);
+          setTimeout(() => {
+            if (isCurrentSync()) setSyncButtonStatus('cloud', 'Sync');
+          }, 2000);
         }
       } catch (err) {
+        if (!isCurrentSync()) return;
         if (!state.routines || Object.keys(state.routines).length === 0) {
-          if (currentUser === 'gaia') state.routines = GAIA_ROUTINES;
-          else if (currentUser === 'adam') state.routines = ADAM_ROUTINES;
+          if (username === 'gaia') state.routines = GAIA_ROUTINES;
+          else if (username === 'adam') state.routines = ADAM_ROUTINES;
           else state.routines = {};
         }
         console.error('Cloud sync failed; local state was not uploaded:', err);
@@ -2198,7 +2232,7 @@
     }
 
     function saveLocalStateLocally() {
-      localStorage.setItem('fitlog_data', JSON.stringify(state));
+      localStorage.setItem(getAppDataStorageKey(currentUser), JSON.stringify(state));
       renderAll();
     }
 
@@ -2234,13 +2268,13 @@
       document.getElementById('warmupModal').style.display = 'none';
     }
 
-    async function saveWarmupExercisesToCloud(exercises) {
+    async function saveWarmupExercisesToCloud(exercises, username = currentUser, password = currentPassword) {
       const response = await fetch(`${WORKER_URL}/api/settings/warmup`, {
         method: 'POST',
         headers: {
           "Content-Type": "application/json",
-          "X-Username": currentUser,
-          "X-Password": currentPassword
+          "X-Username": username,
+          "X-Password": password
         },
         body: JSON.stringify({ warmupExercises: exercises })
       });
@@ -2266,7 +2300,7 @@
       try {
         state.warmupExercises = exercises;
         cacheWarmupExercises(currentUser, exercises);
-        localStorage.setItem('fitlog_data', JSON.stringify(state));
+        localStorage.setItem(getAppDataStorageKey(currentUser), JSON.stringify(state));
         renderWarmupList();
       } catch (error) {
         status.textContent = `Could not save the warm-up list on this device: ${error.message}`;
