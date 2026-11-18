@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="theme-color" content="#FF6F61" />
+  <meta name="theme-color" content="#7E47D9" />
   <link rel="manifest" href="./manifest.json" />
   <link rel="apple-touch-icon" href="./icon-192.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png" />
@@ -14,16 +14,18 @@
   <script src="https://unpkg.com/lucide@latest" defer></script>
   <style>
     :root {
-      --bg: #F4F6F9;
+      --bg: #F8F7FC;
       --surface: #FFFFFF;
-      --surface-light: #FFF1EE;
-      --text: #0A1F44;
-      --text-muted: #526582;
-      --primary: #FF6F61;
-      --primary-hover: #E85A4F;
-      --accent: #4682B4;
+      --surface-light: #F2EDF9;
+      --primary: #7E47D9;
+      --primary-dark: #5B28B0;
+      --accent: #F23847;
+      --accent-dark: #D52C3B;
+      --highlight: #FFB07A;
+      --text: #1E1633;
+      --text-muted: #6B6280;
       --danger: #D9383A;
-      --border: #DCE3EC;
+      --border: #E6E1F2;
       --radius: 14px;
     }
 
@@ -49,13 +51,13 @@
     }
 
     header {
-      background: #0A1F44;
+      background: var(--primary);
       color: #FFFFFF;
       padding: 12px 16px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border-bottom: 1px solid #25467D;
+      border-bottom: 1px solid var(--primary-dark);
       position: sticky;
       top: 0;
       z-index: 10;
@@ -85,15 +87,15 @@
     }
 
     header h1 span {
-      color: var(--primary);
+      color: var(--highlight);
     }
 
     .profile-pill {
       display: flex;
       align-items: center;
       gap: 7px;
-      background: #163263;
-      border: 1px solid #25467D;
+      background: var(--primary-dark);
+      border: 1px solid var(--primary-dark);
       color: #FFFFFF;
       padding: 4px 10px 4px 5px;
       border-radius: 999px;
@@ -103,15 +105,15 @@
     }
 
     .profile-pill:active {
-      background: #25467D;
+      background: var(--primary);
     }
 
     .profile-avatar {
       width: 28px;
       height: 28px;
       border-radius: 50%;
-      background: var(--primary);
-      color: #ffffff;
+      background: var(--highlight);
+      color: var(--text);
       font-size: 0.75rem;
       font-weight: 700;
       display: flex;
@@ -156,9 +158,9 @@
     }
 
     header .btn-small {
-      background: #163263;
+      background: var(--primary-dark);
       color: #FFFFFF;
-      border-color: #25467D;
+      border-color: var(--primary-dark);
     }
 
     .btn-small:active {
@@ -166,7 +168,7 @@
     }
 
     header .btn-small:active {
-      background: #25467D;
+      background: var(--primary);
     }
 
     .container {
@@ -387,14 +389,14 @@
     }
 
     input::placeholder {
-      color: #94a3b8;
+      color: var(--text-muted);
       font-size: 0.8rem;
     }
 
     input:focus {
       outline: none;
       border-color: var(--primary);
-      box-shadow: 0 0 0 2px rgba(255, 111, 97, 0.2);
+      box-shadow: 0 0 0 2px rgba(126, 71, 217, 0.2);
     }
 
     textarea {
@@ -414,7 +416,7 @@
     textarea:focus {
       outline: none;
       border-color: var(--primary);
-      box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.15);
+      box-shadow: 0 0 0 2px rgba(126, 71, 217, 0.15);
     }
 
     .chart-wrapper {
@@ -475,7 +477,7 @@
     .chart-filter-field select:focus {
       outline: none;
       border-color: var(--primary);
-      box-shadow: 0 0 0 2px rgba(255, 111, 97, 0.2);
+      box-shadow: 0 0 0 2px rgba(126, 71, 217, 0.2);
     }
 
     @media (max-width: 420px) {
@@ -546,7 +548,7 @@
     .btn-primary {
       width: 100%;
       padding: 14px;
-      background: var(--primary);
+      background: var(--accent);
       color: #ffffff;
       font-weight: 700;
       font-size: 1rem;
@@ -557,7 +559,7 @@
     }
 
     .btn-primary:active {
-      background: var(--primary-hover);
+      background: var(--accent-dark);
     }
 
     .log-item {
@@ -701,7 +703,7 @@
       left: 0;
       right: 0;
       background: var(--surface);
-      border-top: 1px solid var(--border);
+      border-top: 1px solid var(--primary);
       display: flex;
       justify-content: space-around;
       padding: 10px 0 calc(18px + env(safe-area-inset-bottom, 0px));
@@ -1174,7 +1176,7 @@
           <label for="aiApiKeyInput">Gemini API Key</label>
           <input type="password" id="aiApiKeyInput" placeholder="AIzaSy..." style="text-align: left; margin-bottom: 8px;" />
         </div>
-        <button class="btn-small" onclick="saveApiKey()" style="width: 100%; padding: 10px; background: var(--primary); color: #fff; border: none; font-weight:600; margin-bottom: 12px;">Save API Key</button>
+        <button class="btn-small" onclick="saveApiKey()" style="width: 100%; padding: 10px; background: var(--accent); color: #fff; border: none; font-weight:600; margin-bottom: 12px;">Save API Key</button>
 
         <div style="background: var(--surface-light); padding: 14px; border-radius: 12px; border: 1px solid var(--border); font-size: 0.85rem; color: var(--text);">
           <div style="font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
@@ -1205,7 +1207,7 @@
         <div style="display: flex; gap: 6px;">
           <button class="btn-small" id="aiMicBtn" onclick="toggleVoiceRecording()" style="padding: 10px 14px; font-size: 1.1rem;" title="Voice Input" aria-label="Voice input"><i data-lucide="mic" aria-hidden="true"></i></button>
           <input type="text" id="aiUserInput" placeholder="e.g. Log 3 sets of 10kg bench press for 10 reps..." style="text-align: left; flex: 1;" onkeydown="if(event.key==='Enter') sendAiMessage()" />
-          <button class="btn-small" onclick="sendAiMessage()" style="background: var(--primary); color: #fff; padding: 10px 14px; font-weight: 600;">Send</button>
+          <button class="btn-small" onclick="sendAiMessage()" style="background: var(--accent); color: #fff; padding: 10px 14px; font-weight: 600;">Send</button>
         </div>
       </div>
     </div>
@@ -1368,7 +1370,7 @@
     };
 
     const LINE_COLORS = [
-      '#FF6F61', '#0A1F44', '#4682B4', '#F59E0B', '#0D9488', '#8B5CF6', '#EC4899', '#64748B'
+      '#7E47D9', '#F23847', '#5B28B0', '#FFB07A', '#A78AE3', '#F77B86', '#8265B5', '#D98C59'
     ];
 
     const DEFAULT_GOALS = { cal: 2000, pro: 130, carb: 220, fat: 65 };
@@ -2590,7 +2592,7 @@
       confetti.replaceChildren();
 
       if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-        const colors = ['#0284c7', '#0d9488', '#d97706', '#db2777', '#7c3aed', '#65a30d'];
+        const colors = ['#7E47D9', '#F23847', '#5B28B0', '#FFB07A', '#A78AE3', '#F77B86'];
         for (let i = 0; i < 60; i++) {
           const piece = document.createElement('span');
           piece.className = 'confetti-piece';
@@ -2854,15 +2856,15 @@
             plugins: {
               legend: {
                 position: 'bottom',
-                labels: { color: '#334155', boxWidth: 12, font: { size: 11 } }
+                labels: { color: '#1E1633', boxWidth: 12, font: { size: 11 } }
               }
             },
             scales: {
-              x: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { color: '#e2e8f0' } },
+              x: { ticks: { color: '#6B6280', font: { size: 10 } }, grid: { color: '#E6E1F2' } },
               y: {
-                title: { display: true, text: 'Total Volume (kg)', color: '#64748b' },
-                ticks: { color: '#64748b', font: { size: 10 } },
-                grid: { color: '#e2e8f0' }
+                title: { display: true, text: 'Total Volume (kg)', color: '#6B6280' },
+                ticks: { color: '#6B6280', font: { size: 10 } },
+                grid: { color: '#E6E1F2' }
               }
             }
           }
@@ -2915,15 +2917,15 @@
             plugins: {
               legend: {
                 position: 'bottom',
-                labels: { color: '#334155', boxWidth: 12, font: { size: 11 } }
+                labels: { color: '#1E1633', boxWidth: 12, font: { size: 11 } }
               }
             },
             scales: {
-              x: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { color: '#e2e8f0' } },
+              x: { ticks: { color: '#6B6280', font: { size: 10 } }, grid: { color: '#E6E1F2' } },
               y: {
-                title: { display: true, text: 'Max Weight (kg)', color: '#64748b' },
-                ticks: { color: '#64748b', font: { size: 10 } },
-                grid: { color: '#e2e8f0' }
+                title: { display: true, text: 'Max Weight (kg)', color: '#6B6280' },
+                ticks: { color: '#6B6280', font: { size: 10 } },
+                grid: { color: '#E6E1F2' }
               }
             }
           }
@@ -2977,15 +2979,15 @@
             plugins: {
               legend: {
                 position: 'bottom',
-                labels: { color: '#334155', boxWidth: 12, font: { size: 11 } }
+                labels: { color: '#1E1633', boxWidth: 12, font: { size: 11 } }
               }
             },
             scales: {
-              x: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { color: '#e2e8f0' } },
+              x: { ticks: { color: '#6B6280', font: { size: 10 } }, grid: { color: '#E6E1F2' } },
               y: {
-                title: { display: true, text: 'Estimated 1RM (kg)', color: '#64748b' },
-                ticks: { color: '#64748b', font: { size: 10 } },
-                grid: { color: '#e2e8f0' }
+                title: { display: true, text: 'Estimated 1RM (kg)', color: '#6B6280' },
+                ticks: { color: '#6B6280', font: { size: 10 } },
+                grid: { color: '#E6E1F2' }
               }
             }
           }
@@ -3011,10 +3013,10 @@
       const dates = Array.from(dailyTotals.keys()).sort();
       const rounded = value => Math.round(value * 10) / 10;
       const series = [
-        { label: 'Calories', key: 'cal', axis: 'calories', color: '#FF6F61' },
-        { label: 'Protein', key: 'pro', axis: 'macros', color: '#4682B4' },
-        { label: 'Carbs', key: 'carb', axis: 'macros', color: '#0D9488' },
-        { label: 'Fat', key: 'fat', axis: 'macros', color: '#8B5CF6' }
+        { label: 'Calories', key: 'cal', axis: 'calories', color: '#F23847' },
+        { label: 'Protein', key: 'pro', axis: 'macros', color: '#7E47D9' },
+        { label: 'Carbs', key: 'carb', axis: 'macros', color: '#5B28B0' },
+        { label: 'Fat', key: 'fat', axis: 'macros', color: '#FFB07A' }
       ];
       const datasets = series.map(({ label, key, axis, color }) => ({
         label,
@@ -3039,7 +3041,7 @@
           plugins: {
             legend: {
               position: 'bottom',
-              labels: { color: '#334155', boxWidth: 12, font: { size: 11 } }
+              labels: { color: '#1E1633', boxWidth: 12, font: { size: 11 } }
             },
             tooltip: {
               callbacks: {
@@ -3052,23 +3054,23 @@
           },
           scales: {
             x: {
-              ticks: { color: '#64748b', font: { size: 10 } },
-              grid: { color: '#e2e8f0' }
+              ticks: { color: '#6B6280', font: { size: 10 } },
+              grid: { color: '#E6E1F2' }
             },
             calories: {
               type: 'linear',
               position: 'left',
               beginAtZero: true,
-              title: { display: true, text: 'Calories (kcal)', color: '#64748b' },
-              ticks: { color: '#64748b', font: { size: 10 } },
-              grid: { color: '#e2e8f0' }
+              title: { display: true, text: 'Calories (kcal)', color: '#6B6280' },
+              ticks: { color: '#6B6280', font: { size: 10 } },
+              grid: { color: '#E6E1F2' }
             },
             macros: {
               type: 'linear',
               position: 'right',
               beginAtZero: true,
-              title: { display: true, text: 'Macros (g)', color: '#64748b' },
-              ticks: { color: '#64748b', font: { size: 10 } },
+              title: { display: true, text: 'Macros (g)', color: '#6B6280' },
+              ticks: { color: '#6B6280', font: { size: 10 } },
               grid: { drawOnChartArea: false }
             }
           }
@@ -3194,7 +3196,7 @@
               <span class="set-label">Set ${s}</span>
               <input type="number" min="0" step="0.5" id="w_ex${idx}_s${s}" placeholder="${weightPlaceholder}" inputmode="decimal" aria-label="Set ${s} weight in kilograms" />
               <input type="number" min="1" step="1" id="r_ex${idx}_s${s}" placeholder="${repsPlaceholder}" inputmode="numeric" aria-label="Set ${s} reps" />
-              <button class="btn-small" style="background:var(--primary); color:#ffffff; border-color:var(--primary);" onclick="logSetAndStartRest(${idx}, ${s})"><i data-lucide="check" aria-hidden="true"></i> Log &amp; Rest</button>
+              <button class="btn-small" style="background:var(--accent); color:#ffffff; border-color:var(--accent);" onclick="logSetAndStartRest(${idx}, ${s})"><i data-lucide="check" aria-hidden="true"></i> Log &amp; Rest</button>
             </div>
           `;
         }
@@ -3220,7 +3222,7 @@
             ${setsHTML}
             ${isEditing ? `
               <div class="exercise-set-actions">
-                <button class="btn-small" style="background:var(--primary); color:#ffffff; border-color:var(--primary);" onclick="saveEditedExerciseSets(${idx})">Save changes</button>
+                <button class="btn-small" style="background:var(--accent); color:#ffffff; border-color:var(--accent);" onclick="saveEditedExerciseSets(${idx})">Save changes</button>
                 <button class="btn-small" onclick="cancelEditLoggedSets()">Cancel</button>
               </div>
             ` : (loggedCount > 0 ? `
@@ -3740,7 +3742,7 @@ Your job is to help the user log their workouts and meals through conversation.
       const confirmButton = document.createElement('button');
       confirmButton.type = 'button';
       confirmButton.className = 'btn-small';
-      confirmButton.style.cssText = 'background: var(--primary); color: #fff; border-color: var(--primary);';
+      confirmButton.style.cssText = 'background: var(--accent); color: #fff; border-color: var(--accent);';
       confirmButton.textContent = 'Confirm & Log';
       confirmButton.addEventListener('click', confirmPendingAiAction);
 
