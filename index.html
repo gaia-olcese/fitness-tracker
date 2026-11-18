@@ -240,6 +240,20 @@
     }
 
     @media (max-width: 520px) {
+      #syncBtn {
+        display: inline-flex;
+        align-items: center;
+        width: 34px;
+        min-width: 34px;
+        padding: 6px;
+        gap: 0;
+        justify-content: center;
+      }
+
+      #syncBtn .sync-label {
+        display: none;
+      }
+
       .admin-user-row {
         align-items: flex-start;
         flex-direction: column;
@@ -1065,7 +1079,9 @@
       </div>
     </div>
     <div class="header-actions">
-      <button class="btn-small" onclick="syncWithCloud()" id="syncBtn"><i data-lucide="cloud" aria-hidden="true"></i> Sync</button>
+      <button class="btn-small" onclick="syncWithCloud()" id="syncBtn" aria-label="Sync" title="Sync">
+        <i data-lucide="cloud" aria-hidden="true"></i><span class="sync-label">Sync</span>
+      </button>
       <button class="btn-small" onclick="logout()"><i data-lucide="log-out" aria-hidden="true"></i> Logout</button>
     </div>
   </header>
@@ -1468,7 +1484,9 @@
     function setSyncButtonStatus(iconName, label) {
       const button = document.getElementById('syncBtn');
       if (!button) return;
-      button.innerHTML = `<i data-lucide="${iconName}" aria-hidden="true"></i> ${label}`;
+      button.innerHTML = `<i data-lucide="${iconName}" aria-hidden="true"></i><span class="sync-label">${escapeHtml(label)}</span>`;
+      button.setAttribute('aria-label', `${label}. Tap to sync now.`);
+      button.title = `${label}. Tap to sync now.`;
       refreshLucideIcons();
     }
 
