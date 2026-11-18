@@ -2884,7 +2884,7 @@
       if (!roleManagementAvailable) return;
       const target = adminUsersCache[index];
       if (!target || target.username === currentUser) return;
-      const ptId = role === 'user' ? (target.pt_id ?? null) : null;
+      const ptId = ['user', 'admin'].includes(role) ? (target.pt_id ?? null) : null;
       await updateUserAccess(target, { role, ptId });
     }
 
@@ -2903,9 +2903,9 @@
     async function changeUserPt(index, ptIdValue) {
       if (!roleManagementAvailable) return;
       const target = adminUsersCache[index];
-      if (!target || target.role !== 'user') return;
+      if (!target || !['user', 'admin'].includes(target.role)) return;
       await updateUserAccess(target, {
-        role: 'user',
+        role: target.role,
         ptId: ptIdValue ? Number(ptIdValue) : null
       });
     }
@@ -3085,7 +3085,7 @@
               <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>Admin</option>
             </select>
             <select aria-label="Assigned PT for ${escapeHtml(u.username)}" data-pt-index="${index}"
-              onchange="changeUserPt(Number(this.dataset.ptIndex), this.value)" ${u.role !== 'user' || !roleManagementAvailable ? 'disabled' : ''}>
+              onchange="changeUserPt(Number(this.dataset.ptIndex), this.value)" ${!['user', 'admin'].includes(u.role) || !roleManagementAvailable ? 'disabled' : ''}>
               <option value="">No PT assigned</option>
               ${ptUsers.map(pt => `<option value="${pt.id}" ${Number(u.pt_id) === Number(pt.id) ? 'selected' : ''}>${escapeHtml(pt.display_name || pt.username)}</option>`).join('')}
             </select>
