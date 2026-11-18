@@ -1345,6 +1345,11 @@
       notice.hidden = !message;
     }
 
+    function clearNutritionGoalsSyncNotice() {
+      const notice = document.getElementById('cloudSyncNotice');
+      if (notice?.textContent.startsWith('Nutrition goals')) setCloudSyncNotice('');
+    }
+
     const GAIA_ROUTINES = {
       "Monday": [
         { name: "Machine Chest Press", workingSets: 3, targetReps: "8-12", rest: 75 },
@@ -1399,6 +1404,17 @@
       "Walkouts",
       "Band pull aparts"
     ];
+
+    function normalizeNutritionGoals(value) {
+      if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+      const goals = {};
+      for (const key of Object.keys(DEFAULT_GOALS)) {
+        const goal = Number(value[key]);
+        if (!Number.isFinite(goal) || goal <= 0) return null;
+        goals[key] = goal;
+      }
+      return goals;
+    }
     
     let currentUser = localStorage.getItem('fitlog_user');
     let currentPassword = localStorage.getItem('fitlog_pass');
@@ -1455,6 +1471,17 @@
     function setWarmupSyncPending(username, pending) {
       if (!username) return;
       const key = `fitlog_warmup_pending_${username.toLowerCase()}`;
+      if (pending) localStorage.setItem(key, 'true');
+      else localStorage.removeItem(key);
+    }
+
+    function isNutritionGoalsSyncPending(username) {
+      return !!username && localStorage.getItem(`fitlog_nutrition_goals_pending_${username.toLowerCase()}`) === 'true';
+    }
+
+    function setNutritionGoalsSyncPending(username, pending) {
+      if (!username) return;
+      const key = `fitlog_nutrition_goals_pending_${username.toLowerCase()}`;
       if (pending) localStorage.setItem(key, 'true');
       else localStorage.removeItem(key);
     }
@@ -1961,6 +1988,29 @@
         if (!Array.isArray(cloudData.workoutNotes)) {
           throw new Error('Cloud returned invalid workout diary data.');
         }
+        const cloudNutritionGoals = cloudData.nutritionGoals === null || cloudData.nutritionGoals === undefined
+          ? null
+          : normalizeNutritionGoals(cloudData.nutritionGoals);
+        if (cloudData.nutritionGoals !== null && cloudData.nutritionGoals !== undefined &&
+            cloudNutritionGoals === null) {
+          throw new Error('Cloud returned invalid nutrition goals.');
+        }
+
+        let nutritionGoalsSyncFailed = false;
+        if (isNutritionGoalsSyncPending(username)) {
+          try {
+            await saveNutritionGoalsToCloud(state.goals, username, password);
+            if (!isCurrentSync()) return;
+            setNutritionGoalsSyncPending(username, false);
+          } catch (error) {
+            if (!isCurrentSync()) return;
+            console.error("Could not sync pending nutrition goals:", error);
+            nutritionGoalsSyncFailed = true;
+            setCloudSyncNotice(`Nutrition goals saved on this device; cloud sync failed: ${error.message}`);
+          }
+        } else if (cloudNutritionGoals) {
+          state.goals = cloudNutritionGoals;
+        }
 
         const cloudWorkoutNotes = {};
         for (const entry of cloudData.workoutNotes) {
@@ -2092,8 +2142,13 @@
           if (!pushSucceeded) return;
         }
         if (isAdmin) fetchAdminUsers();
-        if (profileSyncFailed || workoutNotesSyncFailed) {
-          setSyncButtonStatus('cloud-off', profileSyncFailed ? 'Profile pending' : 'Notes pending');
+        if (profileSyncFailed || workoutNotesSyncFailed || nutritionGoalsSyncFailed) {
+          const pendingLabel = profileSyncFailed
+            ? 'Profile pending'
+            : workoutNotesSyncFailed
+              ? 'Notes pending'
+              : 'Goals pending';
+          setSyncButtonStatus('cloud-off', pendingLabel);
         } else {
           setSyncButtonStatus('cloud-check', 'Synced');
           setCloudSyncNotice('');
@@ -2378,6 +2433,22 @@
       const result = await response.json();
       if (!response.ok || !result.success) {
         throw new Error(result.error || `Warm-up sync failed (${response.status})`);
+      }
+    }
+
+    async function saveNutritionGoalsToCloud(goals, username = currentUser, password = currentPassword) {
+      const response = await fetch(`${WORKER_URL}/api/settings/nutrition-goals`, {
+        method: 'POST',
+        headers: {
+          "Content-Type": "application/json",
+          "X-Username": username,
+          "X-Password": password
+        },
+        body: JSON.stringify({ nutritionGoals: goals })
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || `Nutrition goals sync failed (${response.status})`);
       }
     }
 
@@ -3156,14 +3227,50 @@
       saveLocalState();
     }
 
-    function editGoals() {
+    async function editGoals() {
       const cal = prompt('Daily Calorie Goal:', state.goals.cal);
       const pro = prompt('Daily Protein Goal (g):', state.goals.pro);
       const carb = prompt('Daily Carbs Goal (g):', state.goals.carb);
       const fat = prompt('Daily Fat Goal (g):', state.goals.fat);
       if (cal && pro && carb && fat) {
-        state.goals = { cal: Number(cal), pro: Number(pro), carb: Number(carb), fat: Number(fat) };
-        saveLocalState();
+        const goals = normalizeNutritionGoals({
+          cal: Number(cal),
+          pro: Number(pro),
+          carb: Number(carb),
+          fat: Number(fat)
+        });
+        if (!goals) {
+          alert('Nutrition goals must be positive finite numbers.');
+          return;
+        }
+        state.goals = goals;
+        if (currentUser && currentPassword) {
+          setNutritionGoalsSyncPending(currentUser, true);
+        }
+        saveLocalStateLocally();
+        if (!currentUser || !currentPassword) return;
+
+        const username = currentUser;
+        const password = currentPassword;
+        try {
+          await saveNutritionGoalsToCloud(goals, username, password);
+          setNutritionGoalsSyncPending(username, false);
+          if (username === currentUser && password === currentPassword) {
+            clearNutritionGoalsSyncNotice();
+            setSyncButtonStatus('cloud-check', 'Synced');
+            setTimeout(() => {
+              if (username === currentUser && password === currentPassword) {
+                setSyncButtonStatus('cloud', 'Sync');
+              }
+            }, 2000);
+          }
+        } catch (error) {
+          console.error("Could not sync nutrition goals:", error);
+          if (username === currentUser && password === currentPassword) {
+            setSyncButtonStatus('cloud-off', 'Goals pending');
+            setCloudSyncNotice(`Nutrition goals are saved on this device; cloud sync failed: ${error.message}`);
+          }
+        }
       }
     }
 
