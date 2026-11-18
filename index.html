@@ -366,8 +366,15 @@
 
     .routine-actions {
       display: flex;
+      flex-wrap: wrap;
       gap: 8px;
       margin-bottom: 12px;
+    }
+
+    .routine-actions .routine-add-exercise {
+      background: var(--accent);
+      color: #ffffff;
+      border-color: var(--accent);
     }
 
     .exercise-card {
@@ -1109,10 +1116,7 @@
     <!-- Workouts Tab -->
     <div id="tab-workouts" class="tab-content active">
       <div class="card">
-        <h2>
-          Workout Routine
-          <button class="btn-small" onclick="openAddExerciseModal()">+ Add Exercise</button>
-        </h2>
+        <h2>Workout Routine</h2>
         <section class="warmup-section" aria-labelledby="warmupHeading">
           <div class="warmup-header">
             <h3 id="warmupHeading">Warm-up</h3>
@@ -1127,6 +1131,7 @@
           <button class="btn-small" onclick="openRenameRoutineModal()"><i data-lucide="pencil" aria-hidden="true"></i> Rename Day</button>
           <button class="btn-small" onclick="openAddRoutineModal()">+ Add New Day</button>
           <button class="btn-small" onclick="deleteCurrentRoutine()" style="color:var(--danger)"><i data-lucide="trash-2" aria-hidden="true"></i> Delete Day</button>
+          <button class="btn-small routine-add-exercise" onclick="openAddExerciseModal()">+ Add Exercise</button>
         </div>
         <div id="routineContainer"></div>
       </div>
