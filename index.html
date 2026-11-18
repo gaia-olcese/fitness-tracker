@@ -207,6 +207,23 @@
       overflow-wrap: anywhere;
     }
 
+    .account-list-main {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .account-list-avatar {
+      width: 40px;
+      height: 40px;
+      flex: 0 0 40px;
+      border-radius: 50%;
+      object-fit: cover;
+      background: var(--surface-light);
+    }
+
     .admin-user-controls {
       display: grid;
       grid-template-columns: minmax(100px, 1fr) minmax(125px, 1.2fr);
@@ -2745,6 +2762,13 @@
       list.replaceChildren(...clientList.map((client, index) => {
         const row = document.createElement('div');
         row.className = 'client-list-item';
+        const main = document.createElement('div');
+        main.className = 'account-list-main';
+        const avatar = document.createElement('img');
+        avatar.className = 'account-list-avatar';
+        avatar.src = normalizeProfileAvatar(client.avatar);
+        avatar.alt = '';
+        avatar.setAttribute('aria-hidden', 'true');
         const details = document.createElement('div');
         const name = document.createElement('strong');
         name.textContent = client.display_name || client.username;
@@ -2752,6 +2776,7 @@
         username.style.cssText = 'font-size:0.75rem; color:var(--text-muted);';
         username.textContent = `${client.username} · ${client.role}`;
         details.append(name, username);
+        main.append(avatar, details);
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'btn-small';
@@ -2759,7 +2784,7 @@
         button.textContent = activeClient?.id === client.id ? 'Viewing' : 'View client';
         button.disabled = activeClient?.id === client.id;
         button.addEventListener('click', () => switchToClient(index));
-        row.append(details, button);
+        row.append(main, button);
         return row;
       }));
     }
@@ -3141,12 +3166,15 @@
       const ptUsers = adminUsersCache.filter(user => user.role === 'pt');
       listEl.innerHTML = adminUsersCache.map((u, index) => `
         <div class="admin-user-row">
-          <div class="admin-user-details">
-            <div style="font-weight:600; font-size:0.9rem;">
-              ${escapeHtml(u.display_name || u.username)} (${escapeHtml(u.username)})
-              <span class="role-badge">${escapeHtml(u.role)}</span>
+          <div class="account-list-main">
+            <img class="account-list-avatar" src="${escapeHtml(normalizeProfileAvatar(u.avatar))}" alt="" aria-hidden="true" />
+            <div class="admin-user-details">
+              <div style="font-weight:600; font-size:0.9rem;">
+                ${escapeHtml(u.display_name || u.username)} (${escapeHtml(u.username)})
+                <span class="role-badge">${escapeHtml(u.role)}</span>
+              </div>
+              <div style="font-size:0.75rem; color:var(--text-muted);">Created: ${escapeHtml(u.created_at || 'N/A')}</div>
             </div>
-            <div style="font-size:0.75rem; color:var(--text-muted);">Created: ${escapeHtml(u.created_at || 'N/A')}</div>
           </div>
           <div class="admin-user-controls">
             <select aria-label="Role for ${escapeHtml(u.username)}" data-role-index="${index}"
