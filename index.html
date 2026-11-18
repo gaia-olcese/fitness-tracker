@@ -6,8 +6,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="theme-color" content="#FF6F61" />
-  <link rel="manifest" href="/manifest.json" />
-  <link rel="apple-touch-icon" href="/icon-192.png" />
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="apple-touch-icon" href="./icon-192.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png" />
   <title>FitLog</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://unpkg.com/lucide@latest" defer></script>
@@ -834,10 +835,6 @@
           <button type="button" class="avatar-option" onclick="selectPresetAvatar('Clover')" aria-label="Clover critter avatar" title="Clover"><img src="https://api.dicebear.com/10.x/critters/svg?backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf,d9f2d9&amp;seed=Clover" alt="" /></button>
           <button type="button" class="avatar-option" onclick="selectPresetAvatar('Pebble')" aria-label="Pebble critter avatar" title="Pebble"><img src="https://api.dicebear.com/10.x/critters/svg?backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf,d9f2d9&amp;seed=Pebble" alt="" /></button>
           <button type="button" class="avatar-option" onclick="selectPresetAvatar('Sprout')" aria-label="Sprout critter avatar" title="Sprout"><img src="https://api.dicebear.com/10.x/critters/svg?backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf,d9f2d9&amp;seed=Sprout" alt="" /></button>
-          <button type="button" class="avatar-option" onclick="selectPresetAvatar('Gizmo')" aria-label="Gizmo critter avatar" title="Gizmo"><img src="https://api.dicebear.com/10.x/critters/svg?backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf,d9f2d9&amp;seed=Gizmo" alt="" /></button>
-          <button type="button" class="avatar-option" onclick="selectPresetAvatar('Ollie')" aria-label="Ollie critter avatar" title="Ollie"><img src="https://api.dicebear.com/10.x/critters/svg?backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf,d9f2d9&amp;seed=Ollie" alt="" /></button>
-          <button type="button" class="avatar-option" onclick="selectPresetAvatar('Bean')" aria-label="Bean critter avatar" title="Bean"><img src="https://api.dicebear.com/10.x/critters/svg?backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf,d9f2d9&amp;seed=Bean" alt="" /></button>
-          <button type="button" class="avatar-option" onclick="selectPresetAvatar('Waffle')" aria-label="Waffle critter avatar" title="Waffle"><img src="https://api.dicebear.com/10.x/critters/svg?backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf,d9f2d9&amp;seed=Waffle" alt="" /></button>
         </div>
         <button type="button" class="btn-small avatar-shuffle-button" onclick="randomizeProfileAvatar()"><i data-lucide="shuffle" aria-hidden="true"></i> Shuffle / Randomize</button>
       </div>
@@ -1191,7 +1188,7 @@
     const WORKER_URL = "https://fitlog-api.gaia-olcese.workers.dev";
     const PROFILE_AVATAR_SEEDS = [
       "Felix", "Milo", "Luna", "Ziggy", "Pip", "Nova", "Bramble", "Cosmo",
-      "Mochi", "Clover", "Pebble", "Sprout", "Gizmo", "Ollie", "Bean", "Waffle"
+      "Mochi", "Clover", "Pebble", "Sprout"
     ];
     const PROFILE_AVATAR_BACKGROUND_COLORS = "b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf,d9f2d9";
     const DEFAULT_PROFILE_AVATAR = getProfileAvatarUrl("Felix");
@@ -2353,7 +2350,7 @@
       } else if (note) {
         status.textContent = 'Saved on this device only.';
       } else {
-        status.textContent = 'No note saved for this date.';
+        status.textContent = '';
       }
     }
 
