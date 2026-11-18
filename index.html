@@ -1291,6 +1291,18 @@
         <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:12px;">
           Select a client to view their dashboard. Workout and routine changes are saved to their account.
         </p>
+        <div id="ptCreateClientCard" class="card" hidden>
+          <h3>Add a client</h3>
+          <div class="form-group" style="text-align:left;">
+            <label for="ptNewClientUsername">Client username</label>
+            <input type="text" id="ptNewClientUsername" autocomplete="off" placeholder="e.g. alex" style="text-align:left; margin-bottom:8px;" />
+            <label for="ptNewClientPassword">Temporary password</label>
+            <input type="password" id="ptNewClientPassword" autocomplete="new-password" placeholder="Password" style="text-align:left; margin-bottom:8px;" />
+            <label for="ptNewClientDisplayName">Display name</label>
+            <input type="text" id="ptNewClientDisplayName" placeholder="e.g. Alex" style="text-align:left; margin-bottom:12px;" />
+          </div>
+          <button class="btn-primary" type="button" onclick="createPtClient()">+ Create Client Account</button>
+        </div>
         <div id="clientList" class="client-list"></div>
       </div>
     </div>
@@ -1535,12 +1547,14 @@
       const role = document.getElementById('headerRoleBadge');
       const adminNav = document.getElementById('adminNavBtn');
       const clientsNav = document.getElementById('clientsNavBtn');
+      const ptCreateClientCard = document.getElementById('ptCreateClientCard');
       if (role) {
         role.textContent = currentRole;
         role.hidden = !currentUser;
       }
       if (adminNav) adminNav.style.display = isAdmin ? '' : 'none';
       if (clientsNav) clientsNav.style.display = (isAdmin || isPt) ? '' : 'none';
+      if (ptCreateClientCard) ptCreateClientCard.hidden = !isPt;
     }
 
     function renderClientViewBanner() {
@@ -2984,6 +2998,40 @@
         fetchClients();
       } catch (e) {
         alert("Error connecting to server.");
+      }
+    }
+
+    async function createPtClient() {
+      if (!isPt) return;
+      const newUsername = document.getElementById('ptNewClientUsername').value.trim().toLowerCase();
+      const newPassword = document.getElementById('ptNewClientPassword').value;
+      const displayName = document.getElementById('ptNewClientDisplayName').value.trim();
+
+      if (!newUsername || !newPassword) {
+        alert('Please enter a username and temporary password.');
+        return;
+      }
+
+      try {
+        const response = await fetch(`${WORKER_URL}/api/pt/clients`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Username': currentUser,
+            'X-Password': currentPassword
+          },
+          body: JSON.stringify({ newUsername, newPassword, displayName })
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Failed to create client account.');
+
+        document.getElementById('ptNewClientUsername').value = '';
+        document.getElementById('ptNewClientPassword').value = '';
+        document.getElementById('ptNewClientDisplayName').value = '';
+        await fetchClients();
+        alert('Client account created and assigned to your PT account.');
+      } catch (error) {
+        alert(`Could not create client account: ${error.message}`);
       }
     }
 
