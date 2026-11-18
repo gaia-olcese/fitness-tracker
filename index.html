@@ -557,6 +557,36 @@
       box-shadow: 0 0 0 2px rgba(126, 71, 217, 0.2);
     }
 
+    .password-input-wrap {
+      position: relative;
+    }
+
+    .password-input-wrap input {
+      padding-right: 42px;
+    }
+
+    .password-visibility-toggle {
+      position: absolute;
+      top: 50%;
+      right: 5px;
+      display: grid;
+      width: 32px;
+      height: 32px;
+      padding: 0;
+      place-items: center;
+      transform: translateY(-50%);
+      border: 0;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+
+    .password-visibility-toggle:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 1px;
+    }
+
     textarea {
       width: 100%;
       min-height: 160px;
@@ -1052,11 +1082,20 @@
       <p>Choose a new password with at least 8 characters.</p>
       <div class="form-group" style="text-align: left;">
         <label for="currentPasswordInput">Current password</label>
-        <input type="password" id="currentPasswordInput" autocomplete="current-password" style="text-align: left; margin-bottom: 8px;" />
+        <div class="password-input-wrap">
+          <input type="password" id="currentPasswordInput" autocomplete="current-password" style="text-align: left; margin-bottom: 8px;" />
+          <button type="button" class="password-visibility-toggle" data-password-label="current password" aria-label="Show current password" aria-pressed="false" onclick="togglePasswordVisibility('currentPasswordInput', this)"><i data-lucide="eye" aria-hidden="true"></i></button>
+        </div>
         <label for="newPasswordInput">New password</label>
-        <input type="password" id="newPasswordInput" autocomplete="new-password" maxlength="128" style="text-align: left; margin-bottom: 8px;" />
+        <div class="password-input-wrap">
+          <input type="password" id="newPasswordInput" autocomplete="new-password" maxlength="128" style="text-align: left; margin-bottom: 8px;" />
+          <button type="button" class="password-visibility-toggle" data-password-label="new password" aria-label="Show new password" aria-pressed="false" onclick="togglePasswordVisibility('newPasswordInput', this)"><i data-lucide="eye" aria-hidden="true"></i></button>
+        </div>
         <label for="confirmPasswordInput">Confirm new password</label>
-        <input type="password" id="confirmPasswordInput" autocomplete="new-password" maxlength="128" style="text-align: left;" />
+        <div class="password-input-wrap">
+          <input type="password" id="confirmPasswordInput" autocomplete="new-password" maxlength="128" style="text-align: left;" />
+          <button type="button" class="password-visibility-toggle" data-password-label="confirmation password" aria-label="Show confirmation password" aria-pressed="false" onclick="togglePasswordVisibility('confirmPasswordInput', this)"><i data-lucide="eye" aria-hidden="true"></i></button>
+        </div>
         <div id="passwordChangeStatus" class="warmup-sync-status" role="status" aria-live="polite"></div>
       </div>
       <div style="display: flex; gap: 8px; margin-top: 14px;">
@@ -2016,6 +2055,7 @@
       document.getElementById('newPasswordInput').value = '';
       document.getElementById('confirmPasswordInput').value = '';
       document.getElementById('passwordChangeStatus').textContent = '';
+      resetPasswordVisibility();
       document.getElementById('passwordModal').style.display = 'flex';
       document.getElementById('currentPasswordInput').focus();
     }
@@ -2026,6 +2066,29 @@
       document.getElementById('newPasswordInput').value = '';
       document.getElementById('confirmPasswordInput').value = '';
       document.getElementById('passwordChangeStatus').textContent = '';
+      resetPasswordVisibility();
+    }
+
+    function togglePasswordVisibility(inputId, button) {
+      const input = document.getElementById(inputId);
+      if (!input || !button) return;
+      const showPassword = input.type === 'password';
+      input.type = showPassword ? 'text' : 'password';
+      button.setAttribute('aria-pressed', String(showPassword));
+      button.setAttribute('aria-label', `${showPassword ? 'Hide' : 'Show'} ${button.dataset.passwordLabel}`);
+      button.innerHTML = `<i data-lucide="${showPassword ? 'eye-off' : 'eye'}" aria-hidden="true"></i>`;
+      refreshLucideIcons();
+    }
+
+    function resetPasswordVisibility() {
+      document.querySelectorAll('#passwordModal .password-visibility-toggle').forEach(button => {
+        const input = button.parentElement.querySelector('input');
+        if (input) input.type = 'password';
+        button.setAttribute('aria-pressed', 'false');
+        button.setAttribute('aria-label', `Show ${button.dataset.passwordLabel}`);
+        button.innerHTML = '<i data-lucide="eye" aria-hidden="true"></i>';
+      });
+      refreshLucideIcons();
     }
 
     async function changePassword() {
