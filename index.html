@@ -962,25 +962,6 @@
         <div id="routineContainer"></div>
       </div>
 
-      <div class="card">
-        <h2>Workout Diary</h2>
-        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">
-          Keep one private note per day, synced with your account.
-        </p>
-        <div class="form-group">
-          <label for="workoutNoteDate">Workout date</label>
-          <input type="date" id="workoutNoteDate" onchange="handleWorkoutNoteDateChange()" />
-        </div>
-        <div class="form-group">
-          <label for="workoutNoteInput">Notes</label>
-          <textarea id="workoutNoteInput" maxlength="5000" oninput="updateWorkoutNoteDraft()" placeholder="How did the workout feel? Add cues, energy, or anything you want to remember."></textarea>
-        </div>
-        <div style="display: flex; align-items: center; gap: 12px;">
-          <button type="button" class="btn-primary" style="margin-top: 0;" onclick="saveWorkoutNote()">Save note</button>
-          <div id="workoutNoteStatus" class="warmup-sync-status" style="flex: 1; min-width: 0;" role="status" aria-live="polite"></div>
-        </div>
-      </div>
-
     </div>
 
     <!-- Progress Tab -->
@@ -1031,6 +1012,25 @@
           <canvas id="estimated1RMChart"></canvas>
         </div>
       </div>
+
+      <div class="card">
+        <h2>Workout Diary</h2>
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">
+          Keep one private note per day, synced with your account.
+        </p>
+        <div class="form-group">
+          <label for="workoutNoteDate">Workout date</label>
+          <input type="date" id="workoutNoteDate" onchange="handleWorkoutNoteDateChange()" />
+        </div>
+        <div class="form-group">
+          <label for="workoutNoteInput">Notes</label>
+          <textarea id="workoutNoteInput" maxlength="5000" oninput="updateWorkoutNoteDraft()" placeholder="How did the workout feel? Add cues, energy, or anything you want to remember."></textarea>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <button type="button" class="btn-primary" style="margin-top: 0;" onclick="saveWorkoutNote()">Save note</button>
+          <div id="workoutNoteStatus" class="warmup-sync-status" style="flex: 1; min-width: 0;" role="status" aria-live="polite"></div>
+        </div>
+      </div>
     </div>
 
     <!-- Nutrition Tab -->
@@ -1064,16 +1064,6 @@
       </div>
 
       <div class="card">
-        <h2>Daily Nutrition History</h2>
-        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">
-          Daily totals for dates with logged food. Calories use the left axis; macros use the right axis.
-        </p>
-        <div class="chart-wrapper" style="height: 300px;">
-          <canvas id="nutritionHistoryChart" role="img" aria-label="Daily calories, protein, carbohydrates, and fat chart"></canvas>
-        </div>
-      </div>
-
-      <div class="card">
         <h2>Log Food</h2>
         <div class="form-group">
           <label for="foodName">Meal or Food</label>
@@ -1103,6 +1093,16 @@
       <div class="card">
         <h2>Today's Meals</h2>
         <div id="foodList"></div>
+      </div>
+
+      <div class="card">
+        <h2>Daily Nutrition History</h2>
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">
+          Daily totals for dates with logged food. Calories use the left axis; macros use the right axis.
+        </p>
+        <div class="chart-wrapper" style="height: 300px;">
+          <canvas id="nutritionHistoryChart" role="img" aria-label="Daily calories, protein, carbohydrates, and fat chart"></canvas>
+        </div>
       </div>
     </div>
 
