@@ -139,6 +139,117 @@
       text-overflow: ellipsis;
     }
 
+    .role-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 7px;
+      border-radius: 999px;
+      background: var(--highlight);
+      color: var(--text);
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      vertical-align: middle;
+    }
+
+    .role-badge[hidden] {
+      display: none;
+    }
+
+    .client-view-banner {
+      position: sticky;
+      top: 58px;
+      z-index: 9;
+      padding: 8px 16px;
+      background: var(--primary-dark);
+      color: #fff;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-align: center;
+    }
+
+    .client-view-banner[hidden] {
+      display: none;
+    }
+
+    .client-view-banner button {
+      margin-left: 8px;
+      padding: 3px 8px;
+      border: 1px solid rgba(255, 255, 255, 0.65);
+      border-radius: 999px;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      cursor: pointer;
+    }
+
+    .client-list,
+    .admin-user-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .client-list-item,
+    .admin-user-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--surface);
+    }
+
+    .client-list-item strong,
+    .admin-user-details {
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+
+    .admin-user-controls {
+      display: grid;
+      grid-template-columns: minmax(100px, 1fr) minmax(125px, 1.2fr);
+      gap: 6px;
+      width: min(100%, 300px);
+    }
+
+    .admin-user-actions {
+      display: flex;
+      grid-column: 1 / -1;
+      gap: 6px;
+      justify-content: flex-end;
+    }
+
+    .admin-user-controls select {
+      min-width: 0;
+      padding: 6px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--text);
+      font: inherit;
+      font-size: 0.75rem;
+    }
+
+    body.pt-client-view #nutritionLogCard,
+    body.pt-client-view #editNutritionGoalsButton,
+    body.pt-client-view #workoutNoteEditor,
+    body.pt-client-view #warmupEditButton {
+      display: none;
+    }
+
+    @media (max-width: 520px) {
+      .admin-user-row {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .admin-user-controls {
+        width: 100%;
+      }
+    }
+
     .header-actions {
       display: flex;
       gap: 6px;
@@ -950,6 +1061,7 @@
       <div class="profile-pill" onclick="openProfileModal()" title="Tap to edit profile">
         <div class="profile-avatar" id="headerAvatar">?</div>
         <span class="profile-name" id="headerUserName">Guest</span>
+        <span class="role-badge" id="headerRoleBadge" hidden></span>
       </div>
     </div>
     <div class="header-actions">
@@ -957,6 +1069,10 @@
       <button class="btn-small" onclick="logout()"><i data-lucide="log-out" aria-hidden="true"></i> Logout</button>
     </div>
   </header>
+  <div id="clientViewBanner" class="client-view-banner" hidden>
+    <span id="clientViewLabel"></span>
+    <button type="button" onclick="exitClientView()">Exit</button>
+  </div>
   <div id="cloudSyncNotice" class="cloud-sync-notice" role="status" aria-live="polite" hidden></div>
 
   <div id="restTimer" class="rest-timer" role="status" aria-live="polite" hidden>
@@ -984,7 +1100,7 @@
         <section class="warmup-section" aria-labelledby="warmupHeading">
           <div class="warmup-header">
             <h3 id="warmupHeading">Warm-up</h3>
-            <button class="btn-small" onclick="openWarmupEditor()"><i data-lucide="pencil" aria-hidden="true"></i> Edit</button>
+            <button id="warmupEditButton" class="btn-small" onclick="openWarmupEditor()"><i data-lucide="pencil" aria-hidden="true"></i> Edit</button>
           </div>
           <p class="warmup-note">Recommended exercises for a dynamic warm-up to start your gym session. And don't forget a light warm-up set before your working sets!</p>
           <ul id="warmupExerciseList" class="warmup-list"></ul>
@@ -1004,6 +1120,7 @@
         <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">
           Add or update a note for the selected workout date.
         </p>
+        <div id="workoutNoteEditor">
         <div class="form-group">
           <label for="workoutNoteDate">Workout date</label>
           <input type="date" id="workoutNoteDate" onchange="handleWorkoutNoteDateChange()" />
@@ -1015,6 +1132,7 @@
         <div style="display: flex; align-items: center; gap: 12px;">
           <button type="button" class="btn-primary" style="margin-top: 0;" onclick="saveWorkoutNote()">Save note</button>
           <div id="workoutNoteStatus" class="warmup-sync-status" style="flex: 1; min-width: 0;" role="status" aria-live="polite"></div>
+        </div>
         </div>
       </div>
 
@@ -1083,7 +1201,7 @@
       <div class="card">
         <h2>
           Today's Macros
-          <button class="btn-small" onclick="editGoals()">Edit Goals</button>
+          <button id="editNutritionGoalsButton" class="btn-small" onclick="editGoals()">Edit Goals</button>
         </h2>
         <div class="macro-summary">
           <div class="macro-box">
@@ -1108,7 +1226,7 @@
         </div>
       </div>
 
-      <div class="card">
+      <div id="nutritionLogCard" class="card">
         <h2>Log Food</h2>
         <div class="form-group">
           <label for="foodName">Meal or Food</label>
@@ -1151,6 +1269,16 @@
       </div>
     </div>
 
+    <div id="tab-clients" class="tab-content">
+      <div class="card">
+        <h2>Clients</h2>
+        <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:12px;">
+          Select a client to view their dashboard. Workout and routine changes are saved to their account.
+        </p>
+        <div id="clientList" class="client-list"></div>
+      </div>
+    </div>
+
     <!-- Admin Tab (Visible only to Admin) -->
     <div id="tab-admin" class="tab-content">
       <div class="card">
@@ -1171,6 +1299,7 @@
 
       <div class="card">
         <h2>Registered Users</h2>
+        <p id="adminRoleStatus" class="warmup-sync-status" role="status" aria-live="polite" hidden></p>
         <div id="adminUserList"></div>
       </div>
     </div>
@@ -1241,6 +1370,10 @@
       <span class="icon"><i data-lucide="shield-check" aria-hidden="true"></i></span>
       Admin
     </button>
+    <button id="clientsNavBtn" style="display: none;" onclick="switchTab('clients', this)">
+      <span class="icon"><i data-lucide="users" aria-hidden="true"></i></span>
+      Clients
+    </button>
     <button id="aiNavBtn" style="display: none;" onclick="switchTab('ai', this)">
       <span class="icon"><i data-lucide="sparkles" aria-hidden="true"></i></span>
       AI Log
@@ -1307,8 +1440,9 @@
     }
 
     function queueCloudRecordChange(type, id, action) {
-      if (!currentUser) return;
-      const pending = getPendingCloudChanges();
+      const ownerKey = getActiveCloudOwnerKey();
+      if (!currentUser || !ownerKey) return;
+      const pending = getPendingCloudChanges(ownerKey);
       const suffix = type === 'workout' ? 'Workout' : 'Nutrition';
       const idValue = String(id);
       const deletedKey = `deleted${suffix}Ids`;
@@ -1317,7 +1451,7 @@
       const otherKey = action === 'delete' ? updatedKey : deletedKey;
       pending[otherKey] = pending[otherKey].filter(value => value !== idValue);
       if (!pending[targetKey].includes(idValue)) pending[targetKey].push(idValue);
-      savePendingCloudChanges(currentUser, pending);
+      savePendingCloudChanges(ownerKey, pending);
     }
 
     function refreshLucideIcons() {
@@ -1343,6 +1477,99 @@
       if (!notice) return;
       notice.textContent = message;
       notice.hidden = !message;
+    }
+
+    function isViewingClient() {
+      return activeClient !== null;
+    }
+
+    function isPtViewingClient() {
+      return isPt && isViewingClient();
+    }
+
+    function getClientCacheStorageKey(username, clientId) {
+      return `fitlog_client_data_${(username || 'guest').toLowerCase()}_${clientId}`;
+    }
+
+    function getClientOwnerKey(clientId, username = currentUser) {
+      return `client_${(username || 'guest').toLowerCase()}_${clientId}`;
+    }
+
+    function getActiveCloudOwnerKey() {
+      return activeClient ? getClientOwnerKey(activeClient.id) : currentUser;
+    }
+
+    function getRoutineSyncPendingKey(ownerKey = currentUser, username = currentUser) {
+      return `fitlog_routines_pending_${(username || 'guest').toLowerCase()}_${String(ownerKey || 'guest').toLowerCase()}`;
+    }
+
+    function isRoutineSyncPending(ownerKey = currentUser, username = currentUser) {
+      return localStorage.getItem(getRoutineSyncPendingKey(ownerKey, username)) === 'true';
+    }
+
+    function setRoutineSyncPending(ownerKey, pending, username = currentUser) {
+      const key = getRoutineSyncPendingKey(ownerKey, username);
+      if (pending) localStorage.setItem(key, 'true');
+      else localStorage.removeItem(key);
+    }
+
+    function renderRoleAccess() {
+      const role = document.getElementById('headerRoleBadge');
+      const adminNav = document.getElementById('adminNavBtn');
+      const clientsNav = document.getElementById('clientsNavBtn');
+      if (role) {
+        role.textContent = currentRole;
+        role.hidden = !currentUser;
+      }
+      if (adminNav) adminNav.style.display = isAdmin ? '' : 'none';
+      if (clientsNav) clientsNav.style.display = (isAdmin || isPt) ? '' : 'none';
+    }
+
+    function renderClientViewBanner() {
+      document.body.classList.toggle('client-view', isViewingClient());
+      document.body.classList.toggle('pt-client-view', isPtViewingClient());
+      const banner = document.getElementById('clientViewBanner');
+      if (!banner) return;
+      banner.hidden = !activeClient;
+      if (activeClient) {
+        document.getElementById('clientViewLabel').textContent =
+          `Viewing client: ${activeClient.display_name || activeClient.username}`;
+      }
+    }
+
+    function normalizeRoutines(value) {
+      if (!value || typeof value !== 'object' || Array.isArray(value) ||
+          Object.keys(value).length > 50) return null;
+      const routines = {};
+      for (const [day, exercises] of Object.entries(value)) {
+        if (!day.trim() || day.length > 60 || !Array.isArray(exercises) || exercises.length > 100) {
+          return null;
+        }
+        const normalizedExercises = [];
+        for (const exercise of exercises) {
+          const workingSets = Number(exercise?.workingSets);
+          const rest = exercise?.rest === undefined ? 75 : Number(exercise.rest);
+          const targetReps = exercise?.targetReps;
+          if (!exercise || typeof exercise !== 'object' || Array.isArray(exercise) ||
+              typeof exercise.name !== 'string' || !exercise.name.trim() || exercise.name.length > 120 ||
+              !Number.isInteger(workingSets) || workingSets < 1 || workingSets > 50 ||
+              !['string', 'number'].includes(typeof targetReps) || String(targetReps).length > 60 ||
+              !Number.isInteger(rest) || rest < 0 || rest > 3600 ||
+              (exercise.desc !== undefined &&
+                (typeof exercise.desc !== 'string' || exercise.desc.length > 300))) {
+            return null;
+          }
+          normalizedExercises.push({
+            name: exercise.name.trim(),
+            workingSets,
+            targetReps: String(targetReps),
+            rest,
+            ...(exercise.desc === undefined ? {} : { desc: exercise.desc })
+          });
+        }
+        routines[day.trim()] = normalizedExercises;
+      }
+      return routines;
     }
 
     function clearNutritionGoalsSyncNotice() {
@@ -1418,7 +1645,17 @@
     
     let currentUser = localStorage.getItem('fitlog_user');
     let currentPassword = localStorage.getItem('fitlog_pass');
-    let isAdmin = localStorage.getItem('fitlog_is_admin') === 'true';
+    let currentUserId = Number(localStorage.getItem('fitlog_user_id')) || null;
+    let currentRole = localStorage.getItem('fitlog_role') ||
+      (localStorage.getItem('fitlog_is_admin') === 'true' ? 'admin' : 'user');
+    let isAdmin = currentRole === 'admin';
+    let isPt = currentRole === 'pt';
+    let activeClient = null;
+    let clientViewRequestId = 0;
+    let roleManagementAvailable = false;
+    let clientList = [];
+    let adminUsersCache = [];
+    let clientWriteQueue = Promise.resolve();
 
     function getAppDataStorageKey(username) {
       const userKey = (username || 'guest').trim().toLowerCase() || 'guest';
@@ -1624,12 +1861,20 @@
       localStorage.setItem(key, JSON.stringify(notes));
     }
 
-    async function saveWorkoutNoteToCloud(date, note, username = currentUser, password = currentPassword) {
+    async function saveWorkoutNoteToCloud(
+      date,
+      note,
+      username = currentUser,
+      password = currentPassword,
+      userId = null,
+      ownerKey = username
+    ) {
       if (!username || !password) throw new Error('Sign in to sync workout notes.');
 
       const task = workoutNoteSyncQueue.then(async () => {
         if (username !== currentUser || password !== currentPassword) return;
-        const response = await fetch(`${WORKER_URL}/api/workout-notes`, {
+        const query = userId === null ? '' : `?userId=${encodeURIComponent(userId)}`;
+        const response = await fetch(`${WORKER_URL}/api/workout-notes${query}`, {
           method: 'POST',
           headers: {
             "Content-Type": "application/json",
@@ -1643,10 +1888,10 @@
           throw new Error(result.error || `Workout note sync failed (${response.status})`);
         }
 
-        const pending = getPendingWorkoutNotes(username);
+        const pending = getPendingWorkoutNotes(ownerKey);
         if (Object.prototype.hasOwnProperty.call(pending, date) && pending[date] === note) {
           delete pending[date];
-          cachePendingWorkoutNotes(pending, username);
+          cachePendingWorkoutNotes(pending, ownerKey);
         }
       });
       workoutNoteSyncQueue = task.catch(() => {});
@@ -1852,6 +2097,8 @@
         renderProfileBadge();
         syncWithCloud();
       }
+      renderRoleAccess();
+      renderClientViewBanner();
       const syncWhenVisible = () => {
         if (document.visibilityState === 'visible') syncWithCloud();
       };
@@ -1886,16 +2133,26 @@
         const data = await response.json();
         currentUser = data.username;
         currentPassword = password;
-        isAdmin = data.is_admin;
+        currentUserId = Number(data.id) || null;
+        currentRole = ['admin', 'pt', 'user'].includes(data.role)
+          ? data.role
+          : (data.is_admin ? 'admin' : 'user');
+        isAdmin = currentRole === 'admin';
+        isPt = currentRole === 'pt';
+        activeClient = null;
         workoutNoteDrafts = {};
         loadCachedAppDataForUser(currentUser);
 
         localStorage.setItem('fitlog_user', currentUser);
         localStorage.setItem('fitlog_pass', currentPassword);
+        localStorage.setItem('fitlog_user_id', String(currentUserId || ''));
+        localStorage.setItem('fitlog_role', currentRole);
         localStorage.setItem('fitlog_is_admin', isAdmin ? 'true' : 'false');
         document.getElementById('warmupSyncStatus').textContent = '';
 
         renderProfileBadge();
+        renderRoleAccess();
+        renderClientViewBanner();
         renderAll();
         loadApiKeySetting();
         document.getElementById('loginModal').style.display = 'none';
@@ -1909,19 +2166,29 @@
       cancelPendingAiAction(false);
       hideRestTimer();
       if (currentUser) {
-        localStorage.setItem(getAppDataStorageKey(currentUser), JSON.stringify(state));
+        saveLocalStateLocally();
       }
       localStorage.removeItem('fitlog_user');
       localStorage.removeItem('fitlog_pass');
+      localStorage.removeItem('fitlog_user_id');
+      localStorage.removeItem('fitlog_role');
       localStorage.removeItem('fitlog_is_admin');
       currentUser = null;
       currentPassword = null;
+      currentUserId = null;
+      currentRole = 'user';
       isAdmin = false;
+      isPt = false;
+      clientViewRequestId += 1;
+      activeClient = null;
+      clientList = [];
       workoutNoteDrafts = {};
       loadCachedAppDataForUser(null);
       document.getElementById('warmupSyncStatus').textContent = '';
       closeWarmupEditor();
       renderProfileBadge();
+      renderRoleAccess();
+      renderClientViewBanner();
       loadApiKeySetting();
       renderAll();
       document.getElementById('loginUsername').value = '';
@@ -1931,14 +2198,53 @@
 
     async function syncWithCloud() {
       if (!currentUser || !currentPassword) return;
+      if (activeClient) {
+        const clientId = activeClient.id;
+        try {
+          await refreshActiveClient();
+          if (activeClient?.id !== clientId) return;
+          const ownerKey = getActiveCloudOwnerKey();
+          const pending = getPendingCloudChanges(ownerKey);
+          const pendingNotes = getPendingWorkoutNotes(ownerKey);
+          for (const [date, note] of Object.entries(pendingNotes)) {
+            await saveWorkoutNoteToCloud(date, note, currentUser, currentPassword, activeClient.id, ownerKey);
+          }
+          if (isAdmin && isNutritionGoalsSyncPending(ownerKey)) {
+            await saveNutritionGoalsToCloud(state.goals, currentUser, currentPassword, activeClient.id);
+            setNutritionGoalsSyncPending(ownerKey, false);
+          }
+          if (isAdmin && isWarmupSyncPending(ownerKey)) {
+            await saveWarmupExercisesToCloud(state.warmupExercises, currentUser, currentPassword, activeClient.id);
+            setWarmupSyncPending(ownerKey, false);
+          }
+          const hasPendingWorkouts =
+            pending.deletedWorkoutIds.length > 0 || pending.updatedWorkoutIds.length > 0;
+          const hasPendingNutrition =
+            pending.deletedNutritionIds.length > 0 || pending.updatedNutritionIds.length > 0;
+          if (hasPendingWorkouts || (isAdmin && hasPendingNutrition) || isRoutineSyncPending(ownerKey)) {
+            const uploadSucceeded = await pushClientStateToCloud();
+            if (!uploadSucceeded) return;
+          }
+          setSyncButtonStatus('cloud-check', 'Synced');
+          setCloudSyncNotice('');
+        } catch (error) {
+          if (activeClient?.id !== clientId) return;
+          console.error('Could not refresh client data:', error);
+          setSyncButtonStatus('cloud-off', 'Offline');
+          setCloudSyncNotice(`Client refresh failed: ${error.message}`);
+        }
+        return;
+      }
       const username = currentUser;
       const password = currentPassword;
       if (activeCloudSyncUsers.has(username)) return;
       activeCloudSyncUsers.add(username);
-      const isCurrentSync = () => username === currentUser && password === currentPassword;
+      const isCurrentSync = () =>
+        username === currentUser && password === currentPassword && !activeClient;
       setSyncButtonStatus('loader-2', 'Syncing...');
       let profileSyncFailed = false;
       let workoutNotesSyncFailed = false;
+      let routineSyncFailed = false;
 
       try {
         if (isProfileSyncPending(username)) {
@@ -1982,6 +2288,23 @@
 
         const cloudData = await response.json();
         if (!isCurrentSync()) return;
+        if (!cloudData.account || !Number.isInteger(Number(cloudData.account.id)) ||
+            !['admin', 'pt', 'user'].includes(cloudData.account.role)) {
+          throw new Error('Cloud returned invalid account access data.');
+        }
+        currentUserId = Number(cloudData.account.id);
+        currentRole = cloudData.account.role;
+        isAdmin = currentRole === 'admin';
+        isPt = currentRole === 'pt';
+        localStorage.setItem('fitlog_user_id', String(currentUserId));
+        localStorage.setItem('fitlog_role', currentRole);
+        localStorage.setItem('fitlog_is_admin', isAdmin ? 'true' : 'false');
+        renderRoleAccess();
+        if (isAdmin || isPt) fetchClients();
+        else {
+          clientList = [];
+          renderClientList();
+        }
         if (!Array.isArray(cloudData.workouts) || !Array.isArray(cloudData.nutrition)) {
           throw new Error('Cloud returned invalid workout or nutrition data.');
         }
@@ -1994,6 +2317,12 @@
         if (cloudData.nutritionGoals !== null && cloudData.nutritionGoals !== undefined &&
             cloudNutritionGoals === null) {
           throw new Error('Cloud returned invalid nutrition goals.');
+        }
+        const cloudRoutines = cloudData.routines === null || cloudData.routines === undefined
+          ? null
+          : normalizeRoutines(cloudData.routines);
+        if (cloudData.routines !== null && cloudData.routines !== undefined && cloudRoutines === null) {
+          throw new Error('Cloud returned invalid workout routines.');
         }
 
         let nutritionGoalsSyncFailed = false;
@@ -2104,6 +2433,34 @@
             ? localNutritionById.get(String(item.id)) || item
             : item);
 
+        const routineOwnerKey = username;
+        if (isRoutineSyncPending(routineOwnerKey)) {
+          try {
+            await saveRoutinesToCloud(state.routines);
+            if (!isCurrentSync()) return;
+            setRoutineSyncPending(routineOwnerKey, false);
+          } catch (error) {
+            if (!isCurrentSync()) return;
+            console.error("Could not sync pending workout routines:", error);
+            routineSyncFailed = true;
+            setCloudSyncNotice(`Workout routines saved on this device; cloud sync failed: ${error.message}`);
+          }
+        } else if (cloudRoutines) {
+          state.routines = cloudRoutines;
+        } else {
+          setRoutineSyncPending(routineOwnerKey, true);
+          try {
+            await saveRoutinesToCloud(state.routines);
+            if (!isCurrentSync()) return;
+            setRoutineSyncPending(routineOwnerKey, false);
+          } catch (error) {
+            if (!isCurrentSync()) return;
+            console.error("Could not migrate workout routines to the cloud:", error);
+            routineSyncFailed = true;
+            setCloudSyncNotice(`Workout routines saved on this device; cloud sync failed: ${error.message}`);
+          }
+        }
+
         if (isWarmupSyncPending(username)) {
           state.warmupExercises = getCachedWarmupExercises(username) || [...DEFAULT_WARMUP_EXERCISES];
           try {
@@ -2142,12 +2499,14 @@
           if (!pushSucceeded) return;
         }
         if (isAdmin) fetchAdminUsers();
-        if (profileSyncFailed || workoutNotesSyncFailed || nutritionGoalsSyncFailed) {
+        if (profileSyncFailed || workoutNotesSyncFailed || nutritionGoalsSyncFailed || routineSyncFailed) {
           const pendingLabel = profileSyncFailed
             ? 'Profile pending'
             : workoutNotesSyncFailed
               ? 'Notes pending'
-              : 'Goals pending';
+              : nutritionGoalsSyncFailed
+                ? 'Goals pending'
+                : 'Routines pending';
           setSyncButtonStatus('cloud-off', pendingLabel);
         } else {
           setSyncButtonStatus('cloud-check', 'Synced');
@@ -2170,6 +2529,86 @@
       } finally {
         activeCloudSyncUsers.delete(username);
       }
+    }
+
+    async function saveRoutinesToCloud(routines, userId = null, username = currentUser, password = currentPassword) {
+      const query = userId === null ? '' : `?userId=${encodeURIComponent(userId)}`;
+      const response = await fetch(`${WORKER_URL}/api/routines${query}`, {
+        method: 'PUT',
+        headers: {
+          "Content-Type": "application/json",
+          "X-Username": username,
+          "X-Password": password
+        },
+        body: JSON.stringify({ routines })
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || `Routine sync failed (${response.status})`);
+      }
+    }
+
+    function pushClientStateToCloud() {
+      if (!currentUser || !currentPassword || !activeClient) return clientWriteQueue;
+      const client = { ...activeClient };
+      const username = currentUser;
+      const password = currentPassword;
+      const canManageAllClientData = isAdmin;
+      const ownerKey = getClientOwnerKey(client.id, username);
+      const workouts = state.workouts.map(workout => ({ ...workout }));
+      const nutrition = state.nutrition.map(item => ({ ...item }));
+      const routines = JSON.parse(JSON.stringify(state.routines));
+      clientWriteQueue = clientWriteQueue.then(async () => {
+        if (username !== currentUser || password !== currentPassword) return false;
+        const pending = getPendingCloudChanges(ownerKey);
+        const syncUrl = canManageAllClientData
+          ? `${WORKER_URL}/api/sync?userId=${encodeURIComponent(client.id)}`
+          : `${WORKER_URL}/api/workouts?userId=${encodeURIComponent(client.id)}`;
+        const response = await fetch(syncUrl, {
+          method: 'POST',
+          headers: {
+            "Content-Type": "application/json",
+            "X-Username": username,
+            "X-Password": password
+          },
+          body: JSON.stringify(canManageAllClientData
+            ? { workouts, nutrition, ...pending }
+            : {
+                workouts,
+                deletedWorkoutIds: pending.deletedWorkoutIds,
+                updatedWorkoutIds: pending.updatedWorkoutIds
+              })
+        });
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+          throw new Error(result.error || `Client workout sync failed (${response.status})`);
+        }
+
+        const remaining = getPendingCloudChanges(ownerKey);
+        const syncedFields = canManageAllClientData
+          ? Object.keys(pending)
+          : ['deletedWorkoutIds', 'updatedWorkoutIds'];
+        for (const field of syncedFields) {
+          const sentIds = new Set(pending[field]);
+          remaining[field] = remaining[field].filter(id => !sentIds.has(id));
+        }
+        savePendingCloudChanges(ownerKey, remaining);
+        await saveRoutinesToCloud(routines, client.id, username, password);
+        setRoutineSyncPending(ownerKey, false, username);
+        if (activeClient?.id === client.id && username === currentUser && password === currentPassword) {
+          setCloudSyncNotice('');
+          setSyncButtonStatus('cloud-check', 'Synced');
+        }
+        return true;
+      }).catch(error => {
+        console.error(`Could not sync ${client.display_name || client.username}'s workouts:`, error);
+        if (username === currentUser && password === currentPassword && activeClient?.id === client.id) {
+          setSyncButtonStatus('cloud-off', 'Offline');
+          setCloudSyncNotice(`Client data is saved on this device; cloud sync failed: ${error.message}`);
+        }
+        return false;
+      });
+      return clientWriteQueue;
     }
 
     async function pushToCloud() {
@@ -2232,11 +2671,264 @@
         const res = await fetch(`${WORKER_URL}/api/admin/users`, {
           headers: { "X-Username": currentUser, "X-Password": currentPassword }
         });
-        if (res.ok) {
-          const data = await res.json();
-          renderAdminUserList(data.users);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || `User list failed (${res.status})`);
+        renderAdminUserList(data.users);
+      } catch (error) {
+        console.error("Could not load user management data:", error);
+        const list = document.getElementById('adminUserList');
+        if (list) list.textContent = `Could not load users: ${error.message}`;
+      }
+    }
+
+    async function fetchClients() {
+      if (!currentUser || (!isAdmin && !isPt)) return;
+      try {
+        const response = await fetch(`${WORKER_URL}/api/clients`, {
+          headers: { "X-Username": currentUser, "X-Password": currentPassword }
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || `Client list failed (${response.status})`);
+        clientList = Array.isArray(result.clients) ? result.clients : [];
+        renderClientList();
+      } catch (error) {
+        console.error("Could not load clients:", error);
+        const list = document.getElementById('clientList');
+        if (list) list.textContent = `Could not load clients: ${error.message}`;
+      }
+    }
+
+    function renderClientList() {
+      const list = document.getElementById('clientList');
+      if (!list) return;
+      if (!clientList.length) {
+        list.textContent = isPt ? 'No clients are assigned to your PT account yet.' : 'No other user accounts found.';
+        return;
+      }
+      list.replaceChildren(...clientList.map((client, index) => {
+        const row = document.createElement('div');
+        row.className = 'client-list-item';
+        const details = document.createElement('div');
+        const name = document.createElement('strong');
+        name.textContent = client.display_name || client.username;
+        const username = document.createElement('div');
+        username.style.cssText = 'font-size:0.75rem; color:var(--text-muted);';
+        username.textContent = `${client.username} · ${client.role}`;
+        details.append(name, username);
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'btn-small';
+        button.style.cssText = 'background:var(--accent); color:#fff; border-color:var(--accent);';
+        button.textContent = activeClient?.id === client.id ? 'Viewing' : 'View client';
+        button.disabled = activeClient?.id === client.id;
+        button.addEventListener('click', () => switchToClient(index));
+        row.append(details, button);
+        return row;
+      }));
+    }
+
+    async function switchToClient(index) {
+      const client = clientList[index];
+      if (!client || (!isAdmin && !isPt)) return;
+      const requestId = ++clientViewRequestId;
+      saveLocalStateLocally();
+      try {
+        const data = await fetchClientData(client);
+        if (requestId !== clientViewRequestId) return;
+        activeClient = client;
+        applyClientData(client, data);
+        renderClientViewBanner();
+        renderClientList();
+        switchTab('workouts', document.querySelector('#mainNav button[onclick*="workouts"]'));
+      } catch (error) {
+        if (requestId !== clientViewRequestId) return;
+        console.error("Could not open client data:", error);
+        if (activeClient?.id === client.id) {
+          activeClient = null;
+          loadCachedAppDataForUser(currentUser);
+          renderAll();
+          renderClientViewBanner();
         }
-      } catch (e) {}
+        setCloudSyncNotice(`Could not open ${client.display_name || client.username}: ${error.message}`);
+      }
+    }
+
+    async function fetchClientData(client) {
+      const response = await fetch(
+        `${WORKER_URL}/api/data?userId=${encodeURIComponent(client.id)}`,
+        { headers: { "X-Username": currentUser, "X-Password": currentPassword } }
+      );
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || `Client data failed (${response.status})`);
+      if (!Array.isArray(data.workouts) || !Array.isArray(data.nutrition) ||
+          !Array.isArray(data.workoutNotes) || !data.account ||
+          Number(data.account.id) !== Number(client.id) ||
+          data.account.username !== client.username ||
+          !['admin', 'pt', 'user'].includes(data.account.role)) {
+        throw new Error('Client data response is invalid.');
+      }
+      return data;
+    }
+
+    function applyClientData(client, data) {
+      let cached = {};
+      try {
+        cached = JSON.parse(localStorage.getItem(getClientCacheStorageKey(currentUser, client.id))) || {};
+      } catch (error) {
+        console.error("Could not read the client cache:", error);
+      }
+      const ownerKey = getClientOwnerKey(client.id);
+      const pending = getPendingCloudChanges(ownerKey);
+      const pendingDeletes = new Set(pending.deletedWorkoutIds);
+      const pendingUpdates = new Set(pending.updatedWorkoutIds);
+      const pendingNutritionDeletes = new Set(pending.deletedNutritionIds);
+      const pendingNutritionUpdates = new Set(pending.updatedNutritionIds);
+      const cachedWorkouts = Array.isArray(cached.workouts) ? cached.workouts : [];
+      const cachedNutrition = Array.isArray(cached.nutrition) ? cached.nutrition : [];
+      const cachedById = new Map(cachedWorkouts.map(workout => [String(workout.id), workout]));
+      const cachedNutritionById = new Map(cachedNutrition.map(item => [String(item.id), item]));
+      const mergedWorkouts = new Map(data.workouts.map(workout => [String(workout.id), workout]));
+      const mergedNutrition = new Map(data.nutrition.map(item => [String(item.id), item]));
+      for (const workout of cachedWorkouts) {
+        if (!mergedWorkouts.has(String(workout.id))) mergedWorkouts.set(String(workout.id), workout);
+      }
+      for (const item of cachedNutrition) {
+        if (!mergedNutrition.has(String(item.id))) mergedNutrition.set(String(item.id), item);
+      }
+      state.workouts = Array.from(mergedWorkouts.values())
+        .filter(workout => !pendingDeletes.has(String(workout.id)))
+        .map(workout => pendingUpdates.has(String(workout.id))
+          ? cachedById.get(String(workout.id)) || workout
+          : workout);
+      state.nutrition = Array.from(mergedNutrition.values())
+        .filter(item => !pendingNutritionDeletes.has(String(item.id)))
+        .map(item => pendingNutritionUpdates.has(String(item.id))
+          ? cachedNutritionById.get(String(item.id)) || item
+          : item);
+      state.workoutNotes = Object.fromEntries(data.workoutNotes
+        .filter(entry => entry && typeof entry.date === 'string' && typeof entry.note === 'string')
+        .map(entry => [entry.date, entry.note]));
+      const pendingNotes = getPendingWorkoutNotes(ownerKey);
+      for (const [date, note] of Object.entries(pendingNotes)) {
+        if (note) state.workoutNotes[date] = note;
+        else delete state.workoutNotes[date];
+      }
+
+      const cloudRoutines = data.routines === null || data.routines === undefined
+        ? null
+        : normalizeRoutines(data.routines);
+      if (data.routines !== null && data.routines !== undefined && cloudRoutines === null) {
+        throw new Error('Client workout routines are invalid.');
+      }
+      state.routines = isRoutineSyncPending(ownerKey)
+        ? normalizeRoutines(cached.routines) || {}
+        : cloudRoutines || normalizeRoutines(cached.routines) ||
+          JSON.parse(JSON.stringify(getInitialRoutines(client.username, {})));
+      state.goals = (isAdmin && isNutritionGoalsSyncPending(ownerKey)
+        ? normalizeNutritionGoals(cached.goals)
+        : normalizeNutritionGoals(data.nutritionGoals)) ||
+        normalizeNutritionGoals(cached.goals) || DEFAULT_GOALS;
+      state.warmupExercises = (isAdmin && isWarmupSyncPending(ownerKey)
+        ? normalizeWarmupExercises(cached.warmupExercises)
+        : normalizeWarmupExercises(data.warmupExercises)) ||
+        normalizeWarmupExercises(cached.warmupExercises) || [...DEFAULT_WARMUP_EXERCISES];
+      routineKeys = Object.keys(state.routines);
+      activeRoutineDay = routineKeys[0] || '';
+      selectedChartRoutineDay = '';
+      selectedChartExercise = '';
+      editingSetExercise = null;
+      workoutNoteDrafts = {};
+      localStorage.setItem(getClientCacheStorageKey(currentUser, client.id), JSON.stringify({
+        ...cached,
+        workouts: state.workouts,
+        nutrition: state.nutrition,
+        workoutNotes: state.workoutNotes,
+        routines: state.routines,
+        goals: state.goals,
+        warmupExercises: state.warmupExercises
+      }));
+      renderAll();
+      renderClientViewBanner();
+    }
+
+    async function refreshActiveClient() {
+      if (!activeClient) return;
+      const client = activeClient;
+      const data = await fetchClientData(client);
+      if (activeClient?.id === client.id) applyClientData(client, data);
+    }
+
+    function exitClientView() {
+      if (!activeClient) return;
+      clientViewRequestId += 1;
+      activeClient = null;
+      renderClientViewBanner();
+      loadCachedAppDataForUser(currentUser);
+      renderAll();
+      renderClientList();
+      syncWithCloud();
+      switchTab('workouts', document.querySelector('#mainNav button[onclick*="workouts"]'));
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? '').replace(/[&<>"']/g, character => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      })[character]);
+    }
+
+    async function changeUserRole(index, role) {
+      if (!roleManagementAvailable) return;
+      const target = adminUsersCache[index];
+      if (!target || target.username === currentUser) return;
+      const ptId = role === 'user' ? (target.pt_id ?? null) : null;
+      await updateUserAccess(target, { role, ptId });
+    }
+
+    function editAdminUser(index) {
+      const target = adminUsersCache[index];
+      if (target && target.username !== currentUser) {
+        editUserPrompt(target.username, target.display_name || '');
+      }
+    }
+
+    function deleteAdminUser(index) {
+      const target = adminUsersCache[index];
+      if (target && target.username !== currentUser) deleteUserAccount(target.username);
+    }
+
+    async function changeUserPt(index, ptIdValue) {
+      if (!roleManagementAvailable) return;
+      const target = adminUsersCache[index];
+      if (!target || target.role !== 'user') return;
+      await updateUserAccess(target, {
+        role: 'user',
+        ptId: ptIdValue ? Number(ptIdValue) : null
+      });
+    }
+
+    async function updateUserAccess(target, access) {
+      if (!roleManagementAvailable) return;
+      try {
+        const response = await fetch(`${WORKER_URL}/api/admin/users`, {
+          method: 'PATCH',
+          headers: {
+            "Content-Type": "application/json",
+            "X-Username": currentUser,
+            "X-Password": currentPassword
+          },
+          body: JSON.stringify({ targetUsername: target.username, ...access })
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || `Access update failed (${response.status})`);
+        await fetchAdminUsers();
+        await fetchClients();
+      } catch (error) {
+        alert(`Could not update user access: ${error.message}`);
+      }
     }
 
     async function createNewUser() {
@@ -2271,6 +2963,7 @@
         document.getElementById('newDisplayName').value = '';
         alert("User created successfully!");
         fetchAdminUsers();
+        fetchClients();
       } catch (e) {
         alert("Error connecting to server.");
       }
@@ -2320,6 +3013,7 @@
         }
 
         fetchAdminUsers();
+        fetchClients();
       } catch (err) {
         alert("Error updating user: " + err.message);
       }
@@ -2341,6 +3035,7 @@
         }
 
         fetchAdminUsers();
+        fetchClients();
       } catch (e) {
         alert("Error connecting to server.");
       }
@@ -2349,48 +3044,93 @@
     function renderAdminUserList(users) {
       const listEl = document.getElementById('adminUserList');
       if (!listEl) return;
+      roleManagementAvailable = Array.isArray(users) && users.length > 0 &&
+        users.every(user => ['admin', 'pt', 'user'].includes(user?.role) &&
+          Object.prototype.hasOwnProperty.call(user, 'pt_id'));
+      adminUsersCache = Array.isArray(users) ? users.map(user => ({
+        ...user,
+        role: ['admin', 'pt', 'user'].includes(user?.role)
+          ? user.role
+          : (Number(user?.is_admin) === 1 ? 'admin' : 'user'),
+        pt_id: user?.pt_id ?? null
+      })) : [];
+      const roleStatus = document.getElementById('adminRoleStatus');
+      if (roleStatus) {
+        roleStatus.textContent = roleManagementAvailable
+          ? ''
+          : 'Role and PT assignment controls are unavailable until the updated Worker is deployed.';
+        roleStatus.hidden = roleManagementAvailable;
+      }
 
-      if (!users || users.length === 0) {
+      if (adminUsersCache.length === 0) {
         listEl.innerHTML = '<div class="empty-state">No users found.</div>';
-        refreshLucideIcons();
         return;
       }
 
-      listEl.innerHTML = users.map((u, index) => `
-        <div class="log-item">
-          <div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
-            <div class="profile-avatar" data-admin-avatar-index="${index}" aria-hidden="true"></div>
-            <div>
-              <div style="font-weight:600; font-size:0.9rem;">${u.display_name} (${u.username}) ${u.is_admin ? '<i data-lucide="shield-check" aria-hidden="true"></i> [Admin]' : ''}</div>
-              <div style="font-size:0.75rem; color:var(--text-muted);">Created: ${u.created_at || 'N/A'}</div>
+      const ptUsers = adminUsersCache.filter(user => user.role === 'pt');
+      listEl.innerHTML = adminUsersCache.map((u, index) => `
+        <div class="admin-user-row">
+          <div class="admin-user-details">
+            <div style="font-weight:600; font-size:0.9rem;">
+              ${escapeHtml(u.display_name || u.username)} (${escapeHtml(u.username)})
+              <span class="role-badge">${escapeHtml(u.role)}</span>
             </div>
+            <div style="font-size:0.75rem; color:var(--text-muted);">Created: ${escapeHtml(u.created_at || 'N/A')}</div>
           </div>
-          <div style="display: flex; gap: 6px;">
-            <button class="btn-small" onclick="editUserPrompt('${u.username}', '${u.display_name || ''}')">Edit</button>
-            ${u.username !== currentUser ? `<button class="delete-btn" onclick="deleteUserAccount('${u.username}')" aria-label="Delete user account"><i data-lucide="x" aria-hidden="true"></i></button>` : ''}
+          <div class="admin-user-controls">
+            <select aria-label="Role for ${escapeHtml(u.username)}" data-role-index="${index}"
+              onchange="changeUserRole(Number(this.dataset.roleIndex), this.value)" ${u.username === currentUser || !roleManagementAvailable ? 'disabled' : ''}>
+              <option value="user" ${u.role === 'user' ? 'selected' : ''}>User</option>
+              <option value="pt" ${u.role === 'pt' ? 'selected' : ''}>PT</option>
+              <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>Admin</option>
+            </select>
+            <select aria-label="Assigned PT for ${escapeHtml(u.username)}" data-pt-index="${index}"
+              onchange="changeUserPt(Number(this.dataset.ptIndex), this.value)" ${u.role !== 'user' || !roleManagementAvailable ? 'disabled' : ''}>
+              <option value="">No PT assigned</option>
+              ${ptUsers.map(pt => `<option value="${pt.id}" ${Number(u.pt_id) === Number(pt.id) ? 'selected' : ''}>${escapeHtml(pt.display_name || pt.username)}</option>`).join('')}
+            </select>
+            ${u.username !== currentUser ? `
+              <div class="admin-user-actions">
+                <button class="btn-small" type="button" onclick="editAdminUser(${index})">Edit account</button>
+                <button class="delete-btn" type="button" onclick="deleteAdminUser(${index})" aria-label="Delete user account"><i data-lucide="x" aria-hidden="true"></i></button>
+              </div>
+            ` : ''}
           </div>
         </div>
       `).join('');
-      listEl.querySelectorAll('[data-admin-avatar-index]').forEach(element => {
-        const user = users[Number(element.dataset.adminAvatarIndex)];
-        renderProfileAvatar(
-          element,
-          normalizeProfileAvatar(user.avatar),
-          (user.display_name || user.username || "?").charAt(0).toUpperCase(),
-          `${user.display_name || user.username} avatar`
-        );
-      });
       refreshLucideIcons();
     }
 
     function saveLocalStateLocally() {
-      localStorage.setItem(getAppDataStorageKey(currentUser), JSON.stringify(state));
+      const storageKey = activeClient
+        ? getClientCacheStorageKey(currentUser, activeClient.id)
+        : getAppDataStorageKey(currentUser);
+      localStorage.setItem(storageKey, JSON.stringify(state));
       renderAll();
     }
 
     function saveLocalState() {
       saveLocalStateLocally();
+      if (activeClient) {
+        setRoutineSyncPending(getActiveCloudOwnerKey(), true);
+        pushClientStateToCloud();
+        return;
+      }
       pushToCloud();
+      if (currentUser && currentPassword) {
+        const username = currentUser;
+        const password = currentPassword;
+        const routines = JSON.parse(JSON.stringify(state.routines));
+        setRoutineSyncPending(username, true);
+        saveRoutinesToCloud(routines, null, username, password).then(() => {
+          setRoutineSyncPending(username, false, username);
+        }).catch(error => {
+          console.error("Could not sync workout routines:", error);
+          if (username === currentUser && password === currentPassword) {
+            setCloudSyncNotice(`Workout routines saved on this device; cloud sync failed: ${error.message}`);
+          }
+        });
+      }
     }
 
     function renderWarmupList() {
@@ -2410,6 +3150,7 @@
     }
 
     function openWarmupEditor() {
+      if (isPtViewingClient()) return;
       document.getElementById('warmupEditorInput').value = state.warmupExercises.join('\n');
       document.getElementById('warmupEditorStatus').textContent =
         currentUser && currentPassword ? '' : 'Not logged in; changes will be saved on this device only.';
@@ -2420,8 +3161,14 @@
       document.getElementById('warmupModal').style.display = 'none';
     }
 
-    async function saveWarmupExercisesToCloud(exercises, username = currentUser, password = currentPassword) {
-      const response = await fetch(`${WORKER_URL}/api/settings/warmup`, {
+    async function saveWarmupExercisesToCloud(
+      exercises,
+      username = currentUser,
+      password = currentPassword,
+      userId = null
+    ) {
+      const query = userId === null ? '' : `?userId=${encodeURIComponent(userId)}`;
+      const response = await fetch(`${WORKER_URL}/api/settings/warmup${query}`, {
         method: 'POST',
         headers: {
           "Content-Type": "application/json",
@@ -2436,8 +3183,14 @@
       }
     }
 
-    async function saveNutritionGoalsToCloud(goals, username = currentUser, password = currentPassword) {
-      const response = await fetch(`${WORKER_URL}/api/settings/nutrition-goals`, {
+    async function saveNutritionGoalsToCloud(
+      goals,
+      username = currentUser,
+      password = currentPassword,
+      userId = null
+    ) {
+      const query = userId === null ? '' : `?userId=${encodeURIComponent(userId)}`;
+      const response = await fetch(`${WORKER_URL}/api/settings/nutrition-goals${query}`, {
         method: 'POST',
         headers: {
           "Content-Type": "application/json",
@@ -2453,6 +3206,7 @@
     }
 
     async function saveWarmupEditor() {
+      if (isPtViewingClient()) return;
       const input = document.getElementById('warmupEditorInput');
       const status = document.getElementById('warmupEditorStatus');
       const saveButton = document.getElementById('warmupSaveButton');
@@ -2465,10 +3219,14 @@
       }
 
       saveButton.disabled = true;
+      const ownerKey = getActiveCloudOwnerKey();
       try {
         state.warmupExercises = exercises;
-        cacheWarmupExercises(currentUser, exercises);
-        localStorage.setItem(getAppDataStorageKey(currentUser), JSON.stringify(state));
+        if (activeClient) saveLocalStateLocally();
+        else {
+          cacheWarmupExercises(currentUser, exercises);
+          localStorage.setItem(getAppDataStorageKey(currentUser), JSON.stringify(state));
+        }
         renderWarmupList();
       } catch (error) {
         status.textContent = `Could not save the warm-up list on this device: ${error.message}`;
@@ -2478,12 +3236,14 @@
 
       const syncStatus = document.getElementById('warmupSyncStatus');
       if (currentUser && currentPassword) {
-        setWarmupSyncPending(currentUser, true);
+        setWarmupSyncPending(ownerKey, true);
         status.textContent = 'Saved on this device. Syncing to your account...';
         try {
-          await saveWarmupExercisesToCloud(exercises);
-          setWarmupSyncPending(currentUser, false);
-          syncStatus.textContent = 'Warm-up list synced to your account.';
+          await saveWarmupExercisesToCloud(exercises, currentUser, currentPassword, activeClient?.id ?? null);
+          setWarmupSyncPending(ownerKey, false);
+          syncStatus.textContent = activeClient
+            ? 'Warm-up list synced to the client account.'
+            : 'Warm-up list synced to your account.';
         } catch (error) {
           console.error("Could not sync the saved warm-up list:", error);
           syncStatus.textContent =
@@ -2570,6 +3330,7 @@
     }
 
     function updateWorkoutNoteDraft() {
+      if (isPtViewingClient()) return;
       const noteInput = document.getElementById('workoutNoteInput');
       if (noteInput) {
         workoutNoteDrafts[selectedWorkoutNoteDate] = noteInput.value;
@@ -2579,6 +3340,10 @@
     }
 
     async function saveWorkoutNote() {
+      if (isPtViewingClient()) {
+        alert('Workout notes are read-only in client view.');
+        return;
+      }
       const date = document.getElementById('workoutNoteDate').value;
       const noteInput = document.getElementById('workoutNoteInput');
       const rawNote = noteInput.value;
@@ -2590,24 +3355,34 @@
       selectedWorkoutNoteDate = date;
       const note = rawNote.trim() ? rawNote : '';
       delete workoutNoteDrafts[date];
-      const notes = getCachedWorkoutNotes();
+      const ownerKey = getActiveCloudOwnerKey();
+      const notes = isViewingClient()
+        ? { ...state.workoutNotes }
+        : getCachedWorkoutNotes();
       if (note) notes[date] = note;
       else delete notes[date];
       state.workoutNotes = notes;
-      cacheWorkoutNotes(notes);
+      cacheWorkoutNotes(notes, ownerKey);
 
       if (!currentUser) {
         renderWorkoutDiary();
         return;
       }
 
-      const pending = getPendingWorkoutNotes();
+      const pending = getPendingWorkoutNotes(ownerKey);
       pending[date] = note;
-      cachePendingWorkoutNotes(pending);
+      cachePendingWorkoutNotes(pending, ownerKey);
       renderWorkoutDiary();
       let syncError = '';
       try {
-        await saveWorkoutNoteToCloud(date, note);
+        await saveWorkoutNoteToCloud(
+          date,
+          note,
+          currentUser,
+          currentPassword,
+          activeClient?.id ?? null,
+          ownerKey
+        );
       } catch (error) {
         console.error('Workout note is saved locally but could not be synced:', error);
         syncError = error instanceof Error ? error.message : String(error);
@@ -2620,6 +3395,8 @@
     }
 
     function switchTab(tabName, btn) {
+      if (tabName === 'admin' && !isAdmin) return;
+      if (tabName === 'clients' && !isAdmin && !isPt) return;
       document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
       document.querySelectorAll('nav button').forEach(el => el.classList.remove('active'));
       document.getElementById('tab-' + tabName).classList.add('active');
@@ -2632,6 +3409,9 @@
       }
       if (tabName === 'admin' && isAdmin) {
         fetchAdminUsers();
+      }
+      if (tabName === 'clients' && (isAdmin || isPt)) {
+        fetchClients();
       }
     }
 
@@ -3196,6 +3976,7 @@
     }
 
     function addFood() {
+      if (isPtViewingClient()) return;
       const food = document.getElementById('foodName').value.trim();
       const cal = parseFloat(document.getElementById('foodCal').value) || 0;
       const pro = parseFloat(document.getElementById('foodPro').value) || 0;
@@ -3222,12 +4003,14 @@
     }
 
     function deleteFood(id) {
+      if (isPtViewingClient()) return;
       queueCloudRecordChange('nutrition', id, 'delete');
       state.nutrition = state.nutrition.filter(f => f.id !== id);
       saveLocalState();
     }
 
     async function editGoals() {
+      if (isPtViewingClient()) return;
       const cal = prompt('Daily Calorie Goal:', state.goals.cal);
       const pro = prompt('Daily Protein Goal (g):', state.goals.pro);
       const carb = prompt('Daily Carbs Goal (g):', state.goals.carb);
@@ -3244,8 +4027,9 @@
           return;
         }
         state.goals = goals;
+        const ownerKey = getActiveCloudOwnerKey();
         if (currentUser && currentPassword) {
-          setNutritionGoalsSyncPending(currentUser, true);
+          setNutritionGoalsSyncPending(ownerKey, true);
         }
         saveLocalStateLocally();
         if (!currentUser || !currentPassword) return;
@@ -3253,8 +4037,8 @@
         const username = currentUser;
         const password = currentPassword;
         try {
-          await saveNutritionGoalsToCloud(goals, username, password);
-          setNutritionGoalsSyncPending(username, false);
+          await saveNutritionGoalsToCloud(goals, username, password, activeClient?.id ?? null);
+          setNutritionGoalsSyncPending(ownerKey, false);
           if (username === currentUser && password === currentPassword) {
             clearNutritionGoalsSyncNotice();
             setSyncButtonStatus('cloud-check', 'Synced');
@@ -3286,9 +4070,14 @@
         return;
       }
 
-      selectorEl.innerHTML = keys.map(day => `
-        <button class="routine-btn ${day === activeRoutineDay ? 'active' : ''}" onclick="selectRoutine('${day}')">${day}</button>
-      `).join('');
+      selectorEl.replaceChildren(...keys.map(day => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = `routine-btn ${day === activeRoutineDay ? 'active' : ''}`;
+        button.textContent = day;
+        button.addEventListener('click', () => selectRoutine(day));
+        return button;
+      }));
     }
 
     function renderRoutine() {
@@ -3337,7 +4126,7 @@
                 <div class="set-row">
                   <span class="set-label">Set ${s}</span>
                   <span class="set-summary">${loggedSet.weight} kg × ${loggedSet.reps} reps</span>
-                  <button class="delete-btn" onclick="deleteWorkout('${loggedSet.id}')" title="Remove logged set" aria-label="Remove set ${s}"><i data-lucide="x" aria-hidden="true"></i></button>
+                  <button class="delete-btn" data-delete-workout-id="${escapeHtml(loggedSet.id)}" title="Remove logged set" aria-label="Remove set ${s}"><i data-lucide="x" aria-hidden="true"></i></button>
                 </div>
               `;
             }
@@ -3360,8 +4149,8 @@
           <div class="exercise-card">
             <div class="exercise-header">
               <div>
-                <div class="exercise-title">${idx + 1}. ${ex.name}</div>
-                <div class="exercise-meta">${ex.desc || `${ex.workingSets} sets × ${ex.targetReps} reps`}</div>
+                <div class="exercise-title">${idx + 1}. ${escapeHtml(ex.name)}</div>
+                <div class="exercise-meta">${escapeHtml(ex.desc || `${ex.workingSets} sets × ${ex.targetReps} reps`)}</div>
                 <div class="exercise-meta">Rest timer: ${restSeconds} sec</div>
                 <div class="exercise-status ${isComplete ? 'complete' : ''}" aria-live="polite">
                   ${isComplete ? '<i data-lucide="check" aria-hidden="true"></i> Complete' : 'In progress'} · ${loggedCount}/${ex.workingSets} sets
@@ -3384,6 +4173,9 @@
           </div>
         `;
       }).join('');
+      container.querySelectorAll('[data-delete-workout-id]').forEach(button => {
+        button.addEventListener('click', () => deleteWorkout(button.dataset.deleteWorkoutId));
+      });
       refreshLucideIcons();
     }
 
@@ -3623,12 +4415,15 @@
         foodListEl.innerHTML = todayFood.map(f => `
           <div class="log-item">
             <div>
-              <div style="font-weight:600; font-size:0.9rem;">${f.food}</div>
+              <div style="font-weight:600; font-size:0.9rem;">${escapeHtml(f.food)}</div>
               <div style="font-size:0.8rem; color:var(--text-muted);">${f.cal} kcal • ${f.pro}g P • ${f.carb}g C • ${f.fat}g F</div>
             </div>
-            <button class="delete-btn" onclick="deleteFood('${f.id}')" aria-label="Delete food log"><i data-lucide="x" aria-hidden="true"></i></button>
+            ${isPtViewingClient() ? '' : `<button class="delete-btn" data-delete-food-id="${escapeHtml(f.id)}" aria-label="Delete food log"><i data-lucide="x" aria-hidden="true"></i></button>`}
           </div>
         `).join('');
+        foodListEl.querySelectorAll('[data-delete-food-id]').forEach(button => {
+          button.addEventListener('click', () => deleteFood(button.dataset.deleteFoodId));
+        });
       }
       refreshLucideIcons();
     }
@@ -3942,6 +4737,9 @@ Your job is to help the user log their workouts and meals through conversation.
     }
 
     function executeAiAction(actionData) {
+      if (isPtViewingClient() && actionData?.action === 'log_food') {
+        return "Nutrition is read-only in client view. Exit the client view before logging food.";
+      }
       const validatedAction = validateAiAction(actionData);
       if (!validatedAction) return "The proposed log was invalid, so nothing was saved.";
 
