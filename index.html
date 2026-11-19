@@ -654,6 +654,29 @@
       display: none;
     }
 
+    @media (min-width: 700px) {
+      #profileModal.admin-panel-open .login-card {
+        width: min(100%, 1120px);
+        max-width: 1120px;
+        text-align: left;
+      }
+
+      #profileModal.admin-panel-open .admin-panel-section {
+        display: grid;
+        grid-template-columns: minmax(260px, 0.8fr) minmax(0, 1.8fr);
+        align-items: start;
+        gap: 0 16px;
+      }
+
+      #profileModal.admin-panel-open .admin-panel-section > h3 {
+        grid-column: 1 / -1;
+      }
+
+      #profileModal.admin-panel-open .admin-panel-section > .card {
+        min-width: 0;
+      }
+    }
+
     .exercise-card {
       background: var(--bg);
       border: 1px solid var(--border);
@@ -2411,11 +2434,14 @@
       document.getElementById('profileNameInput').value = profile.name;
       pendingAvatarData = normalizeProfileAvatar(profile.avatar);
       updateProfilePreview();
-      document.getElementById('profileModal').style.display = 'flex';
+      const profileModal = document.getElementById('profileModal');
+      profileModal.classList.toggle('admin-panel-open', !document.getElementById('adminPanelSection').hidden);
+      profileModal.style.display = 'flex';
     }
 
     function closeProfileModal() {
-      document.getElementById('profileModal').style.display = 'none';
+      const profileModal = document.getElementById('profileModal');
+      profileModal.style.display = 'none';
     }
 
     function openChangePasswordModal() {
@@ -3160,6 +3186,7 @@
       const button = document.getElementById('adminPanelButton');
       if (!section || !button) return;
       section.hidden = !section.hidden;
+      document.getElementById('profileModal').classList.toggle('admin-panel-open', !section.hidden);
       button.setAttribute('aria-expanded', String(!section.hidden));
       if (!section.hidden) fetchAdminUsers();
       refreshLucideIcons();
