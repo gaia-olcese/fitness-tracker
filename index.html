@@ -946,6 +946,181 @@
       background: #F23847;
     }
 
+    .measurement-card-header,
+    .measurement-actions,
+    .measurement-latest-row,
+    .measurement-entry-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .measurement-card-header {
+      margin-bottom: 10px;
+    }
+
+    .measurement-actions[hidden] {
+      display: none;
+    }
+
+    .measurement-card-header h2 {
+      margin: 0;
+    }
+
+    .measurement-actions {
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .measurement-action-primary {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .measurement-selector,
+    .measurement-preset-list,
+    .measurement-form-fields {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .measurement-selector {
+      margin: 12px 0;
+    }
+
+    .measurement-chip,
+    .measurement-preset-toggle {
+      min-height: 36px;
+      padding: 7px 12px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: var(--surface);
+      color: var(--text);
+      font: inherit;
+      font-size: .8rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .measurement-chip[aria-pressed="true"],
+    .measurement-preset-toggle[aria-pressed="true"] {
+      border-color: var(--primary);
+      background: rgba(126, 71, 217, .1);
+      color: var(--primary-dark);
+    }
+
+    .measurement-latest-row {
+      justify-content: flex-start;
+      flex-wrap: wrap;
+      margin: 8px 0 4px;
+    }
+
+    .measurement-latest-value {
+      color: var(--primary-dark);
+      font-size: 1.4rem;
+      font-weight: 700;
+    }
+
+    .measurement-delta {
+      color: var(--text-muted);
+      font-size: .82rem;
+    }
+
+    .measurement-chart-wrap {
+      position: relative;
+      width: 100%;
+      height: 210px;
+      min-width: 0;
+    }
+
+    .measurement-history {
+      display: grid;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .measurement-entry {
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--surface);
+    }
+
+    .measurement-entry-header {
+      margin-bottom: 6px;
+      font-size: .8rem;
+      color: var(--text-muted);
+    }
+
+    .measurement-entry-values {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .measurement-value-pill {
+      display: inline-flex;
+      gap: 4px;
+      align-items: baseline;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: rgba(255, 176, 122, .2);
+      color: var(--text);
+      font-size: .78rem;
+    }
+
+    .measurement-modal-card {
+      max-width: 520px;
+      text-align: left;
+    }
+
+    .measurement-modal-card h2 {
+      text-align: left;
+    }
+
+    .measurement-form-fields {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      margin: 12px 0;
+    }
+
+    .measurement-form-field {
+      min-width: 0;
+    }
+
+    .measurement-preset-toggle[aria-pressed="true"]::before {
+      content: "✓ ";
+      color: var(--primary);
+    }
+
+    .measurement-custom-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    @media (max-width: 520px) {
+      .measurement-card-header {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .measurement-actions {
+        justify-content: flex-start;
+      }
+
+      .measurement-entry-header {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+    }
+
     .workout-note-history {
       display: flex;
       flex-direction: column;
@@ -1692,6 +1867,76 @@
         </p>
         <div id="workoutNoteHistory" class="workout-note-history"></div>
       </div>
+
+      <section class="card" id="bodyMeasurementsCard" aria-labelledby="bodyMeasurementsHeading">
+        <div class="measurement-card-header">
+          <h2 id="bodyMeasurementsHeading">Body &amp; measurements</h2>
+          <div id="measurementActions" class="measurement-actions">
+            <button type="button" class="btn-small" onclick="openMeasurementPrefsModal()">Customize</button>
+            <button type="button" class="btn-small measurement-action-primary" onclick="openMeasurementLogModal()">+ Log</button>
+          </div>
+        </div>
+        <p id="measurementCardDescription" style="font-size:.82rem;color:var(--text-muted);margin-bottom:8px;">Track your body weight and measurements over time.</p>
+        <div id="measurementSelector" class="measurement-selector" role="group" aria-label="Choose measurement trend"></div>
+        <div class="measurement-latest-row">
+          <span id="measurementLatestValue" class="measurement-latest-value">—</span>
+          <span id="measurementDelta" class="measurement-delta"></span>
+        </div>
+        <div class="measurement-chart-wrap">
+          <canvas id="measurementTrendChart" role="img" aria-label="Body measurement trend"></canvas>
+        </div>
+        <h3 style="font-size:.9rem;margin:14px 0 8px;">Recent entries</h3>
+        <div id="measurementHistory" class="measurement-history"></div>
+        <p id="measurementStatus" class="warmup-sync-status" role="status" aria-live="polite"></p>
+      </section>
+    </div>
+
+    <div id="measurementLogModal" class="modal-overlay" style="display:none;" onclick="if(event.target===this) closeMeasurementLogModal()">
+      <div class="login-card measurement-modal-card" onclick="event.stopPropagation()">
+        <h2>Log body measurements</h2>
+        <p>Enter any values you have; the rest can be left blank.</p>
+        <div class="form-group" style="text-align:left;">
+          <label for="measurementRecordedDate">Date</label>
+          <input id="measurementRecordedDate" type="date" />
+        </div>
+        <div id="measurementLogFields" class="measurement-form-fields"></div>
+        <p id="measurementLogStatus" class="warmup-sync-status" role="status" aria-live="polite"></p>
+        <div style="display:flex;gap:8px;margin-top:14px;">
+          <button type="button" class="btn-small" style="flex:1;padding:12px;" onclick="closeMeasurementLogModal()">Cancel</button>
+          <button type="button" class="btn-primary" style="flex:2;margin-top:0;padding:12px;" onclick="saveBodyMeasurements()">Save entries</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="measurementPrefsModal" class="modal-overlay" style="display:none;" onclick="if(event.target===this) closeMeasurementPrefsModal()">
+      <div class="login-card measurement-modal-card" onclick="event.stopPropagation()">
+        <h2>Customize measurements</h2>
+        <p>Choose the metrics you want to track and how to display them.</p>
+        <div class="form-group" style="text-align:left;">
+          <label for="measurementUnitPreference">Units</label>
+          <select id="measurementUnitPreference" class="activity-type-select" onchange="renderMeasurementPrefsOptions()">
+            <option value="metric">Kilograms and centimetres (kg / cm)</option>
+            <option value="imperial">Pounds and inches (lbs / in)</option>
+          </select>
+        </div>
+        <h3 style="font-size:.9rem;margin:14px 0 8px;">Preset metrics</h3>
+        <div id="measurementPresetOptions" class="measurement-preset-list"></div>
+        <h3 style="font-size:.9rem;margin:14px 0 8px;">Custom metrics</h3>
+        <div id="measurementCustomList"></div>
+        <p style="font-size:.76rem;color:var(--text-muted);margin-top:6px;">Removing a custom metric hides it from future logging; saved entries remain.</p>
+        <div class="form-group" style="text-align:left;margin-top:12px;">
+          <label for="customMeasurementLabel">Metric name</label>
+          <input id="customMeasurementLabel" type="text" maxlength="40" placeholder="e.g. Neck" style="text-align:left;" />
+          <label for="customMeasurementUnit" style="margin-top:8px;">Unit</label>
+          <input id="customMeasurementUnit" type="text" maxlength="12" placeholder="e.g. cm" style="text-align:left;" />
+        </div>
+        <button type="button" class="btn-small" onclick="addCustomMeasurementMetric()">Add custom metric</button>
+        <p id="measurementPrefsStatus" class="warmup-sync-status" role="status" aria-live="polite"></p>
+        <div style="display:flex;gap:8px;margin-top:14px;">
+          <button type="button" class="btn-small" style="flex:1;padding:12px;" onclick="closeMeasurementPrefsModal()">Cancel</button>
+          <button type="button" class="btn-primary" style="flex:2;margin-top:0;padding:12px;" onclick="saveMeasurementPrefs()">Save preferences</button>
+        </div>
+      </div>
     </div>
 
     <!-- Nutrition Tab -->
@@ -2226,6 +2471,22 @@
       return data.routines || {};
     }
 
+    const PRESET_MEASUREMENT_METRICS = [
+      { key: 'weight', label: 'Weight', unit: 'kg' },
+      { key: 'waist', label: 'Waist', unit: 'cm' },
+      { key: 'hips', label: 'Hips', unit: 'cm' },
+      { key: 'chest', label: 'Chest', unit: 'cm' },
+      { key: 'left_arm', label: 'Left arm', unit: 'cm' },
+      { key: 'right_arm', label: 'Right arm', unit: 'cm' },
+      { key: 'left_thigh', label: 'Left thigh', unit: 'cm' },
+      { key: 'right_thigh', label: 'Right thigh', unit: 'cm' }
+    ];
+    const DEFAULT_MEASUREMENT_PREFS = {
+      enabledMetrics: ['weight'],
+      customMetrics: [],
+      preferredUnit: 'metric'
+    };
+
     let state = {
       workouts: savedData.workouts || [],
       nutrition: savedData.nutrition || [],
@@ -2243,6 +2504,11 @@
     let maxWeightChartInstance = null;
     let estimated1RMChartInstance = null;
     let nutritionHistoryChartInstance = null;
+    let measurementTrendChartInstance = null;
+    let measurementPrefs = { ...DEFAULT_MEASUREMENT_PREFS, customMetrics: [] };
+    let measurementPrefsDraft = null;
+    let bodyMeasurements = [];
+    let selectedMeasurementKey = 'weight';
     let selectedWorkoutNoteDate = getTodayStr();
     let workoutNoteDrafts = {};
     let workoutNoteSyncQueue = Promise.resolve();
@@ -2618,6 +2884,7 @@
         renderProfileBadge();
         syncWithCloud();
         loadActivityData();
+        loadBodyMeasurements();
       }
       renderRoleAccess();
       renderClientViewBanner();
@@ -2680,6 +2947,7 @@
         document.getElementById('loginModal').style.display = 'none';
         await syncWithCloud();
         await loadActivityData();
+        await loadBodyMeasurements();
       } catch (err) {
         alert('Login failed. Check your network connection.');
       }
@@ -2698,6 +2966,15 @@
       localStorage.removeItem('fitlog_is_admin');
       currentUser = null;
       currentPassword = null;
+      measurementLoadRequestId += 1;
+      measurementDataLoaded = false;
+      measurementPrefs = cloneMeasurementPrefs(DEFAULT_MEASUREMENT_PREFS);
+      bodyMeasurements = [];
+      selectedMeasurementKey = 'weight';
+      if (measurementTrendChartInstance) {
+        measurementTrendChartInstance.destroy();
+        measurementTrendChartInstance = null;
+      }
       currentUserId = null;
       currentRole = 'user';
       isAdmin = false;
@@ -2714,6 +2991,7 @@
       renderClientViewBanner();
       loadApiKeySetting();
       renderAll();
+      renderBodyMeasurementSection();
       document.getElementById('loginUsername').value = '';
       document.getElementById('loginPassword').value = '';
       document.getElementById('loginModal').style.display = 'flex';
@@ -3493,6 +3771,476 @@
       if (activities) loadActivityData();
     }
 
+    let measurementLoadRequestId = 0;
+    let measurementDataLoaded = false;
+
+    function cloneMeasurementPrefs(prefs = measurementPrefs) {
+      return {
+        enabledMetrics: [...(prefs.enabledMetrics || [])],
+        customMetrics: (prefs.customMetrics || []).map(metric => ({ ...metric })),
+        preferredUnit: prefs.preferredUnit === 'imperial' ? 'imperial' : 'metric'
+      };
+    }
+
+    function getMeasurementMetric(key, prefs = measurementPrefs) {
+      return PRESET_MEASUREMENT_METRICS.find(metric => metric.key === key) ||
+        (prefs.customMetrics || []).find(metric => metric.key === key) || null;
+    }
+
+    function getMeasurementDisplayUnit(metric, prefs = measurementPrefs) {
+      if (metric.key.startsWith('custom_')) return metric.unit;
+      if (prefs.preferredUnit === 'imperial') return metric.key === 'weight' ? 'lbs' : 'in';
+      return metric.key === 'weight' ? 'kg' : 'cm';
+    }
+
+    function measurementValueForDisplay(value, metric, prefs = measurementPrefs) {
+      const number = Number(value);
+      if (!Number.isFinite(number)) return 0;
+      if (metric.key.startsWith('custom_')) return number;
+      if (prefs.preferredUnit === 'imperial') {
+        return metric.key === 'weight' ? number * 2.2046226218 : number / 2.54;
+      }
+      return number;
+    }
+
+    function measurementValueForStorage(value, metric, prefs = measurementPrefs) {
+      const number = Number(value);
+      if (metric.key.startsWith('custom_')) return number;
+      if (prefs.preferredUnit === 'imperial') {
+        return metric.key === 'weight' ? number / 2.2046226218 : number * 2.54;
+      }
+      return number;
+    }
+
+    async function loadBodyMeasurements() {
+      const requestId = ++measurementLoadRequestId;
+      const status = document.getElementById('measurementStatus');
+      const description = document.getElementById('measurementCardDescription');
+      const actions = document.getElementById('measurementActions');
+      measurementDataLoaded = false;
+      if (activeClient) {
+        measurementDataLoaded = true;
+        measurementPrefs = cloneMeasurementPrefs(DEFAULT_MEASUREMENT_PREFS);
+        bodyMeasurements = [];
+        if (description) description.textContent = 'Body measurements are private to the account owner.';
+        if (actions) actions.hidden = true;
+        if (status) status.textContent = '';
+        renderBodyMeasurementSection();
+        return;
+      }
+      if (description) description.textContent = 'Track your body weight and measurements over time.';
+      if (actions) actions.hidden = false;
+      if (!currentUser || !currentPassword) {
+        measurementPrefs = cloneMeasurementPrefs(DEFAULT_MEASUREMENT_PREFS);
+        bodyMeasurements = [];
+        measurementDataLoaded = true;
+        renderBodyMeasurementSection();
+        return;
+      }
+      try {
+        const [prefsResponse, measurementsResponse] = await Promise.all([
+          fetch(`${WORKER_URL}/api/measurements/prefs`, activityRequestOptions()),
+          fetch(`${WORKER_URL}/api/measurements`, activityRequestOptions())
+        ]);
+        const [prefsData, measurementsData] = await Promise.all([prefsResponse.json(), measurementsResponse.json()]);
+        if (requestId !== measurementLoadRequestId) return;
+        if (!prefsResponse.ok) throw new Error(prefsData.error || 'Could not load measurement preferences.');
+        if (!measurementsResponse.ok) throw new Error(measurementsData.error || 'Could not load body measurements.');
+        measurementPrefs = {
+          enabledMetrics: Array.isArray(prefsData.prefs?.enabledMetrics) ? prefsData.prefs.enabledMetrics : ['weight'],
+          customMetrics: Array.isArray(prefsData.prefs?.customMetrics) ? prefsData.prefs.customMetrics : [],
+          preferredUnit: prefsData.prefs?.preferredUnit === 'imperial' ? 'imperial' : 'metric'
+        };
+        bodyMeasurements = Array.isArray(measurementsData.measurements) ? measurementsData.measurements : [];
+        measurementDataLoaded = true;
+        if (!measurementPrefs.enabledMetrics.includes(selectedMeasurementKey)) {
+          selectedMeasurementKey = measurementPrefs.enabledMetrics[0] || '';
+        }
+        if (status) status.textContent = '';
+        renderBodyMeasurementSection();
+      } catch (error) {
+        if (requestId !== measurementLoadRequestId) return;
+        console.error('Could not load body measurements:', error);
+        if (status) status.textContent = `Could not load body measurements: ${error.message}`;
+        renderBodyMeasurementSection();
+      }
+    }
+
+    function renderBodyMeasurementSection() {
+      renderMeasurementSelector();
+      renderMeasurementTrend();
+      renderMeasurementHistory();
+      refreshLucideIcons();
+    }
+
+    function renderMeasurementSelector() {
+      const root = document.getElementById('measurementSelector');
+      if (!root) return;
+      const metrics = measurementPrefs.enabledMetrics
+        .map(key => getMeasurementMetric(key))
+        .filter(Boolean);
+      root.replaceChildren(...metrics.map(metric => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'measurement-chip';
+        button.textContent = metric.label;
+        button.setAttribute('aria-pressed', String(metric.key === selectedMeasurementKey));
+        button.addEventListener('click', () => {
+          selectedMeasurementKey = metric.key;
+          renderMeasurementSelector();
+          renderMeasurementTrend();
+        });
+        return button;
+      }));
+      if (!metrics.length) {
+        const empty = document.createElement('span');
+        empty.className = 'warmup-sync-status';
+        empty.textContent = 'Enable at least one metric with Customize.';
+        root.append(empty);
+      }
+    }
+
+    function renderMeasurementTrend() {
+      const canvas = document.getElementById('measurementTrendChart');
+      const latestEl = document.getElementById('measurementLatestValue');
+      const deltaEl = document.getElementById('measurementDelta');
+      const metric = getMeasurementMetric(selectedMeasurementKey);
+      const unit = metric ? getMeasurementDisplayUnit(metric) : '';
+      const values = metric ? bodyMeasurements
+        .filter(item => item.metric_key === metric.key)
+        .sort((a, b) => String(a.recorded_at).localeCompare(String(b.recorded_at)) || Number(a.id) - Number(b.id)) : [];
+      const latest = values[values.length - 1];
+      const previous = values.length > 1 ? values[values.length - 2] : null;
+      if (latestEl) latestEl.textContent = latest ? `${formatMeasurementNumber(measurementValueForDisplay(latest.value, metric))} ${unit}` : 'No entries yet';
+      if (deltaEl) {
+        if (latest && previous) {
+          const delta = measurementValueForDisplay(latest.value, metric) - measurementValueForDisplay(previous.value, metric);
+          const sign = delta > 0 ? '+' : '';
+          deltaEl.textContent = `${sign}${formatMeasurementNumber(delta)} ${unit} since previous entry`;
+        } else {
+          deltaEl.textContent = latest ? 'First entry' : '';
+        }
+      }
+      if (!canvas || typeof Chart === 'undefined') return;
+      if (measurementTrendChartInstance) measurementTrendChartInstance.destroy();
+      const color = metric?.key === 'weight' ? '#F23847' : '#7E47D9';
+      measurementTrendChartInstance = new Chart(canvas, {
+        type: 'line',
+        data: {
+          labels: values.map(item => formatMeasurementDate(item.recorded_at)),
+          datasets: [{
+            label: metric?.label || 'Measurement',
+            data: values.map(item => Math.round(measurementValueForDisplay(item.value, metric) * 100) / 100),
+            borderColor: color,
+            backgroundColor: 'rgba(126, 71, 217, .12)',
+            borderWidth: 2,
+            pointRadius: 3,
+            pointHoverRadius: 5,
+            tension: .25,
+            fill: true
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'nearest', intersect: false },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: context => `${formatMeasurementNumber(context.parsed.y)} ${unit}`
+              }
+            }
+          },
+          scales: {
+            x: { ticks: { color: '#6B6280', maxTicksLimit: 7 }, grid: { display: false } },
+            y: {
+              ticks: { color: '#6B6280', maxTicksLimit: 5 },
+              grid: { color: '#E6E1F2' }
+            }
+          }
+        }
+      });
+    }
+
+    function formatMeasurementNumber(value) {
+      return Number(value).toLocaleString(undefined, { maximumFractionDigits: 2 });
+    }
+
+    function formatMeasurementDate(value) {
+      const date = new Date(String(value).includes('T') ? value : String(value).replace(' ', 'T') + 'Z');
+      return Number.isNaN(date.getTime()) ? String(value || '') : date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    }
+
+    function renderMeasurementHistory() {
+      const root = document.getElementById('measurementHistory');
+      if (!root) return;
+      const groups = new Map();
+      [...bodyMeasurements]
+        .sort((a, b) => String(b.recorded_at).localeCompare(String(a.recorded_at)) || Number(b.id) - Number(a.id))
+        .forEach(item => {
+          const key = item.entry_id || String(item.id);
+          if (!groups.has(key)) groups.set(key, []);
+          groups.get(key).push(item);
+        });
+      const entries = Array.from(groups.entries()).slice(0, 12);
+      if (!entries.length) {
+        root.innerHTML = '<p style="font-size:.82rem;color:var(--text-muted);">No measurements logged yet.</p>';
+        return;
+      }
+      root.replaceChildren(...entries.map(([entryId, items]) => {
+        const entry = document.createElement('div');
+        entry.className = 'measurement-entry';
+        const header = document.createElement('div');
+        header.className = 'measurement-entry-header';
+        const date = document.createElement('time');
+        date.textContent = formatMeasurementDate(items[0].recorded_at);
+        date.dateTime = String(items[0].recorded_at || '');
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'delete-btn';
+        remove.setAttribute('aria-label', 'Delete this measurement entry');
+        remove.innerHTML = '<i data-lucide="trash-2" aria-hidden="true"></i>';
+        remove.addEventListener('click', () => deleteMeasurementEntry(entryId));
+        header.append(date, remove);
+        const vals = document.createElement('div');
+        vals.className = 'measurement-entry-values';
+        items.forEach(item => {
+          const metric = getMeasurementMetric(item.metric_key) || { key: item.metric_key, label: item.label, unit: item.unit };
+          const pill = document.createElement('span');
+          pill.className = 'measurement-value-pill';
+          const label = document.createElement('strong');
+          label.textContent = item.label;
+          const value = document.createElement('span');
+          value.textContent = `${formatMeasurementNumber(measurementValueForDisplay(item.value, metric))} ${getMeasurementDisplayUnit(metric)}`;
+          const pair = document.createElement('span');
+          pair.className = 'measurement-value-pill';
+          pair.append(label, value);
+          vals.append(pair);
+        });
+        entry.append(header, vals);
+        return entry;
+      }));
+      refreshLucideIcons();
+    }
+
+    function openMeasurementLogModal() {
+      if (activeClient) return;
+      if (!measurementDataLoaded) {
+        document.getElementById('measurementStatus').textContent = 'Loading your measurement settings…';
+        loadBodyMeasurements();
+        return;
+      }
+      if (!measurementPrefs.enabledMetrics.length) {
+        document.getElementById('measurementStatus').textContent = 'Enable at least one metric in Customize before logging.';
+        return;
+      }
+      document.getElementById('measurementLogStatus').textContent = '';
+      document.getElementById('measurementRecordedDate').value = getTodayStr();
+      renderMeasurementLogFields();
+      document.getElementById('measurementLogModal').style.display = 'flex';
+      refreshLucideIcons();
+    }
+
+    function closeMeasurementLogModal() {
+      document.getElementById('measurementLogModal').style.display = 'none';
+    }
+
+    function renderMeasurementLogFields() {
+      const root = document.getElementById('measurementLogFields');
+      const metrics = measurementPrefs.enabledMetrics.map(key => getMeasurementMetric(key)).filter(Boolean);
+      root.replaceChildren(...metrics.map(metric => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'form-group measurement-form-field';
+        const label = document.createElement('label');
+        const inputId = `measurement-${metric.key}`;
+        label.htmlFor = inputId;
+        label.textContent = `${metric.label} (${getMeasurementDisplayUnit(metric)})`;
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.id = inputId;
+        input.dataset.metricKey = metric.key;
+        input.min = '0.01';
+        input.step = 'any';
+        input.inputMode = 'decimal';
+        input.placeholder = 'Optional';
+        wrapper.append(label, input);
+        return wrapper;
+      }));
+    }
+
+    async function saveBodyMeasurements() {
+      const status = document.getElementById('measurementLogStatus');
+      const date = document.getElementById('measurementRecordedDate').value;
+      const measurements = Array.from(document.querySelectorAll('#measurementLogFields input[data-metric-key]'))
+        .filter(input => input.value.trim() !== '')
+        .map(input => {
+          const metric = getMeasurementMetric(input.dataset.metricKey);
+          return { metricKey: metric.key, value: measurementValueForStorage(input.value, metric) };
+        });
+      if (!date) { status.textContent = 'Choose a date.'; return; }
+      if (!measurements.length) { status.textContent = 'Enter at least one measurement.'; return; }
+      if (measurements.some(item => !Number.isFinite(item.value) || item.value <= 0)) {
+        status.textContent = 'Measurements must be positive numbers.'; return;
+      }
+      status.textContent = 'Saving…';
+      try {
+        const entryId = `entry_${crypto.randomUUID()}`;
+        const response = await fetch(`${WORKER_URL}/api/measurements`, activityRequestOptions('POST', {
+          entryId,
+          recordedAt: date,
+          measurements
+        }));
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Could not save measurements.');
+        if (Array.isArray(result.measurements)) bodyMeasurements.unshift(...result.measurements);
+        closeMeasurementLogModal();
+        renderBodyMeasurementSection();
+        document.getElementById('measurementStatus').textContent = 'Measurements saved.';
+      } catch (error) {
+        status.textContent = error.message;
+      }
+    }
+
+    async function deleteMeasurementEntry(entryId) {
+      if (!confirm('Delete all measurements in this entry?')) return;
+      try {
+        const response = await fetch(`${WORKER_URL}/api/measurements/entries/${encodeURIComponent(entryId)}`, activityRequestOptions('DELETE'));
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Could not delete this entry.');
+        bodyMeasurements = bodyMeasurements.filter(item => item.entry_id !== entryId);
+        renderBodyMeasurementSection();
+      } catch (error) {
+        document.getElementById('measurementStatus').textContent = error.message;
+      }
+    }
+
+    function openMeasurementPrefsModal() {
+      if (activeClient) return;
+      if (!measurementDataLoaded) {
+        document.getElementById('measurementStatus').textContent = 'Loading your measurement settings…';
+        loadBodyMeasurements();
+        return;
+      }
+      measurementPrefsDraft = cloneMeasurementPrefs();
+      document.getElementById('measurementUnitPreference').value = measurementPrefsDraft.preferredUnit;
+      document.getElementById('measurementPrefsStatus').textContent = '';
+      renderMeasurementPrefsOptions();
+      document.getElementById('measurementPrefsModal').style.display = 'flex';
+      refreshLucideIcons();
+    }
+
+    function closeMeasurementPrefsModal() {
+      document.getElementById('measurementPrefsModal').style.display = 'none';
+      measurementPrefsDraft = null;
+    }
+
+    function renderMeasurementPrefsOptions() {
+      if (!measurementPrefsDraft) return;
+      measurementPrefsDraft.preferredUnit = document.getElementById('measurementUnitPreference').value;
+      const presetRoot = document.getElementById('measurementPresetOptions');
+      presetRoot.replaceChildren(...PRESET_MEASUREMENT_METRICS.map(metric => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'measurement-preset-toggle';
+        button.textContent = metric.label;
+        button.setAttribute('aria-pressed', String(measurementPrefsDraft.enabledMetrics.includes(metric.key)));
+        button.addEventListener('click', () => {
+          const enabled = measurementPrefsDraft.enabledMetrics;
+          measurementPrefsDraft.enabledMetrics = enabled.includes(metric.key)
+            ? enabled.filter(key => key !== metric.key)
+            : [...enabled, metric.key];
+          renderMeasurementPrefsOptions();
+        });
+        return button;
+      }));
+      const customRoot = document.getElementById('measurementCustomList');
+      if (!measurementPrefsDraft.customMetrics.length) {
+        customRoot.textContent = 'No custom metrics yet.';
+        customRoot.style.cssText = 'font-size:.8rem;color:var(--text-muted);';
+        return;
+      }
+      customRoot.style.cssText = '';
+      customRoot.replaceChildren(...measurementPrefsDraft.customMetrics.map(metric => {
+        const row = document.createElement('div');
+        row.className = 'measurement-custom-row';
+        const label = document.createElement('span');
+        label.textContent = `${metric.label} (${metric.unit})`;
+        const actions = document.createElement('div');
+        actions.style.cssText = 'display:flex;gap:6px;';
+        const toggle = document.createElement('button');
+        toggle.type = 'button';
+        toggle.className = 'btn-small';
+        const enabled = measurementPrefsDraft.enabledMetrics.includes(metric.key);
+        toggle.textContent = enabled ? 'Enabled' : 'Enable';
+        toggle.setAttribute('aria-pressed', String(enabled));
+        toggle.addEventListener('click', () => {
+          measurementPrefsDraft.enabledMetrics = enabled
+            ? measurementPrefsDraft.enabledMetrics.filter(key => key !== metric.key)
+            : [...measurementPrefsDraft.enabledMetrics, metric.key];
+          renderMeasurementPrefsOptions();
+        });
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'delete-btn';
+        remove.setAttribute('aria-label', `Remove ${metric.label} custom metric`);
+        remove.innerHTML = '<i data-lucide="trash-2" aria-hidden="true"></i>';
+        remove.addEventListener('click', () => {
+          measurementPrefsDraft.customMetrics = measurementPrefsDraft.customMetrics.filter(item => item.key !== metric.key);
+          measurementPrefsDraft.enabledMetrics = measurementPrefsDraft.enabledMetrics.filter(key => key !== metric.key);
+          renderMeasurementPrefsOptions();
+        });
+        actions.append(toggle, remove);
+        row.append(label, actions);
+        return row;
+      }));
+      refreshLucideIcons();
+    }
+
+    function addCustomMeasurementMetric() {
+      if (!measurementPrefsDraft) return;
+      const labelInput = document.getElementById('customMeasurementLabel');
+      const unitInput = document.getElementById('customMeasurementUnit');
+      const label = labelInput.value.trim();
+      const unit = unitInput.value.trim();
+      const status = document.getElementById('measurementPrefsStatus');
+      if (!label || !unit) { status.textContent = 'Enter both a metric name and a unit.'; return; }
+      if (measurementPrefsDraft.customMetrics.some(metric => metric.label.toLowerCase() === label.toLowerCase())) {
+        status.textContent = 'A custom metric with that name already exists.'; return;
+      }
+      const key = `custom_${crypto.randomUUID()}`;
+      measurementPrefsDraft.customMetrics.push({ key, label, unit });
+      measurementPrefsDraft.enabledMetrics.push(key);
+      labelInput.value = '';
+      unitInput.value = '';
+      status.textContent = '';
+      renderMeasurementPrefsOptions();
+    }
+
+    async function saveMeasurementPrefs() {
+      if (!measurementPrefsDraft) return;
+      measurementPrefsDraft.preferredUnit = document.getElementById('measurementUnitPreference').value;
+      const status = document.getElementById('measurementPrefsStatus');
+      status.textContent = 'Saving…';
+      try {
+        const response = await fetch(`${WORKER_URL}/api/measurements/prefs`, activityRequestOptions('PUT', measurementPrefsDraft));
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Could not save preferences.');
+        measurementPrefs = {
+          enabledMetrics: result.prefs.enabledMetrics,
+          customMetrics: result.prefs.customMetrics,
+          preferredUnit: result.prefs.preferredUnit
+        };
+        if (!measurementPrefs.enabledMetrics.includes(selectedMeasurementKey)) {
+          selectedMeasurementKey = measurementPrefs.enabledMetrics[0] || '';
+        }
+        closeMeasurementPrefsModal();
+        renderBodyMeasurementSection();
+      } catch (error) {
+        status.textContent = error.message;
+      }
+    }
+
     async function fetchAdminUsers() {
       if (!isAdmin) return;
       try {
@@ -3572,6 +4320,9 @@
         const data = await fetchClientData(client);
         if (requestId !== clientViewRequestId) return;
         activeClient = client;
+        measurementLoadRequestId += 1;
+        measurementDataLoaded = false;
+        bodyMeasurements = [];
         applyClientData(client, data);
         renderClientViewBanner();
         renderClientList();
@@ -4277,6 +5028,7 @@
       btn.classList.add('active');
       if (tabName === 'progress') {
         renderChart();
+        loadBodyMeasurements();
       }
       if (tabName === 'nutrition') {
         renderNutritionHistoryChart();
