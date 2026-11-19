@@ -1778,6 +1778,10 @@
             <div id="customActivityTypeList" style="margin-top:8px;"></div>
           </div>
           <div class="activity-form-section">
+            <label for="activityLoggedAt" class="activity-form-label">Activity date</label>
+            <input id="activityLoggedAt" type="date" />
+          </div>
+          <div class="activity-form-section">
             <label class="activity-form-label">Duration</label>
             <div class="activity-duration-pills" role="group" aria-label="Activity duration">
               <button type="button" class="activity-duration-pill" data-minutes="30" aria-pressed="false" onclick="setActivityDuration(30,this)">30m</button>
@@ -3529,6 +3533,11 @@
     }
 
     function renderActivityData() {
+      const activityDate = document.getElementById('activityLoggedAt');
+      if (activityDate) {
+        activityDate.max = getTodayStr();
+        if (!activityDate.value) activityDate.value = getTodayStr();
+      }
       renderActivityTypeChips();
       renderCustomActivityTypeList();
       renderActivityHistory();
@@ -3654,6 +3663,10 @@
     async function logActivity() {
       const status = document.getElementById('activityFormStatus');
       if (!selectedActivityTypeId) { status.textContent = 'Choose an activity type first.'; return; }
+      const loggedAtDate = document.getElementById('activityLoggedAt').value;
+      if (!loggedAtDate || loggedAtDate > getTodayStr()) {
+        status.textContent = 'Choose today or a past date.'; return;
+      }
       const customDuration = document.getElementById('customActivityDuration').value;
       if (customDuration && (!Number.isInteger(Number(customDuration)) || Number(customDuration) < 1 || Number(customDuration) > 1440)) {
         status.textContent = 'Duration must be between 1 and 1440 minutes.'; return;
@@ -3662,6 +3675,7 @@
       try {
         const response = await fetch(`${WORKER_URL}/api/activities${activityUserQuery()}`, activityRequestOptions('POST', {
           activityTypeId: selectedActivityTypeId,
+          loggedAtDate,
           durationMins,
           intensity: activityIntensity,
           notes: document.getElementById('activityNoteInput').value.trim()
