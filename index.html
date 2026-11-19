@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="theme-color" content="#EDE9F7" />
+  <meta name="theme-color" content="#E8E2F5" />
   <link rel="manifest" href="./manifest.json" />
   <link rel="apple-touch-icon" href="./icon-192.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png" />
@@ -51,13 +51,13 @@
     }
 
     header {
-      background: #EDE9F7;
+      background: #E8E2F5;
       color: #1E1633;
       padding: 12px 16px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border-bottom: 1px solid #E2DCF0;
+      border-bottom: 1px solid #DCD3EC;
       position: sticky;
       top: 0;
       z-index: 10;
@@ -95,7 +95,7 @@
       align-items: center;
       gap: 7px;
       background: rgba(255, 255, 255, 0.68);
-      border: 1px solid #E2DCF0;
+      border: 1px solid #DCD3EC;
       color: #1E1633;
       padding: 4px 10px 4px 5px;
       border-radius: 999px;
@@ -105,7 +105,7 @@
     }
 
     .profile-pill:active {
-      background: #E2DCF0;
+      background: #DCD3EC;
     }
 
     .profile-avatar {
@@ -302,7 +302,7 @@
     header .btn-small {
       background: rgba(255, 255, 255, 0.68);
       color: #1E1633;
-      border-color: #E2DCF0;
+      border-color: #DCD3EC;
     }
 
     .btn-small:active {
@@ -310,7 +310,7 @@
     }
 
     header .btn-small:active {
-      background: #E2DCF0;
+      background: #DCD3EC;
     }
 
     .container {
@@ -1398,8 +1398,8 @@
       bottom: 0;
       left: 0;
       right: 0;
-      background: #EDE9F7;
-      border-top: 1px solid #E2DCF0;
+      background: #E8E2F5;
+      border-top: 1px solid #DCD3EC;
       display: flex;
       justify-content: space-around;
       padding: 10px 0 calc(18px + env(safe-area-inset-bottom, 0px));
@@ -2359,7 +2359,7 @@
     };
 
     const LINE_COLORS = [
-      '#7E47D9', '#F23847', '#5B28B0', '#FFB07A', '#A78AE3', '#F77B86', '#8265B5', '#D98C59'
+      '#7E47D9', '#F23847', '#197C83', '#B86B00', '#3366B0', '#B13D73', '#5C7C2F', '#894A35'
     ];
 
     const DEFAULT_GOALS = { cal: 2000, pro: 130, carb: 220, fat: 65 };
@@ -3959,8 +3959,8 @@
             borderColor: color,
             backgroundColor: context => createAreaChartGradient(context, color),
             borderWidth: 2,
-            pointRadius: 0,
-            pointHoverRadius: 5,
+            pointRadius: 2,
+            pointHoverRadius: 4,
             tension: 0.4,
             fill: true
           }]
@@ -5432,8 +5432,8 @@
             borderWidth: 2,
             tension: 0.4,
             spanGaps: true,
-            pointRadius: 0,
-            pointHoverRadius: 5,
+            pointRadius: 2,
+            pointHoverRadius: 4,
             fill: true
           };
         });
@@ -5450,7 +5450,14 @@
             plugins: {
               legend: {
                 position: 'bottom',
-                labels: { color: '#1E1633', boxWidth: 12, font: { size: 11 } }
+                labels: {
+                  color: '#1E1633',
+                  usePointStyle: true,
+                  pointStyle: 'line',
+                  pointStyleWidth: 24,
+                  boxWidth: 24,
+                  font: { size: 11 }
+                }
               }
             },
             scales: {
@@ -5495,8 +5502,8 @@
             borderWidth: 2,
             tension: 0.4,
             spanGaps: true,
-            pointRadius: 0,
-            pointHoverRadius: 5,
+            pointRadius: 2,
+            pointHoverRadius: 4,
             fill: true
           };
         });
@@ -5513,7 +5520,14 @@
             plugins: {
               legend: {
                 position: 'bottom',
-                labels: { color: '#1E1633', boxWidth: 12, font: { size: 11 } }
+                labels: {
+                  color: '#1E1633',
+                  usePointStyle: true,
+                  pointStyle: 'line',
+                  pointStyleWidth: 24,
+                  boxWidth: 24,
+                  font: { size: 11 }
+                }
               }
             },
             scales: {
@@ -5560,8 +5574,8 @@
             borderWidth: 2,
             tension: 0.4,
             spanGaps: true,
-            pointRadius: 0,
-            pointHoverRadius: 5,
+            pointRadius: 2,
+            pointHoverRadius: 4,
             fill: true
           };
         });
@@ -5577,7 +5591,14 @@
             plugins: {
               legend: {
                 position: 'bottom',
-                labels: { color: '#1E1633', boxWidth: 12, font: { size: 11 } }
+                labels: {
+                  color: '#1E1633',
+                  usePointStyle: true,
+                  pointStyle: 'line',
+                  pointStyleWidth: 24,
+                  boxWidth: 24,
+                  font: { size: 11 }
+                }
               }
             },
             scales: {
