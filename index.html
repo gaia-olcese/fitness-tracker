@@ -3547,7 +3547,7 @@
         button.setAttribute('aria-pressed', String(Number(type.id) === Number(selectedActivityTypeId)));
         const isDefaultClimbing = Number(type.is_default) === 1 && type.name.toLowerCase() === 'climbing';
         const iconMarkup = isDefaultClimbing
-          ? '<img class="activity-type-icon" src="./carabiner.png" alt="" aria-hidden="true">'
+          ? '<img class="activity-type-icon" src="./carabiner2.png" alt="" aria-hidden="true">'
           : `<i data-lucide="${escapeHtml(type.icon || 'activity')}" aria-hidden="true"></i>`;
         button.innerHTML = `${iconMarkup}<span></span>`;
         button.querySelector('span').textContent = type.name;
