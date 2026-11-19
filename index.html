@@ -1600,6 +1600,7 @@
         <div class="card">
           <h2>Registered users</h2>
           <p id="adminRoleStatus" class="warmup-sync-status" role="status" aria-live="polite" hidden></p>
+          <p id="adminAiAccessStatus" class="warmup-sync-status" role="status" aria-live="polite" hidden></p>
           <div id="adminUserList"></div>
         </div>
       </section>
@@ -2048,26 +2049,26 @@
       <div class="card">
         <h2><i data-lucide="bot" aria-hidden="true"></i> AI assistant settings</h2>
         <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 10px;">
-          Enter your personal Gemini API key so you can log workouts and meals by voice or chat without sharing quotas.
+          Enter your personal Gemini API key so you can log workouts and meals by voice or chat using your own Google AI project.
         </p>
         <div class="form-group" style="text-align: left;">
           <label for="aiApiKeyInput">Gemini API key</label>
-          <input type="password" id="aiApiKeyInput" placeholder="AIzaSy..." style="text-align: left; margin-bottom: 8px;" />
+          <input type="password" id="aiApiKeyInput" placeholder="Paste your Gemini API key" style="text-align: left; margin-bottom: 8px;" />
         </div>
         <button class="btn-small" onclick="saveApiKey()" style="width: 100%; padding: 10px; background: var(--accent); color: #fff; border: none; font-weight:600; margin-bottom: 12px;">Save API key</button>
 
         <div style="background: var(--surface-light); padding: 14px; border-radius: 12px; border: 1px solid var(--border); font-size: 0.85rem; color: var(--text);">
           <div style="font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
-            <i data-lucide="key" aria-hidden="true"></i> How to get your free Gemini API key:
+            <i data-lucide="key" aria-hidden="true"></i> How to get a Gemini API key:
           </div>
           <p style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 10px; line-height: 1.3;">
-            FitLog uses your own free Google AI key so you can chat or use voice logging without limits. It takes under 60 seconds:
+            FitLog uses a key from your own Google AI project. Google account eligibility, quotas, and any charges depend on your project and Google's current terms.
           </p>
           <ol style="margin-left: 18px; display: flex; flex-direction: column; gap: 6px; color: var(--text);">
-            <li>Open <a href="https://aistudio.google.com/" target="_blank" style="color: var(--primary); font-weight: 600; text-decoration: none;">Google AI Studio ↗</a> and sign in with any Google account.</li>
-            <li>Click the <strong>"Create API key"</strong> button near the top right or on the sidebar.</li>
-            <li>Select <strong>"Create API key in a new project"</strong>.</li>
-            <li>Copy the code that pops up (it starts with <code>AIzaSy...</code>), paste it in the box above, and tap <strong>Save API key</strong>!</li>
+            <li>Open the <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" style="color: var(--primary); font-weight: 600; text-decoration: none;">Google AI Studio API keys page ↗</a> and sign in.</li>
+            <li>Create a key in a project you own, or select an existing project and create a key there.</li>
+            <li>Copy the full key, paste it above, and tap <strong>Save API key</strong>. New keys may not start with <code>AIzaSy</code>.</li>
+            <li>Keep your key private. Google may require project verification or billing setup depending on your project and access tier.</li>
           </ol>
         </div>
       </div>
@@ -2388,6 +2389,7 @@
       (localStorage.getItem('fitlog_is_admin') === 'true' ? 'admin' : 'user');
     let isAdmin = currentRole === 'admin';
     let isPt = currentRole === 'pt';
+    let aiLogEnabled = (currentUser || '').toLowerCase() === 'gaia' && isAdmin;
     let activeClient = null;
     let activityTypes = [];
     let activityLogs = [];
@@ -2396,6 +2398,7 @@
     let activityIntensity = 'moderate';
     let clientViewRequestId = 0;
     let roleManagementAvailable = false;
+    let aiLogAccessManagementAvailable = false;
     let clientList = [];
     let adminUsersCache = [];
     let clientWriteQueue = Promise.resolve();
@@ -2701,7 +2704,7 @@
       if (!isAdmin && adminPanelSection) adminPanelSection.hidden = true;
       const aiNavBtn = document.getElementById('aiNavBtn');
       if (aiNavBtn) {
-        aiNavBtn.style.display = (currentUser && currentUser.toLowerCase() === 'gaia') ? 'flex' : 'none';
+        aiNavBtn.style.display = aiLogEnabled ? 'flex' : 'none';
       }
       renderAiSpeechToggle();
     }
@@ -2932,6 +2935,9 @@
           : (data.is_admin ? 'admin' : 'user');
         isAdmin = currentRole === 'admin';
         isPt = currentRole === 'pt';
+        aiLogEnabled = data.ai_log_enabled === undefined
+          ? (currentUser.toLowerCase() === 'gaia' && isAdmin)
+          : Boolean(data.ai_log_enabled);
         activeClient = null;
         workoutNoteDrafts = {};
         loadCachedAppDataForUser(currentUser);
@@ -2983,6 +2989,7 @@
       currentRole = 'user';
       isAdmin = false;
       isPt = false;
+      aiLogEnabled = false;
       clientViewRequestId += 1;
       activeClient = null;
       clientList = [];
@@ -3101,6 +3108,10 @@
         currentRole = cloudData.account.role;
         isAdmin = currentRole === 'admin';
         isPt = currentRole === 'pt';
+        aiLogEnabled = cloudData.account.ai_log_enabled === undefined
+          ? (currentUser.toLowerCase() === 'gaia' && isAdmin)
+          : Boolean(cloudData.account.ai_log_enabled);
+        renderProfileBadge();
         localStorage.setItem('fitlog_user_id', String(currentUserId));
         localStorage.setItem('fitlog_role', currentRole);
         localStorage.setItem('fitlog_is_admin', isAdmin ? 'true' : 'false');
@@ -4513,6 +4524,13 @@
       });
     }
 
+    async function changeUserAiLogAccess(index, enabled) {
+      if (!aiLogAccessManagementAvailable || !isAdmin) return;
+      const target = adminUsersCache[index];
+      if (!target) return;
+      await updateUserAccess(target, { aiLogEnabled: Boolean(enabled) });
+    }
+
     async function updateUserAccess(target, access) {
       if (!roleManagementAvailable) return;
       try {
@@ -4527,6 +4545,13 @@
         });
         const result = await response.json();
         if (!response.ok) throw new Error(result.error || `Access update failed (${response.status})`);
+        if (target.username === currentUser && typeof access.aiLogEnabled === 'boolean') {
+          aiLogEnabled = access.aiLogEnabled;
+          renderProfileBadge();
+          if (!aiLogEnabled && document.getElementById('tab-ai')?.classList.contains('active')) {
+            switchTab('workouts', document.querySelector('#mainNav button[onclick*="workouts"]'));
+          }
+        }
         await fetchAdminUsers();
         await fetchClients();
       } catch (error) {
@@ -4684,6 +4709,8 @@
       roleManagementAvailable = Array.isArray(users) && users.length > 0 &&
         users.every(user => ['admin', 'pt', 'user'].includes(user?.role) &&
           Object.prototype.hasOwnProperty.call(user, 'pt_id'));
+      aiLogAccessManagementAvailable = Array.isArray(users) && users.length > 0 &&
+        users.every(user => Object.prototype.hasOwnProperty.call(user, 'ai_log_enabled'));
       adminUsersCache = Array.isArray(users) ? users.map(user => ({
         ...user,
         role: ['admin', 'pt', 'user'].includes(user?.role)
@@ -4697,6 +4724,13 @@
           ? ''
           : 'Role and PT assignment controls are unavailable until the updated Worker is deployed.';
         roleStatus.hidden = roleManagementAvailable;
+      }
+      const aiStatus = document.getElementById('adminAiAccessStatus');
+      if (aiStatus) {
+        aiStatus.textContent = aiLogAccessManagementAvailable
+          ? 'AI Log access can be enabled per account below.'
+          : 'AI Log access controls will be available after the updated Worker is deployed.';
+        aiStatus.hidden = false;
       }
 
       if (adminUsersCache.length === 0) {
@@ -4729,6 +4763,13 @@
               <option value="">No PT assigned</option>
               ${ptUsers.map(pt => `<option value="${pt.id}" ${Number(u.pt_id) === Number(pt.id) ? 'selected' : ''}>${escapeHtml(pt.display_name || pt.username)}</option>`).join('')}
             </select>
+            <label style="display:flex; align-items:center; gap:6px; font-size:0.8rem; white-space:nowrap;">
+              <input type="checkbox" aria-label="Allow AI Log for ${escapeHtml(u.username)}" data-ai-log-index="${index}"
+                onchange="changeUserAiLogAccess(Number(this.dataset.aiLogIndex), this.checked)"
+                ${Number(u.ai_log_enabled) === 1 || u.ai_log_enabled === true ? 'checked' : ''}
+                ${!aiLogAccessManagementAvailable ? 'disabled' : ''} />
+              AI Log access
+            </label>
             ${u.username !== currentUser ? `
               <div class="admin-user-actions">
                 <button class="btn-small" type="button" onclick="editAdminUser(${index})">Edit account</button>
@@ -5036,6 +5077,7 @@
 
     function switchTab(tabName, btn) {
       if (tabName === 'clients' && !isAdmin && !isPt) return;
+      if (tabName === 'ai' && (!aiLogEnabled || activeClient)) return;
       document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
       document.querySelectorAll('nav button').forEach(el => el.classList.remove('active'));
       document.getElementById('tab-' + tabName).classList.add('active');
@@ -6159,6 +6201,7 @@
     let aiSpeakRepliesEnabled = false;
 
     async function sendAiMessage() {
+      if (!aiLogEnabled || activeClient) return;
       if (pendingAiAction) {
         appendChatMessage("Please confirm or cancel the pending log before sending another message.", 'assistant');
         return;
@@ -6209,9 +6252,9 @@ Your job is to help the user log their workouts and meals through conversation.
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), requestTimeoutMs);
           try {
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
               body: JSON.stringify({
                 system_instruction: { parts: [{ text: systemPrompt }] },
                 contents: aiConversationHistory
@@ -6260,28 +6303,25 @@ Your job is to help the user log their workouts and meals through conversation.
           throw new Error(`Gemini API ${response.status}${status}: ${data.error?.message || 'Request failed'}`);
         }
 
-        const replyText = data.candidates?.[0]?.content?.parts?.[0]?.text || "I didn't catch that. Could you clarify?";
+        const replyParts = data.candidates?.[0]?.content?.parts || [];
+        const replyText = replyParts
+          .map(part => typeof part?.text === 'string' ? part.text : '')
+          .filter(Boolean)
+          .join('\n') || "I didn't catch that. Could you clarify?";
         aiConversationHistory.push({ role: "model", parts: [{ text: replyText }] });
 
-        const readableReply = getReadableAiReply(replyText);
-        appendChatMessage(readableReply, 'assistant');
-        if (aiSpeakRepliesEnabled) speakAiReply(readableReply);
+        const extractedReply = extractAiActionFromReply(replyText);
+        const readableReply = getReadableAiReply(extractedReply.visibleText);
+        const visibleReply = readableReply || (extractedReply.actionData
+          ? 'Please review this proposed log before saving it.'
+          : "I didn't catch that. Could you clarify?");
+        appendChatMessage(visibleReply, 'assistant');
+        if (aiSpeakRepliesEnabled) speakAiReply(visibleReply);
 
-        // Check for JSON action block
-        const jsonMatch = replyText.match(/```json\s*([\s\S]*?)\s*```/);
-        if (jsonMatch) {
-          try {
-            const actionData = JSON.parse(jsonMatch[1]);
-            const validatedAction = validateAiAction(actionData);
-            if (validatedAction) {
-              showAiActionConfirmation(validatedAction);
-            } else {
-              appendChatMessage("I couldn't prepare that log safely. Please clarify the details and try again.", 'assistant');
-            }
-          } catch (e) {
-            console.error("Failed to parse AI action JSON", e);
-            appendChatMessage("I couldn't prepare that log because the action details were invalid. Please try again.", 'assistant');
-          }
+        if (extractedReply.actionData) {
+          showAiActionConfirmation(extractedReply.actionData);
+        } else if (extractedReply.invalidAction) {
+          appendChatMessage("I couldn't prepare that log safely. Please clarify the details and try again.", 'assistant');
         }
 
       } catch (err) {
@@ -6294,6 +6334,74 @@ Your job is to help the user log their workouts and meals through conversation.
       } finally {
         removeThinkingBubble();
       }
+    }
+
+    function extractAiActionFromReply(text) {
+      const source = String(text || '');
+      let objectStart = -1;
+      let depth = 0;
+      let inString = false;
+      let escaped = false;
+
+      for (let index = 0; index < source.length; index++) {
+        const character = source[index];
+        if (objectStart < 0) {
+          if (character === '{') {
+            objectStart = index;
+            depth = 1;
+            inString = false;
+            escaped = false;
+          }
+          continue;
+        }
+
+        if (inString) {
+          if (escaped) escaped = false;
+          else if (character === '\\') escaped = true;
+          else if (character === '"') inString = false;
+          continue;
+        }
+
+        if (character === '"') inString = true;
+        else if (character === '{') depth++;
+        else if (character === '}') {
+          depth--;
+          if (depth !== 0) continue;
+
+          const objectEnd = index + 1;
+          const candidateText = source.slice(objectStart, objectEnd);
+          let actionObject = null;
+          try {
+            actionObject = JSON.parse(candidateText);
+          } catch {
+            objectStart = -1;
+            continue;
+          }
+
+          const isActionObject = actionObject &&
+            ['log_workout', 'log_food'].includes(actionObject.action);
+          if (isActionObject) {
+            const validatedAction = validateAiAction(actionObject);
+            let removeStart = objectStart;
+            let removeEnd = objectEnd;
+            const prefix = source.slice(0, objectStart);
+            const suffix = source.slice(objectEnd);
+            const openingFence = prefix.match(/```(?:json)?\s*$/i);
+            const closingFence = suffix.match(/^\s*```/);
+            if (openingFence) removeStart -= openingFence[0].length;
+            if (closingFence) removeEnd += closingFence[0].length;
+            return {
+              actionData: validatedAction,
+              invalidAction: !validatedAction,
+              visibleText: source.slice(0, removeStart) + source.slice(removeEnd)
+            };
+          }
+
+          objectStart = -1;
+        }
+      }
+
+      return { actionData: null, invalidAction: false, visibleText: source };
     }
 
     function getReadableAiReply(text) {
@@ -6333,10 +6441,10 @@ Your job is to help the user log their workouts and meals through conversation.
       const button = document.getElementById('aiSpeakRepliesBtn');
       if (!button) return;
       const supported = 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
-      const isGaia = currentUser?.toLowerCase() === 'gaia';
-      button.hidden = !supported || !isGaia;
-      aiSpeakRepliesEnabled = isGaia &&
-        localStorage.getItem('fitlog_ai_speak_replies_gaia') === 'true';
+      button.hidden = !supported || !aiLogEnabled;
+      const speechPreferenceKey = `fitlog_ai_speak_replies_${(currentUser || 'guest').toLowerCase()}`;
+      aiSpeakRepliesEnabled = aiLogEnabled &&
+        localStorage.getItem(speechPreferenceKey) === 'true';
       const label = aiSpeakRepliesEnabled ? 'Turn spoken replies off' : 'Turn spoken replies on';
       button.title = label;
       button.setAttribute('aria-label', label);
@@ -6346,9 +6454,9 @@ Your job is to help the user log their workouts and meals through conversation.
     }
 
     function toggleAiSpeechPreference() {
-      if (currentUser?.toLowerCase() !== 'gaia') return;
+      if (!aiLogEnabled) return;
       aiSpeakRepliesEnabled = !aiSpeakRepliesEnabled;
-      localStorage.setItem('fitlog_ai_speak_replies_gaia', String(aiSpeakRepliesEnabled));
+      localStorage.setItem(`fitlog_ai_speak_replies_${currentUser.toLowerCase()}`, String(aiSpeakRepliesEnabled));
       renderAiSpeechToggle();
       if (!aiSpeakRepliesEnabled) stopAiSpeech();
     }
