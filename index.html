@@ -587,6 +587,25 @@
       outline-offset: 1px;
     }
 
+    .ai-speech-button {
+      display: grid;
+      width: 28px;
+      height: 28px;
+      flex: 0 0 28px;
+      padding: 0;
+      place-items: center;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      background: var(--surface-light);
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+
+    .ai-speech-button:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 1px;
+    }
+
     textarea {
       width: 100%;
       min-height: 160px;
@@ -4716,7 +4735,7 @@ Your job is to help the user log their workouts and meals through conversation.
         const replyText = data.candidates?.[0]?.content?.parts?.[0]?.text || "I didn't catch that. Could you clarify?";
         aiConversationHistory.push({ role: "model", parts: [{ text: replyText }] });
 
-        appendChatMessage(replyText, 'assistant');
+        appendChatMessage(getReadableAiReply(replyText), 'assistant');
 
         // Check for JSON action block
         const jsonMatch = replyText.match(/```json\s*([\s\S]*?)\s*```/);
@@ -4747,6 +4766,17 @@ Your job is to help the user log their workouts and meals through conversation.
       }
     }
 
+    function getReadableAiReply(text) {
+      return String(text || '')
+        .replace(/```json\s*[\s\S]*?```/gi, '')
+        .replace(/\*\*(.*?)\*\*/g, '$1')
+        .replace(/\*([^*]+)\*/g, '$1')
+        .replace(/`([^`]+)`/g, '$1')
+        .replace(/^\s*#{1,6}\s+/gm, '')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+    }
+
     function appendChatMessage(text, sender, isThinking = false, iconName = null) {
       const logEl = document.getElementById('aiChatLog');
       if (!logEl) return;
@@ -4754,17 +4784,76 @@ Your job is to help the user log their workouts and meals through conversation.
       if (isThinking) div.id = 'aiThinkingBubble';
       div.style.cssText = sender === 'user'
         ? 'background: var(--primary); color: #fff; padding: 8px 12px; border-radius: 10px; max-width: 85%; align-self: flex-end; font-size: 0.85rem;'
-        : 'background: var(--surface); color: var(--text); padding: 8px 12px; border-radius: 10px; border: 1px solid var(--border); max-width: 85%; align-self: flex-start; font-size: 0.85rem;';
+        : 'background: var(--surface); color: var(--text); padding: 8px 12px; border-radius: 10px; border: 1px solid var(--border); max-width: 85%; align-self: flex-start; font-size: 0.85rem; display: flex; align-items: flex-start; gap: 8px;';
       if (iconName) {
         const icon = document.createElement('i');
         icon.dataset.lucide = iconName;
         icon.setAttribute('aria-hidden', 'true');
-        div.append(icon, document.createTextNode(' '));
+        div.append(icon);
       }
-      div.append(document.createTextNode(text));
+      const messageText = document.createElement('span');
+      messageText.textContent = text;
+      messageText.style.whiteSpace = 'pre-wrap';
+      div.appendChild(messageText);
+      if (sender === 'assistant' && !isThinking && currentUser?.toLowerCase() === 'gaia' &&
+          'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window) {
+        const speakButton = document.createElement('button');
+        speakButton.type = 'button';
+        speakButton.className = 'ai-speech-button';
+        speakButton.title = 'Read reply aloud';
+        speakButton.setAttribute('aria-label', 'Read reply aloud');
+        speakButton.innerHTML = '<i data-lucide="volume-2" aria-hidden="true"></i>';
+        speakButton.addEventListener('click', () => speakAiReply(text, speakButton));
+        div.appendChild(speakButton);
+      }
       logEl.appendChild(div);
-      if (iconName) refreshLucideIcons();
+      if (iconName || div.querySelector('[data-lucide]')) refreshLucideIcons();
       logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    let activeAiSpeech = null;
+    let activeAiSpeechButton = null;
+
+    function setAiSpeechButton(button, speaking) {
+      if (!button) return;
+      button.title = speaking ? 'Stop speaking' : 'Read reply aloud';
+      button.setAttribute('aria-label', button.title);
+      button.innerHTML = `<i data-lucide="${speaking ? 'volume-x' : 'volume-2'}" aria-hidden="true"></i>`;
+      refreshLucideIcons();
+    }
+
+    function stopAiSpeech() {
+      const button = activeAiSpeechButton;
+      activeAiSpeech = null;
+      activeAiSpeechButton = null;
+      if (button) setAiSpeechButton(button, false);
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    }
+
+    function speakAiReply(text, button) {
+      const speechText = getReadableAiReply(text);
+      if (!speechText || !('speechSynthesis' in window) ||
+          !('SpeechSynthesisUtterance' in window)) return;
+      if (activeAiSpeechButton === button) {
+        stopAiSpeech();
+        return;
+      }
+
+      stopAiSpeech();
+      const utterance = new SpeechSynthesisUtterance(speechText);
+      utterance.lang = document.documentElement.lang || navigator.language || 'en-US';
+      activeAiSpeech = utterance;
+      activeAiSpeechButton = button;
+      setAiSpeechButton(button, true);
+      const clearActiveSpeech = () => {
+        if (activeAiSpeech !== utterance) return;
+        activeAiSpeech = null;
+        activeAiSpeechButton = null;
+        setAiSpeechButton(button, false);
+      };
+      utterance.onend = clearActiveSpeech;
+      utterance.onerror = clearActiveSpeech;
+      window.speechSynthesis.speak(utterance);
     }
 
     function removeThinkingBubble() {
