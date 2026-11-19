@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="theme-color" content="#7E47D9" />
+  <meta name="theme-color" content="#EDE9F7" />
   <link rel="manifest" href="./manifest.json" />
   <link rel="apple-touch-icon" href="./icon-192.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png" />
@@ -51,13 +51,13 @@
     }
 
     header {
-      background: var(--primary);
-      color: #FFFFFF;
+      background: #EDE9F7;
+      color: #1E1633;
       padding: 12px 16px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border-bottom: 1px solid var(--primary-dark);
+      border-bottom: 1px solid #E2DCF0;
       position: sticky;
       top: 0;
       z-index: 10;
@@ -87,16 +87,16 @@
     }
 
     header h1 span {
-      color: var(--highlight);
+      color: inherit;
     }
 
     .profile-pill {
       display: flex;
       align-items: center;
       gap: 7px;
-      background: var(--primary-dark);
-      border: 1px solid var(--primary-dark);
-      color: #FFFFFF;
+      background: rgba(255, 255, 255, 0.68);
+      border: 1px solid #E2DCF0;
+      color: #1E1633;
       padding: 4px 10px 4px 5px;
       border-radius: 999px;
       cursor: pointer;
@@ -105,7 +105,7 @@
     }
 
     .profile-pill:active {
-      background: var(--primary);
+      background: #E2DCF0;
     }
 
     .profile-avatar {
@@ -133,7 +133,7 @@
     .profile-name {
       font-size: 0.8rem;
       font-weight: 600;
-      color: #FFFFFF;
+      color: #1E1633;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -300,9 +300,9 @@
     }
 
     header .btn-small {
-      background: var(--primary-dark);
-      color: #FFFFFF;
-      border-color: var(--primary-dark);
+      background: rgba(255, 255, 255, 0.68);
+      color: #1E1633;
+      border-color: #E2DCF0;
     }
 
     .btn-small:active {
@@ -310,7 +310,7 @@
     }
 
     header .btn-small:active {
-      background: var(--primary);
+      background: #E2DCF0;
     }
 
     .container {
@@ -1398,8 +1398,8 @@
       bottom: 0;
       left: 0;
       right: 0;
-      background: var(--surface);
-      border-top: 1px solid var(--primary);
+      background: #EDE9F7;
+      border-top: 1px solid #E2DCF0;
       display: flex;
       justify-content: space-around;
       padding: 10px 0 calc(18px + env(safe-area-inset-bottom, 0px));
@@ -1410,7 +1410,7 @@
     nav button {
       background: none;
       border: none;
-      color: var(--text-muted);
+      color: #6B6280;
       font-size: 0.75rem;
       font-weight: 600;
       display: flex;
@@ -1433,7 +1433,7 @@
     }
 
     nav button.active {
-      color: var(--primary);
+      color: #7E47D9;
     }
 
     #mainNav .lucide {
@@ -3957,11 +3957,11 @@
             label: metric?.label || 'Measurement',
             data: values.map(item => Math.round(measurementValueForDisplay(item.value, metric) * 100) / 100),
             borderColor: color,
-            backgroundColor: 'rgba(126, 71, 217, .12)',
+            backgroundColor: context => createAreaChartGradient(context, color),
             borderWidth: 2,
-            pointRadius: 3,
+            pointRadius: 0,
             pointHoverRadius: 5,
-            tension: .25,
+            tension: 0.4,
             fill: true
           }]
         },
@@ -3981,7 +3981,7 @@
             x: { ticks: { color: '#6B6280', maxTicksLimit: 7 }, grid: { display: false } },
             y: {
               ticks: { color: '#6B6280', maxTicksLimit: 5 },
-              grid: { color: '#E6E1F2' }
+              grid: { color: '#E6E1F2', drawBorder: false }
             }
           }
         }
@@ -3990,6 +3990,22 @@
 
     function formatMeasurementNumber(value) {
       return Number(value).toLocaleString(undefined, { maximumFractionDigits: 2 });
+    }
+
+    function createAreaChartGradient(context, color) {
+      const hex = String(color).match(/^#([0-9a-f]{6})$/i)?.[1];
+      if (!hex) return color;
+      const red = parseInt(hex.slice(0, 2), 16);
+      const green = parseInt(hex.slice(2, 4), 16);
+      const blue = parseInt(hex.slice(4, 6), 16);
+      const chart = context?.chart;
+      const area = chart?.chartArea;
+      const opacity = chart?.data?.datasets?.length > 1 ? 0.12 : 0.25;
+      if (!chart || !area) return `rgba(${red}, ${green}, ${blue}, 0.12)`;
+      const gradient = chart.ctx.createLinearGradient(0, area.top, 0, area.bottom);
+      gradient.addColorStop(0, `rgba(${red}, ${green}, ${blue}, ${opacity})`);
+      gradient.addColorStop(1, `rgba(${red}, ${green}, ${blue}, 0)`);
+      return gradient;
     }
 
     function formatMeasurementDate(value) {
@@ -5412,11 +5428,13 @@
             label: ex,
             data: sortedDates.map(d => volumeMap[ex][d] ? Math.round(volumeMap[ex][d] * 10) / 10 : null),
             borderColor: color,
-            backgroundColor: color,
+            backgroundColor: context => createAreaChartGradient(context, color),
             borderWidth: 2,
-            tension: 0.25,
+            tension: 0.4,
             spanGaps: true,
-            pointRadius: 4
+            pointRadius: 0,
+            pointHoverRadius: 5,
+            fill: true
           };
         });
 
@@ -5436,11 +5454,11 @@
               }
             },
             scales: {
-              x: { ticks: { color: '#6B6280', font: { size: 10 } }, grid: { color: '#E6E1F2' } },
+              x: { ticks: { color: '#6B6280', font: { size: 10 } }, grid: { display: false } },
               y: {
                 title: { display: true, text: 'Total volume (kg)', color: '#6B6280' },
                 ticks: { color: '#6B6280', font: { size: 10 } },
-                grid: { color: '#E6E1F2' }
+                grid: { color: '#E6E1F2', drawBorder: false }
               }
             }
           }
@@ -5473,11 +5491,13 @@
             label: ex,
             data: sortedDates.map(d => maxWeightMap[ex][d] !== undefined ? maxWeightMap[ex][d] : null),
             borderColor: color,
-            backgroundColor: color,
+            backgroundColor: context => createAreaChartGradient(context, color),
             borderWidth: 2,
-            tension: 0.25,
+            tension: 0.4,
             spanGaps: true,
-            pointRadius: 4
+            pointRadius: 0,
+            pointHoverRadius: 5,
+            fill: true
           };
         });
 
@@ -5497,11 +5517,11 @@
               }
             },
             scales: {
-              x: { ticks: { color: '#6B6280', font: { size: 10 } }, grid: { color: '#E6E1F2' } },
+              x: { ticks: { color: '#6B6280', font: { size: 10 } }, grid: { display: false } },
               y: {
                 title: { display: true, text: 'Max weight (kg)', color: '#6B6280' },
                 ticks: { color: '#6B6280', font: { size: 10 } },
-                grid: { color: '#E6E1F2' }
+                grid: { color: '#E6E1F2', drawBorder: false }
               }
             }
           }
@@ -5536,11 +5556,13 @@
               return estimate === undefined ? null : Math.round(estimate * 10) / 10;
             }),
             borderColor: color,
-            backgroundColor: color,
+            backgroundColor: context => createAreaChartGradient(context, color),
             borderWidth: 2,
-            tension: 0.25,
+            tension: 0.4,
             spanGaps: true,
-            pointRadius: 4
+            pointRadius: 0,
+            pointHoverRadius: 5,
+            fill: true
           };
         });
 
@@ -5559,11 +5581,11 @@
               }
             },
             scales: {
-              x: { ticks: { color: '#6B6280', font: { size: 10 } }, grid: { color: '#E6E1F2' } },
+              x: { ticks: { color: '#6B6280', font: { size: 10 } }, grid: { display: false } },
               y: {
                 title: { display: true, text: 'Estimated 1RM (kg)', color: '#6B6280' },
                 ticks: { color: '#6B6280', font: { size: 10 } },
-                grid: { color: '#E6E1F2' }
+                grid: { color: '#E6E1F2', drawBorder: false }
               }
             }
           }
