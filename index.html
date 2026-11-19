@@ -394,6 +394,266 @@
       border-color: var(--accent);
     }
 
+    .weekly-streak-card {
+      padding-bottom: 14px;
+    }
+
+    .weekly-streak-heading,
+    .weekly-streak-legend,
+    .activity-entry,
+    .activity-entry-details,
+    .activity-form-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .weekly-streak-heading h2 {
+      margin: 0;
+    }
+
+    .weekly-streak-count {
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .weekly-streak-days {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 4px;
+      margin: 12px 0 8px;
+    }
+
+    .weekly-streak-day {
+      display: grid;
+      justify-items: center;
+      gap: 5px;
+      color: var(--text-muted);
+      font-size: 0.7rem;
+    }
+
+    .weekly-streak-day.today {
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    .weekly-streak-marker {
+      width: 22px;
+      height: 22px;
+      border: 2px solid var(--border);
+      border-radius: 50%;
+      background: transparent;
+    }
+
+    .weekly-streak-marker.strength {
+      border-color: #7E47D9;
+      background: #7E47D9;
+    }
+
+    .weekly-streak-marker.activity {
+      border-color: #FFB07A;
+      background: #FFB07A;
+    }
+
+    .weekly-streak-marker.both {
+      border-color: transparent;
+      background: conic-gradient(#7E47D9 0deg 180deg, #FFB07A 180deg 360deg);
+    }
+
+    .weekly-streak-legend {
+      justify-content: flex-start;
+      flex-wrap: wrap;
+      color: var(--text-muted);
+      font-size: 0.68rem;
+    }
+
+    .weekly-streak-legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .weekly-legend-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #7E47D9;
+    }
+
+    .weekly-legend-dot.activity {
+      background: #FFB07A;
+    }
+
+    .workout-subtabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+      padding: 4px;
+      margin: 0 0 12px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--surface-light);
+    }
+
+    .workout-subtab {
+      padding: 10px 8px;
+      border: 0;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--text-muted);
+      font: inherit;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .workout-subtab[aria-selected="true"] {
+      background: var(--surface);
+      color: var(--primary);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .activity-type-chips,
+    .activity-duration-pills,
+    .activity-intensity-options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .activity-type-chip,
+    .activity-duration-pill,
+    .activity-intensity-option {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      min-height: 38px;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: var(--surface);
+      color: var(--text);
+      font: inherit;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .activity-type-chip[aria-pressed="true"],
+    .activity-duration-pill[aria-pressed="true"],
+    .activity-intensity-option[aria-pressed="true"] {
+      border-color: #FFB07A;
+      background: rgba(255, 176, 122, 0.2);
+      color: var(--text);
+    }
+
+    .activity-type-chip.configure {
+      border-style: dashed;
+      color: var(--text-muted);
+    }
+
+    .activity-type-manager {
+      padding: 12px;
+      margin-top: 10px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--bg);
+    }
+
+    .activity-type-manager[hidden],
+    .workout-subtab-panel[hidden] {
+      display: none;
+    }
+
+    .activity-custom-type-row,
+    .activity-entry {
+      padding: 9px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .activity-custom-type-row:last-child,
+    .activity-entry:last-child {
+      border-bottom: 0;
+    }
+
+    .activity-entry {
+      align-items: flex-start;
+    }
+
+    .activity-entry-details {
+      justify-content: flex-start;
+      flex-wrap: wrap;
+      min-width: 0;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+    }
+
+    .activity-entry-name {
+      color: var(--text);
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .activity-accent-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: rgba(255, 176, 122, 0.2);
+      color: var(--text);
+      white-space: nowrap;
+    }
+
+    .activity-type-select,
+    .activity-notes-input,
+    .activity-duration-custom {
+      text-align: left;
+    }
+
+    .activity-type-select {
+      width: 100%;
+      padding: 9px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--text);
+      font: inherit;
+    }
+
+    .activity-form-section {
+      margin: 14px 0;
+    }
+
+    .activity-form-section > label,
+    .activity-form-label {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .activity-duration-custom {
+      max-width: 140px;
+      margin-top: 8px;
+    }
+
+    .activity-log-button {
+      background: #F23847;
+    }
+
+    .activity-log-button:active {
+      background: #d92e3d;
+    }
+
+    .admin-panel-section[hidden] {
+      display: none;
+    }
+
     .exercise-card {
       background: var(--bg);
       border: 1px solid var(--border);
@@ -621,6 +881,38 @@
       position: relative;
       height: 360px;
       width: 100%;
+      min-width: 0;
+    }
+
+    .macro-chart-legend {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin: 0 0 8px;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+    }
+
+    .macro-chart-legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .macro-legend-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #7E47D9;
+    }
+
+    .macro-legend-dot.carbs {
+      background: #FFB07A;
+    }
+
+    .macro-legend-dot.fats {
+      background: #F23847;
     }
 
     .workout-note-history {
@@ -1083,6 +1375,28 @@
         <button type="button" class="btn-primary" style="flex: 2; margin-top: 0; padding: 12px;" onclick="saveProfile()">Save</button>
       </div>
       <button type="button" class="btn-small" style="width: 100%; margin-top: 10px; padding: 10px;" onclick="openChangePasswordModal()">Change Password</button>
+      <button type="button" id="adminPanelButton" class="btn-small" style="width: 100%; margin-top: 10px; padding: 10px;" onclick="toggleAdminPanel()" aria-expanded="false" aria-controls="adminPanelSection" hidden><i data-lucide="shield-check" aria-hidden="true"></i> Admin Panel</button>
+      <section id="adminPanelSection" class="admin-panel-section" hidden>
+        <h3 style="margin:16px 0 8px; text-align:left;">Admin Panel</h3>
+        <div class="card">
+          <h2>User Management</h2>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 14px;">Create new user accounts and manage registered profiles.</p>
+          <div class="form-group" style="text-align: left;">
+            <label for="newUsername">New Username</label>
+            <input type="text" id="newUsername" placeholder="e.g. friend" style="text-align: left; margin-bottom: 8px;" />
+            <label for="newPassword">Temporary Password</label>
+            <input type="password" id="newPassword" placeholder="Password" style="text-align: left; margin-bottom: 8px;" />
+            <label for="newDisplayName">Display Name</label>
+            <input type="text" id="newDisplayName" placeholder="e.g. Friend" style="text-align: left; margin-bottom: 12px;" />
+          </div>
+          <button class="btn-primary" onclick="createNewUser()">+ Create User Account</button>
+        </div>
+        <div class="card">
+          <h2>Registered Users</h2>
+          <p id="adminRoleStatus" class="warmup-sync-status" role="status" aria-live="polite" hidden></p>
+          <div id="adminUserList"></div>
+        </div>
+      </section>
     </div>
   </div>
 
@@ -1181,6 +1495,22 @@
 
     <!-- Workouts Tab -->
     <div id="tab-workouts" class="tab-content active">
+      <section class="card weekly-streak-card" aria-labelledby="weeklyStreakHeading">
+        <div class="weekly-streak-heading">
+          <h2 id="weeklyStreakHeading">This Week</h2>
+          <span id="weeklyStreakCount" class="weekly-streak-count">0/7 active days</span>
+        </div>
+        <div id="weeklyStreakDays" class="weekly-streak-days" aria-label="Weekly activity"></div>
+        <div class="weekly-streak-legend" aria-label="Activity legend">
+          <span><i class="weekly-legend-dot" aria-hidden="true"></i> Strength</span>
+          <span><i class="weekly-legend-dot activity" aria-hidden="true"></i> Other activity</span>
+        </div>
+      </section>
+      <div class="workout-subtabs" role="tablist" aria-label="Workout type">
+        <button id="strengthSubtab" class="workout-subtab" type="button" role="tab" aria-selected="true" aria-controls="strengthPanel" onclick="switchWorkoutSubview('strength')">Strength</button>
+        <button id="activitiesSubtab" class="workout-subtab" type="button" role="tab" aria-selected="false" aria-controls="activitiesPanel" onclick="switchWorkoutSubview('activities')">Other Activities</button>
+      </div>
+      <div id="strengthPanel" class="workout-subtab-panel" role="tabpanel" aria-labelledby="strengthSubtab">
       <div class="card">
         <h2>Workout Routine</h2>
         <section class="warmup-section" aria-labelledby="warmupHeading">
@@ -1223,6 +1553,56 @@
         </div>
       </div>
 
+      </div>
+      <section id="activitiesPanel" class="workout-subtab-panel" role="tabpanel" aria-labelledby="activitiesSubtab" hidden>
+        <div class="card">
+          <h2>Other Activities</h2>
+          <p style="font-size:.82rem;color:var(--text-muted);margin-bottom:12px;">Log movement outside your strength workouts.</p>
+          <div id="activityTypeChips" class="activity-type-chips" aria-label="Choose activity type"></div>
+          <div id="activityTypeManager" class="activity-type-manager" hidden>
+            <div class="form-group" style="text-align:left;">
+              <label for="newActivityTypeName">Activity name</label>
+              <input id="newActivityTypeName" type="text" maxlength="40" placeholder="e.g. Cycling" style="text-align:left;" />
+              <label for="newActivityTypeIcon" style="margin-top:8px;">Icon</label>
+              <select id="newActivityTypeIcon" class="activity-type-select">
+                <option value="mountain">Mountain</option><option value="footprints">Footprints</option><option value="bike">Bike</option><option value="flame">Flame</option><option value="heart">Heart</option><option value="activity">Activity</option><option value="dumbbell">Dumbbell</option><option value="person-standing">Person</option><option value="waves">Waves</option>
+              </select>
+            </div>
+            <button type="button" class="btn-small" onclick="addActivityType()">Add activity type</button>
+            <div id="customActivityTypeList" style="margin-top:8px;"></div>
+          </div>
+          <div class="activity-form-section">
+            <label class="activity-form-label">Duration</label>
+            <div class="activity-duration-pills" role="group" aria-label="Activity duration">
+              <button type="button" class="activity-duration-pill" data-minutes="30" aria-pressed="false" onclick="setActivityDuration(30,this)">30m</button>
+              <button type="button" class="activity-duration-pill" data-minutes="45" aria-pressed="true" onclick="setActivityDuration(45,this)">45m</button>
+              <button type="button" class="activity-duration-pill" data-minutes="60" aria-pressed="false" onclick="setActivityDuration(60,this)">1h</button>
+              <button type="button" class="activity-duration-pill" data-minutes="90" aria-pressed="false" onclick="setActivityDuration(90,this)">1h 30m</button>
+              <button type="button" class="activity-duration-pill" data-minutes="120" aria-pressed="false" onclick="setActivityDuration(120,this)">2h+</button>
+            </div>
+            <label for="customActivityDuration" class="activity-form-label" style="margin-top:8px;">Or enter minutes</label>
+            <input id="customActivityDuration" class="activity-duration-custom" type="number" min="1" max="1440" placeholder="Minutes" oninput="setCustomActivityDuration(this.value)" />
+          </div>
+          <div class="activity-form-section">
+            <label class="activity-form-label">Intensity</label>
+            <div class="activity-intensity-options" role="group" aria-label="Intensity">
+              <button type="button" class="activity-intensity-option" data-intensity="light" aria-pressed="false" onclick="setActivityIntensity('light')">Light</button>
+              <button type="button" class="activity-intensity-option" data-intensity="moderate" aria-pressed="true" onclick="setActivityIntensity('moderate')">Moderate</button>
+              <button type="button" class="activity-intensity-option" data-intensity="hard" aria-pressed="false" onclick="setActivityIntensity('hard')">Hard</button>
+            </div>
+          </div>
+          <div class="form-group activity-form-section">
+            <label for="activityNoteInput">Note (optional)</label>
+            <input id="activityNoteInput" class="activity-notes-input" type="text" maxlength="300" placeholder="A short note" />
+          </div>
+          <button type="button" class="btn-primary activity-log-button" onclick="logActivity()">Log Activity</button>
+          <p id="activityFormStatus" class="warmup-sync-status" role="status" aria-live="polite"></p>
+        </div>
+        <div class="card">
+          <h2>Recent Activities</h2>
+          <div id="activityHistory"><p style="font-size:.82rem;color:var(--text-muted);">No activities logged yet.</p></div>
+        </div>
+      </section>
     </div>
 
     <!-- Progress Tab -->
@@ -1346,12 +1726,17 @@
       </div>
 
       <div class="card">
-        <h2>Daily Nutrition History</h2>
+        <h2>7-Day Macronutrients</h2>
         <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">
-          Daily totals for dates with logged food. Calories use the left axis; macros use the right axis.
+          Daily calories from protein, carbohydrates, and fats over the last seven days.
         </p>
+        <div class="macro-chart-legend" aria-label="Macronutrient chart legend">
+          <span><i class="macro-legend-dot protein" aria-hidden="true"></i>Protein</span>
+          <span><i class="macro-legend-dot carbs" aria-hidden="true"></i>Carbs</span>
+          <span><i class="macro-legend-dot fats" aria-hidden="true"></i>Fats</span>
+        </div>
         <div class="chart-wrapper" style="height: 300px;">
-          <canvas id="nutritionHistoryChart" role="img" aria-label="Daily calories, protein, carbohydrates, and fat chart"></canvas>
+          <canvas id="nutritionHistoryChart" role="img" aria-label="Stacked bar chart of calories from protein, carbohydrates, and fats for the last seven days"></canvas>
         </div>
       </div>
     </div>
@@ -1375,31 +1760,6 @@
           <button class="btn-primary" type="button" onclick="createPtClient()">+ Create Client Account</button>
         </div>
         <div id="clientList" class="client-list"></div>
-      </div>
-    </div>
-
-    <!-- Admin Tab (Visible only to Admin) -->
-    <div id="tab-admin" class="tab-content">
-      <div class="card">
-        <h2>User Management</h2>
-        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 14px;">
-          Create new user accounts and manage registered profiles.
-        </p>
-        <div class="form-group" style="text-align: left;">
-          <label for="newUsername">New Username</label>
-          <input type="text" id="newUsername" placeholder="e.g. friend" style="text-align: left; margin-bottom: 8px;" />
-          <label for="newPassword">Temporary Password</label>
-          <input type="password" id="newPassword" placeholder="Password" style="text-align: left; margin-bottom: 8px;" />
-          <label for="newDisplayName">Display Name</label>
-          <input type="text" id="newDisplayName" placeholder="e.g. Friend" style="text-align: left; margin-bottom: 12px;" />
-        </div>
-        <button class="btn-primary" onclick="createNewUser()">+ Create User Account</button>
-      </div>
-
-      <div class="card">
-        <h2>Registered Users</h2>
-        <p id="adminRoleStatus" class="warmup-sync-status" role="status" aria-live="polite" hidden></p>
-        <div id="adminUserList"></div>
       </div>
     </div>
 
@@ -1465,10 +1825,6 @@
     <button onclick="switchTab('nutrition', this)">
       <span class="icon"><i data-lucide="utensils" aria-hidden="true"></i></span>
       Nutrition
-    </button>
-    <button id="adminNavBtn" style="display: none;" onclick="switchTab('admin', this)">
-      <span class="icon"><i data-lucide="shield-check" aria-hidden="true"></i></span>
-      Admin
     </button>
     <button id="clientsNavBtn" style="display: none;" onclick="switchTab('clients', this)">
       <span class="icon"><i data-lucide="users" aria-hidden="true"></i></span>
@@ -1617,14 +1973,12 @@
 
     function renderRoleAccess() {
       const role = document.getElementById('headerRoleBadge');
-      const adminNav = document.getElementById('adminNavBtn');
       const clientsNav = document.getElementById('clientsNavBtn');
       const ptCreateClientCard = document.getElementById('ptCreateClientCard');
       if (role) {
         role.textContent = currentRole;
         role.hidden = !currentUser;
       }
-      if (adminNav) adminNav.style.display = isAdmin ? '' : 'none';
       if (clientsNav) clientsNav.style.display = (isAdmin || isPt) ? '' : 'none';
       if (ptCreateClientCard) ptCreateClientCard.hidden = !isPt;
     }
@@ -1755,6 +2109,11 @@
     let isAdmin = currentRole === 'admin';
     let isPt = currentRole === 'pt';
     let activeClient = null;
+    let activityTypes = [];
+    let activityLogs = [];
+    let selectedActivityTypeId = null;
+    let activityDurationMins = 45;
+    let activityIntensity = 'moderate';
     let clientViewRequestId = 0;
     let roleManagementAvailable = false;
     let clientList = [];
@@ -2035,11 +2394,10 @@
         profile.name || "Profile photo"
       );
 
-      // Show/Hide Admin Nav Button & AI Nav Button
-      const adminBtn = document.getElementById('adminNavBtn');
-      if (adminBtn) {
-        adminBtn.style.display = isAdmin ? 'flex' : 'none';
-      }
+      const adminPanelButton = document.getElementById('adminPanelButton');
+      const adminPanelSection = document.getElementById('adminPanelSection');
+      if (adminPanelButton) adminPanelButton.hidden = !isAdmin;
+      if (!isAdmin && adminPanelSection) adminPanelSection.hidden = true;
       const aiNavBtn = document.getElementById('aiNavBtn');
       if (aiNavBtn) {
         aiNavBtn.style.display = (currentUser && currentUser.toLowerCase() === 'gaia') ? 'flex' : 'none';
@@ -2225,6 +2583,7 @@
       } else {
         renderProfileBadge();
         syncWithCloud();
+        loadActivityData();
       }
       renderRoleAccess();
       renderClientViewBanner();
@@ -2286,6 +2645,7 @@
         loadApiKeySetting();
         document.getElementById('loginModal').style.display = 'none';
         await syncWithCloud();
+        await loadActivityData();
       } catch (err) {
         alert('Login failed. Check your network connection.');
       }
@@ -2794,6 +3154,306 @@
       return cloudPushQueue;
     }
 
+    function toggleAdminPanel() {
+      if (!isAdmin) return;
+      const section = document.getElementById('adminPanelSection');
+      const button = document.getElementById('adminPanelButton');
+      if (!section || !button) return;
+      section.hidden = !section.hidden;
+      button.setAttribute('aria-expanded', String(!section.hidden));
+      if (!section.hidden) fetchAdminUsers();
+      refreshLucideIcons();
+    }
+
+    function activityUserQuery(extra = '') {
+      const params = new URLSearchParams();
+      if (activeClient?.id) params.set('userId', activeClient.id);
+      if (extra) for (const [key, value] of new URLSearchParams(extra)) params.set(key, value);
+      const query = params.toString();
+      return query ? `?${query}` : '';
+    }
+
+    function activityRequestOptions(method = 'GET', body) {
+      const options = {
+        method,
+        headers: { 'X-Username': currentUser, 'X-Password': currentPassword }
+      };
+      if (body !== undefined) {
+        options.headers['Content-Type'] = 'application/json';
+        options.body = JSON.stringify(body);
+      }
+      return options;
+    }
+
+    async function loadActivityData() {
+      if (!currentUser || !currentPassword) {
+        activityTypes = [];
+        activityLogs = [];
+        renderActivityData();
+        return;
+      }
+      try {
+        const query = activityUserQuery('limit=200');
+        const [typesResponse, logsResponse] = await Promise.all([
+          fetch(`${WORKER_URL}/api/activity-types${activityUserQuery()}`, activityRequestOptions()),
+          fetch(`${WORKER_URL}/api/activities${query}`, activityRequestOptions())
+        ]);
+        const [typesData, logsData] = await Promise.all([typesResponse.json(), logsResponse.json()]);
+        if (!typesResponse.ok) throw new Error(typesData.error || 'Could not load activity types.');
+        if (!logsResponse.ok) throw new Error(logsData.error || 'Could not load activity history.');
+        activityTypes = Array.isArray(typesData.activityTypes) ? typesData.activityTypes : [];
+        activityLogs = Array.isArray(logsData.activities) ? logsData.activities : [];
+        if (!activityTypes.some(type => Number(type.id) === Number(selectedActivityTypeId))) {
+          selectedActivityTypeId = Number(activityTypes[0]?.id) || null;
+        }
+        renderActivityData();
+      } catch (error) {
+        console.error('Could not load other activities:', error);
+        const status = document.getElementById('activityFormStatus');
+        if (status) status.textContent = `Could not load activities: ${error.message}`;
+        renderWeeklyStreak();
+      }
+    }
+
+    function renderActivityData() {
+      renderActivityTypeChips();
+      renderCustomActivityTypeList();
+      renderActivityHistory();
+      renderWeeklyStreak();
+      refreshLucideIcons();
+    }
+
+    function renderActivityTypeChips() {
+      const root = document.getElementById('activityTypeChips');
+      if (!root) return;
+      root.replaceChildren();
+      activityTypes.forEach(type => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'activity-type-chip';
+        button.setAttribute('aria-pressed', String(Number(type.id) === Number(selectedActivityTypeId)));
+        button.innerHTML = `<i data-lucide="${escapeHtml(type.icon || 'activity')}" aria-hidden="true"></i><span></span>`;
+        button.querySelector('span').textContent = type.name;
+        button.addEventListener('click', () => {
+          selectedActivityTypeId = Number(type.id);
+          renderActivityTypeChips();
+          refreshLucideIcons();
+        });
+        root.append(button);
+      });
+      const configure = document.createElement('button');
+      configure.type = 'button';
+      configure.className = 'activity-type-chip configure';
+      configure.innerHTML = '<i data-lucide="plus" aria-hidden="true"></i> Configure / Add';
+      configure.addEventListener('click', toggleActivityTypeManager);
+      root.append(configure);
+    }
+
+    function toggleActivityTypeManager() {
+      const manager = document.getElementById('activityTypeManager');
+      if (manager) manager.hidden = !manager.hidden;
+    }
+
+    function renderCustomActivityTypeList() {
+      const root = document.getElementById('customActivityTypeList');
+      if (!root) return;
+      const custom = activityTypes.filter(type => !Number(type.is_default));
+      if (!custom.length) {
+        root.textContent = 'No custom activity types yet.';
+        root.style.cssText = 'font-size:.78rem;color:var(--text-muted);';
+        return;
+      }
+      root.style.cssText = '';
+      root.replaceChildren(...custom.map(type => {
+        const row = document.createElement('div');
+        row.className = 'activity-custom-type-row';
+        row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:8px;';
+        const label = document.createElement('span');
+        label.textContent = type.name;
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'delete-btn';
+        remove.setAttribute('aria-label', `Delete ${type.name} activity type`);
+        remove.innerHTML = '<i data-lucide="trash-2" aria-hidden="true"></i>';
+        remove.addEventListener('click', () => deleteActivityType(type.id));
+        row.append(label, remove);
+        return row;
+      }));
+    }
+
+    async function addActivityType() {
+      const nameInput = document.getElementById('newActivityTypeName');
+      const status = document.getElementById('activityFormStatus');
+      const name = nameInput.value.trim();
+      const icon = document.getElementById('newActivityTypeIcon').value;
+      if (!name) { status.textContent = 'Enter an activity name.'; return; }
+      try {
+        const response = await fetch(`${WORKER_URL}/api/activity-types${activityUserQuery()}`, activityRequestOptions('POST', { name, icon }));
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Could not add activity type.');
+        nameInput.value = '';
+        status.textContent = '';
+        await loadActivityData();
+        selectedActivityTypeId = Number(data.activityType?.id) || selectedActivityTypeId;
+        renderActivityTypeChips();
+        refreshLucideIcons();
+      } catch (error) { status.textContent = error.message; }
+    }
+
+    async function deleteActivityType(id) {
+      if (!confirm('Delete this activity type? Existing logs will remain in your history.')) return;
+      const status = document.getElementById('activityFormStatus');
+      try {
+        const response = await fetch(`${WORKER_URL}/api/activity-types/${encodeURIComponent(id)}${activityUserQuery()}`, activityRequestOptions('DELETE'));
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Could not delete activity type.');
+        if (Number(selectedActivityTypeId) === Number(id)) selectedActivityTypeId = null;
+        status.textContent = '';
+        await loadActivityData();
+      } catch (error) { status.textContent = error.message; }
+    }
+
+    function setActivityDuration(minutes, button) {
+      activityDurationMins = Number(minutes);
+      document.getElementById('customActivityDuration').value = '';
+      document.querySelectorAll('.activity-duration-pill').forEach(pill => pill.setAttribute('aria-pressed', String(pill === button)));
+    }
+
+    function setCustomActivityDuration(value) {
+      const parsed = Number(value);
+      if (Number.isInteger(parsed) && parsed >= 1 && parsed <= 1440) {
+        activityDurationMins = parsed;
+        document.querySelectorAll('.activity-duration-pill').forEach(pill => pill.setAttribute('aria-pressed', 'false'));
+      }
+    }
+
+    function setActivityIntensity(intensity) {
+      activityIntensity = intensity;
+      document.querySelectorAll('.activity-intensity-option').forEach(button => {
+        button.setAttribute('aria-pressed', String(button.dataset.intensity === intensity));
+      });
+    }
+
+    async function logActivity() {
+      const status = document.getElementById('activityFormStatus');
+      if (!selectedActivityTypeId) { status.textContent = 'Choose an activity type first.'; return; }
+      const customDuration = document.getElementById('customActivityDuration').value;
+      if (customDuration && (!Number.isInteger(Number(customDuration)) || Number(customDuration) < 1 || Number(customDuration) > 1440)) {
+        status.textContent = 'Duration must be between 1 and 1440 minutes.'; return;
+      }
+      const durationMins = customDuration ? Number(customDuration) : activityDurationMins;
+      try {
+        const response = await fetch(`${WORKER_URL}/api/activities${activityUserQuery()}`, activityRequestOptions('POST', {
+          activityTypeId: selectedActivityTypeId,
+          durationMins,
+          intensity: activityIntensity,
+          notes: document.getElementById('activityNoteInput').value.trim()
+        }));
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Could not log activity.');
+        if (data.activity) activityLogs.unshift(data.activity);
+        activityLogs = activityLogs.slice(0, 200);
+        document.getElementById('activityNoteInput').value = '';
+        status.textContent = 'Activity logged.';
+        renderActivityHistory();
+        renderWeeklyStreak();
+      } catch (error) { status.textContent = error.message; }
+    }
+
+    async function deleteActivityLog(id) {
+      try {
+        const response = await fetch(`${WORKER_URL}/api/activities/${encodeURIComponent(id)}${activityUserQuery()}`, activityRequestOptions('DELETE'));
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Could not delete activity.');
+        activityLogs = activityLogs.filter(item => Number(item.id) !== Number(id));
+        renderActivityHistory();
+        renderWeeklyStreak();
+      } catch (error) {
+        document.getElementById('activityFormStatus').textContent = error.message;
+      }
+    }
+
+    function renderActivityHistory() {
+      const root = document.getElementById('activityHistory');
+      if (!root) return;
+      if (!activityLogs.length) {
+        root.innerHTML = '<p style="font-size:.82rem;color:var(--text-muted);">No activities logged yet.</p>';
+        return;
+      }
+      root.replaceChildren(...activityLogs.slice(0, 30).map(item => {
+        const row = document.createElement('div');
+        row.className = 'activity-entry';
+        const info = document.createElement('div');
+        const name = document.createElement('div');
+        name.className = 'activity-entry-name';
+        name.textContent = item.activity_name;
+        const details = document.createElement('div');
+        details.className = 'activity-entry-details';
+        const duration = document.createElement('span'); duration.className = 'activity-accent-pill'; duration.textContent = `${item.duration_mins} min`;
+        const intensity = document.createElement('span'); intensity.textContent = item.intensity ? item.intensity[0].toUpperCase() + item.intensity.slice(1) : '';
+        const date = document.createElement('time'); date.textContent = formatActivityDate(item.logged_at); date.dateTime = String(item.logged_at || '');
+        details.append(duration, intensity, date);
+        info.append(name, details);
+        if (item.notes) { const note = document.createElement('div'); note.style.cssText = 'font-size:.78rem;color:var(--text-muted);margin-top:4px;'; note.textContent = item.notes; info.append(note); }
+        const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'delete-btn'; remove.setAttribute('aria-label', `Delete ${item.activity_name} log`); remove.innerHTML = '<i data-lucide="trash-2" aria-hidden="true"></i>'; remove.addEventListener('click', () => deleteActivityLog(item.id));
+        row.append(info, remove); return row;
+      }));
+      refreshLucideIcons();
+    }
+
+    function parseActivityDate(value) {
+      if (!value) return null;
+      const normalized = String(value).includes('T') ? String(value) : String(value).replace(' ', 'T') + 'Z';
+      const date = new Date(normalized);
+      return Number.isNaN(date.getTime()) ? null : date;
+    }
+
+    function activityDateKey(value) {
+      const date = value instanceof Date ? value : parseActivityDate(value);
+      if (!date) return '';
+      return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+    }
+
+    function formatActivityDate(value) {
+      const date = parseActivityDate(value);
+      return date ? date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '';
+    }
+
+    function renderWeeklyStreak() {
+      const root = document.getElementById('weeklyStreakDays');
+      if (!root) return;
+      const now = new Date();
+      const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+      const strengthDays = new Set(state.workouts.map(workout => workout.date).filter(Boolean));
+      const activityDays = new Set(activityLogs.map(item => activityDateKey(item.logged_at)).filter(Boolean));
+      const labels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+      let activeCount = 0;
+      root.replaceChildren(...labels.map((label, index) => {
+        const day = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + index);
+        const key = activityDateKey(day);
+        const strength = strengthDays.has(key);
+        const other = activityDays.has(key);
+        if (strength || other) activeCount++;
+        const cell = document.createElement('div'); cell.className = `weekly-streak-day${key === activityDateKey(now) ? ' today' : ''}`;
+        const marker = document.createElement('span'); marker.className = `weekly-streak-marker${strength && other ? ' both' : strength ? ' strength' : other ? ' activity' : ''}`;
+        marker.setAttribute('aria-label', `${label}: ${strength ? 'strength workout' : ''}${strength && other ? ' and ' : ''}${other ? 'other activity' : ''}${!strength && !other ? 'no activity' : ''}`);
+        const letter = document.createElement('span'); letter.textContent = label;
+        cell.append(letter, marker); return cell;
+      }));
+      const count = document.getElementById('weeklyStreakCount');
+      if (count) count.textContent = `${activeCount}/7 active days`;
+    }
+
+    function switchWorkoutSubview(view) {
+      const activities = view === 'activities';
+      document.getElementById('strengthPanel').hidden = activities;
+      document.getElementById('activitiesPanel').hidden = !activities;
+      document.getElementById('strengthSubtab').setAttribute('aria-selected', String(!activities));
+      document.getElementById('activitiesSubtab').setAttribute('aria-selected', String(activities));
+      if (activities) loadActivityData();
+    }
+
     async function fetchAdminUsers() {
       if (!isAdmin) return;
       try {
@@ -2876,6 +3536,7 @@
         applyClientData(client, data);
         renderClientViewBanner();
         renderClientList();
+        await loadActivityData();
         switchTab('workouts', document.querySelector('#mainNav button[onclick*="workouts"]'));
       } catch (error) {
         if (requestId !== clientViewRequestId) return;
@@ -3003,6 +3664,7 @@
       loadCachedAppDataForUser(currentUser);
       renderAll();
       renderClientList();
+      loadActivityData();
       syncWithCloud();
       switchTab('workouts', document.querySelector('#mainNav button[onclick*="workouts"]'));
     }
@@ -3569,7 +4231,6 @@
     }
 
     function switchTab(tabName, btn) {
-      if (tabName === 'admin' && !isAdmin) return;
       if (tabName === 'clients' && !isAdmin && !isPt) return;
       document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
       document.querySelectorAll('nav button').forEach(el => el.classList.remove('active'));
@@ -3580,9 +4241,6 @@
       }
       if (tabName === 'nutrition') {
         renderNutritionHistoryChart();
-      }
-      if (tabName === 'admin' && isAdmin) {
-        fetchAdminUsers();
       }
       if (tabName === 'clients' && (isAdmin || isPt)) {
         fetchClients();
@@ -4072,77 +4730,146 @@
 
       const dailyTotals = new Map();
       for (const item of state.nutrition) {
-        if (typeof item.date !== 'string') continue;
-        const totals = dailyTotals.get(item.date) || { cal: 0, pro: 0, carb: 0, fat: 0 };
-        totals.cal += Number(item.cal) || 0;
+        if (typeof item.date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(item.date)) continue;
+        const totals = dailyTotals.get(item.date) || { pro: 0, carb: 0, fat: 0 };
         totals.pro += Number(item.pro) || 0;
         totals.carb += Number(item.carb) || 0;
         totals.fat += Number(item.fat) || 0;
         dailyTotals.set(item.date, totals);
       }
 
-      const dates = Array.from(dailyTotals.keys()).sort();
+      // Use UTC date keys to match the date strings already stored in nutrition logs.
+      const today = new Date(`${getTodayStr()}T00:00:00.000Z`);
+      const dates = Array.from({ length: 7 }, (_, index) => {
+        const date = new Date(today);
+        date.setUTCDate(today.getUTCDate() - (6 - index));
+        return date.toISOString().slice(0, 10);
+      });
+      const dayLabels = dates.map(date => {
+        const weekday = new Date(`${date}T00:00:00.000Z`).getUTCDay();
+        return ['S', 'M', 'T', 'W', 'T', 'F', 'S'][weekday];
+      });
+      const grams = dates.map(date => dailyTotals.get(date) || { pro: 0, carb: 0, fat: 0 });
+      const proteinCalories = grams.map(day => Math.max(0, day.pro * 4));
+      const carbsCalories = grams.map(day => Math.max(0, day.carb * 4));
+      const fatCalories = grams.map(day => Math.max(0, day.fat * 9));
+      const macroData = [proteinCalories, carbsCalories, fatCalories];
+      const tooltipDatasetIndex = dataIndex => macroData.findIndex(values => values[dataIndex] > 0);
+      const targetCalories = Number(state.goals?.cal);
+      const hasCalorieTarget = Number.isFinite(targetCalories) && targetCalories > 0;
       const rounded = value => Math.round(value * 10) / 10;
-      const series = [
-        { label: 'Calories', key: 'cal', axis: 'calories', color: '#F23847' },
-        { label: 'Protein', key: 'pro', axis: 'macros', color: '#7E47D9' },
-        { label: 'Carbs', key: 'carb', axis: 'macros', color: '#5B28B0' },
-        { label: 'Fat', key: 'fat', axis: 'macros', color: '#FFB07A' }
+
+      const datasets = [
+        {
+          label: 'Protein',
+          data: proteinCalories,
+          backgroundColor: '#7E47D9',
+          borderColor: '#7E47D9',
+          borderWidth: 0,
+          stack: 'macros',
+          borderSkipped: false,
+          borderRadius: context => {
+            const topIndex = macroData.reduce((last, values, index) => values[context.dataIndex] > 0 ? index : last, -1);
+            return context.datasetIndex === topIndex
+              ? { topLeft: 6, topRight: 6, bottomLeft: 0, bottomRight: 0 }
+              : 0;
+          }
+        },
+        {
+          label: 'Carbs',
+          data: carbsCalories,
+          backgroundColor: '#FFB07A',
+          borderColor: '#FFB07A',
+          borderWidth: 0,
+          stack: 'macros',
+          borderSkipped: false,
+          borderRadius: context => {
+            const topIndex = macroData.reduce((last, values, index) => values[context.dataIndex] > 0 ? index : last, -1);
+            return context.datasetIndex === topIndex
+              ? { topLeft: 6, topRight: 6, bottomLeft: 0, bottomRight: 0 }
+              : 0;
+          }
+        },
+        {
+          label: 'Fats',
+          data: fatCalories,
+          backgroundColor: '#F23847',
+          borderColor: '#F23847',
+          borderWidth: 0,
+          stack: 'macros',
+          borderSkipped: false,
+          borderRadius: context => {
+            const topIndex = macroData.reduce((last, values, index) => values[context.dataIndex] > 0 ? index : last, -1);
+            return context.datasetIndex === topIndex
+              ? { topLeft: 6, topRight: 6, bottomLeft: 0, bottomRight: 0 }
+              : 0;
+          }
+        }
       ];
-      const datasets = series.map(({ label, key, axis, color }) => ({
-        label,
-        yAxisID: axis,
-        data: dates.map(date => rounded(dailyTotals.get(date)[key])),
-        borderColor: color,
-        backgroundColor: color,
-        borderWidth: 2,
-        tension: 0.25,
-        pointRadius: 3,
-        pointHoverRadius: 5
-      }));
 
       if (nutritionHistoryChartInstance) nutritionHistoryChartInstance.destroy();
       nutritionHistoryChartInstance = new Chart(canvas, {
-        type: 'line',
-        data: { labels: dates, datasets },
+        type: 'bar',
+        data: { labels: dayLabels, datasets },
+        plugins: hasCalorieTarget ? [{
+          id: 'nutritionCalorieTargetLine',
+          afterDatasetsDraw(chart) {
+            const y = chart.scales.y.getPixelForValue(targetCalories);
+            const { left, right, top, bottom } = chart.chartArea;
+            if (y < top || y > bottom) return;
+            const context = chart.ctx;
+            context.save();
+            context.strokeStyle = 'rgba(107, 98, 128, 0.62)';
+            context.lineWidth = 1.5;
+            context.setLineDash([5, 5]);
+            context.beginPath();
+            context.moveTo(left, y);
+            context.lineTo(right, y);
+            context.stroke();
+            context.restore();
+          }
+        }] : [],
         options: {
           responsive: true,
           maintainAspectRatio: false,
           interaction: { mode: 'index', intersect: false },
+          datasets: {
+            bar: { categoryPercentage: 0.68, barPercentage: 0.88 }
+          },
           plugins: {
-            legend: {
-              position: 'bottom',
-              labels: { color: '#1E1633', boxWidth: 12, font: { size: 11 } }
-            },
+            legend: { display: false },
             tooltip: {
+              filter: context => context.datasetIndex === tooltipDatasetIndex(context.dataIndex),
               callbacks: {
+                title: items => {
+                  const date = dates[items[0]?.dataIndex];
+                  return date ? new Date(`${date}T00:00:00.000Z`).toLocaleDateString(undefined, {
+                    weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC'
+                  }) : '';
+                },
                 label: context => {
-                  const unit = context.dataset.yAxisID === 'calories' ? ' kcal' : ' g';
-                  return `${context.dataset.label}: ${Number(context.parsed.y).toLocaleString(undefined, { maximumFractionDigits: 1 })}${unit}`;
+                  if (context.datasetIndex !== tooltipDatasetIndex(context.dataIndex)) return '';
+                  const day = grams[context.dataIndex];
+                  const total = (day.pro * 4) + (day.carb * 4) + (day.fat * 9);
+                  const number = value => Number(value).toLocaleString(undefined, { maximumFractionDigits: 1 });
+                  return `${number(rounded(total))} kcal • P: ${number(day.pro)}g | C: ${number(day.carb)}g | F: ${number(day.fat)}g`;
                 }
               }
             }
           },
           scales: {
             x: {
-              ticks: { color: '#6B6280', font: { size: 10 } },
-              grid: { color: '#E6E1F2' }
+              stacked: true,
+              offset: true,
+              ticks: { color: '#6B6280', font: { size: 10 }, maxRotation: 0, autoSkip: false },
+              grid: { display: false }
             },
-            calories: {
-              type: 'linear',
-              position: 'left',
+            y: {
+              stacked: true,
               beginAtZero: true,
-              title: { display: true, text: 'Calories (kcal)', color: '#6B6280' },
-              ticks: { color: '#6B6280', font: { size: 10 } },
-              grid: { color: '#E6E1F2' }
-            },
-            macros: {
-              type: 'linear',
-              position: 'right',
-              beginAtZero: true,
-              title: { display: true, text: 'Macros (g)', color: '#6B6280' },
-              ticks: { color: '#6B6280', font: { size: 10 } },
-              grid: { drawOnChartArea: false }
+              suggestedMax: hasCalorieTarget ? targetCalories : undefined,
+              ticks: { color: '#6B6280', font: { size: 10 }, maxTicksLimit: 6 },
+              grid: { color: '#E6E1F2', drawBorder: false }
             }
           }
         }
@@ -4559,6 +5286,7 @@
       renderWorkoutDiary();
       renderChart();
       renderNutritionHistoryChart();
+      renderWeeklyStreak();
 
       const today = getTodayStr();
       const todayFood = state.nutrition.filter(f => f.date === today);
