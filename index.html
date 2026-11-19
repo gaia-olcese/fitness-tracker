@@ -555,6 +555,14 @@
       color: var(--text-muted);
     }
 
+    .activity-type-icon {
+      display: inline-block;
+      width: 18px;
+      height: 18px;
+      flex: 0 0 18px;
+      object-fit: contain;
+    }
+
     .activity-type-manager {
       padding: 12px;
       margin-top: 10px;
@@ -3259,10 +3267,11 @@
         button.type = 'button';
         button.className = 'activity-type-chip';
         button.setAttribute('aria-pressed', String(Number(type.id) === Number(selectedActivityTypeId)));
-        const iconName = Number(type.is_default) === 1 && type.name.toLowerCase() === 'climbing'
-          ? 'hand-grab'
-          : (type.icon || 'activity');
-        button.innerHTML = `<i data-lucide="${escapeHtml(iconName)}" aria-hidden="true"></i><span></span>`;
+        const isDefaultClimbing = Number(type.is_default) === 1 && type.name.toLowerCase() === 'climbing';
+        const iconMarkup = isDefaultClimbing
+          ? '<img class="activity-type-icon" src="./carabiner.png" alt="" aria-hidden="true">'
+          : `<i data-lucide="${escapeHtml(type.icon || 'activity')}" aria-hidden="true"></i>`;
+        button.innerHTML = `${iconMarkup}<span></span>`;
         button.querySelector('span').textContent = type.name;
         button.addEventListener('click', () => {
           selectedActivityTypeId = Number(type.id);
