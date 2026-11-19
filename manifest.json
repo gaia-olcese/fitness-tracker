@@ -7,25 +7,25 @@
   "theme_color": "#E8E2F5",
   "icons": [
     {
-      "src": "gemini-icon-192.png",
+      "src": "gemini-icon-192-v2.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "gemini-icon-512.png",
+      "src": "gemini-icon-512-v2.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "gemini-icon-192-white.png",
+      "src": "gemini-icon-192-white-v2.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "gemini-icon-512-white.png",
+      "src": "gemini-icon-512-white-v2.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
