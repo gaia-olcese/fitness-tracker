@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Handle Base -->
+  <path d="M158 175 L138 100 C128 62 152 32 192 32 L320 32 C360 32 384 62 374 100 L354 175" fill="#6532BD" stroke="#1E1633" stroke-width="20" stroke-linecap="round" stroke-linejoin="round" />
+  <!-- Handle Cutout -->
+  <path d="M196 155 L184 105 C180 88 190 76 208 76 L304 76 C322 76 332 88 328 105 L316 155 Z" fill="#FFFFFF" stroke="#1E1633" stroke-width="20" stroke-linejoin="round" />
+  <!-- Handle Highlight -->
+  <path d="M235 42 L318 42 C348 42 368 64 360 95 L344 155 L322 155 L334 102 C338 82 326 68 305 68 L235 68 Z" fill="#8E5BE8" />
+
+  <!-- Kettlebell Body -->
+  <path d="M256 128 C126 128 40 220 40 342 C40 426 98 476 196 476 L316 476 C414 476 472 426 472 342 C472 220 386 128 256 128 Z" fill="#7E47D9" />
+
+  <!-- Soft Crescent Highlight (Right/Top) -->
+  <path d="M292 134 C394 148 462 232 462 342 C462 420 408 466 316 466 L268 466 C205 420 175 355 182 275 C188 205 232 155 292 134 Z" fill="#9B6EF3" />
+
+  <!-- Body Bold Outline with Signature Broken Accent -->
+  <path d="M432 428 C458 405 472 376 472 342 C472 220 386 128 256 128 C126 128 40 220 40 342 C40 426 98 476 196 476 L316 476 C355 476 388 467 412 451" fill="none" stroke="#1E1633" stroke-width="20" stroke-linecap="round" />
+
+  <!-- Cute Cheeks -->
+  <ellipse cx="166" cy="332" rx="28" ry="20" fill="#FFB07A" />
+  <ellipse cx="346" cy="332" rx="28" ry="20" fill="#FFB07A" />
+
+  <!-- Eyes -->
+  <line x1="176" y1="286" x2="176" y2="304" stroke="#1E1633" stroke-width="18" stroke-linecap="round" />
+  <line x1="336" y1="286" x2="336" y2="304" stroke="#1E1633" stroke-width="18" stroke-linecap="round" />
+
+  <!-- Happy Mouth -->
+  <path d="M232 308 C232 296 280 296 280 308 C280 336 268 348 256 348 C244 348 232 336 232 308 Z" fill="#F23847" stroke="#1E1633" stroke-width="16" stroke-linejoin="round" />
+</svg>
