@@ -1333,14 +1333,14 @@
         <label for="loginPassword">Password</label>
         <input type="password" id="loginPassword" placeholder="Password" style="text-align: left;" />
       </div>
-      <button class="btn-primary" onclick="handleLogin()">Login / Sync</button>
+      <button class="btn-primary" onclick="handleLogin()">Log in / sync</button>
     </div>
   </div>
 
   <!-- Profile Edit Modal -->
   <div id="profileModal" class="modal-overlay" style="display: none;" onclick="if(event.target===this) closeProfileModal()">
     <div class="login-card">
-      <h2>Edit Profile</h2>
+      <h2>Edit profile</h2>
       <p>Customize your display name & avatar</p>
 
       <div class="avatar-preview-large" id="profilePreviewAvatar">G</div>
@@ -1360,13 +1360,13 @@
           <button type="button" class="avatar-option" onclick="selectPresetAvatar('Pebble')" aria-label="Pebble critter avatar" title="Pebble"><img src="https://api.dicebear.com/10.x/critters/svg?backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf,d9f2d9&amp;seed=Pebble" alt="" /></button>
           <button type="button" class="avatar-option" onclick="selectPresetAvatar('Sprout')" aria-label="Sprout critter avatar" title="Sprout"><img src="https://api.dicebear.com/10.x/critters/svg?backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf,d9f2d9&amp;seed=Sprout" alt="" /></button>
         </div>
-        <button type="button" class="btn-small avatar-shuffle-button" onclick="randomizeProfileAvatar()"><i data-lucide="shuffle" aria-hidden="true"></i> Shuffle / Randomize</button>
+        <button type="button" class="btn-small avatar-shuffle-button" onclick="randomizeProfileAvatar()"><i data-lucide="shuffle" aria-hidden="true"></i> Shuffle / randomize</button>
       </div>
 
       <button type="button" class="btn-small" onclick="clearCustomAvatar()" style="margin-bottom: 12px;">Reset avatar</button>
 
       <div class="form-group" style="text-align: left; margin-top: 12px;">
-        <label for="profileNameInput">Display Name</label>
+        <label for="profileNameInput">Display name</label>
         <input type="text" id="profileNameInput" placeholder="Your name" maxlength="60" style="text-align: left;" />
       </div>
 
@@ -1374,25 +1374,25 @@
         <button type="button" class="btn-small" style="flex: 1; padding: 12px;" onclick="closeProfileModal()">Cancel</button>
         <button type="button" class="btn-primary" style="flex: 2; margin-top: 0; padding: 12px;" onclick="saveProfile()">Save</button>
       </div>
-      <button type="button" class="btn-small" style="width: 100%; margin-top: 10px; padding: 10px;" onclick="openChangePasswordModal()">Change Password</button>
-      <button type="button" id="adminPanelButton" class="btn-small" style="width: 100%; margin-top: 10px; padding: 10px;" onclick="toggleAdminPanel()" aria-expanded="false" aria-controls="adminPanelSection" hidden><i data-lucide="shield-check" aria-hidden="true"></i> Admin Panel</button>
+      <button type="button" class="btn-small" style="width: 100%; margin-top: 10px; padding: 10px;" onclick="openChangePasswordModal()">Change password</button>
+      <button type="button" id="adminPanelButton" class="btn-small" style="width: 100%; margin-top: 10px; padding: 10px;" onclick="toggleAdminPanel()" aria-expanded="false" aria-controls="adminPanelSection" hidden><i data-lucide="shield-check" aria-hidden="true"></i> Admin panel</button>
       <section id="adminPanelSection" class="admin-panel-section" hidden>
-        <h3 style="margin:16px 0 8px; text-align:left;">Admin Panel</h3>
+        <h3 style="margin:16px 0 8px; text-align:left;">Admin panel</h3>
         <div class="card">
-          <h2>User Management</h2>
+          <h2>User management</h2>
           <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 14px;">Create new user accounts and manage registered profiles.</p>
           <div class="form-group" style="text-align: left;">
-            <label for="newUsername">New Username</label>
+            <label for="newUsername">New username</label>
             <input type="text" id="newUsername" placeholder="e.g. friend" style="text-align: left; margin-bottom: 8px;" />
-            <label for="newPassword">Temporary Password</label>
+            <label for="newPassword">Temporary password</label>
             <input type="password" id="newPassword" placeholder="Password" style="text-align: left; margin-bottom: 8px;" />
-            <label for="newDisplayName">Display Name</label>
+            <label for="newDisplayName">Display name</label>
             <input type="text" id="newDisplayName" placeholder="e.g. Friend" style="text-align: left; margin-bottom: 12px;" />
           </div>
-          <button class="btn-primary" onclick="createNewUser()">+ Create User Account</button>
+          <button class="btn-primary" onclick="createNewUser()">+ Create user account</button>
         </div>
         <div class="card">
-          <h2>Registered Users</h2>
+          <h2>Registered users</h2>
           <p id="adminRoleStatus" class="warmup-sync-status" role="status" aria-live="polite" hidden></p>
           <div id="adminUserList"></div>
         </div>
@@ -1402,7 +1402,7 @@
 
   <div id="passwordModal" class="modal-overlay" style="display: none;" onclick="if(event.target===this) closePasswordModal()">
     <div class="login-card" onclick="event.stopPropagation()">
-      <h2>Change Password</h2>
+      <h2>Change password</h2>
       <p>Choose a new password with at least 8 characters.</p>
       <div class="form-group" style="text-align: left;">
         <label for="currentPasswordInput">Current password</label>
@@ -1424,14 +1424,14 @@
       </div>
       <div style="display: flex; gap: 8px; margin-top: 14px;">
         <button type="button" class="btn-small" style="flex: 1; padding: 12px;" onclick="closePasswordModal()">Cancel</button>
-        <button type="button" class="btn-primary" id="changePasswordButton" style="flex: 2; margin-top: 0; padding: 12px;" onclick="changePassword()">Change Password</button>
+        <button type="button" class="btn-primary" id="changePasswordButton" style="flex: 2; margin-top: 0; padding: 12px;" onclick="changePassword()">Change password</button>
       </div>
     </div>
   </div>
 
   <div id="warmupModal" class="modal-overlay" style="display: none;" onclick="if(event.target===this) closeWarmupEditor()">
     <div class="login-card" onclick="event.stopPropagation()">
-      <h2>Edit Warm-up</h2>
+      <h2>Edit warm-up</h2>
       <p>Enter one exercise per line. Signed-in edits sync to your account.</p>
       <div class="form-group" style="text-align: left;">
         <label for="warmupEditorInput">Warm-up exercises</label>
@@ -1497,7 +1497,7 @@
     <div id="tab-workouts" class="tab-content active">
       <section class="card weekly-streak-card" aria-labelledby="weeklyStreakHeading">
         <div class="weekly-streak-heading">
-          <h2 id="weeklyStreakHeading">This Week</h2>
+          <h2 id="weeklyStreakHeading">This week</h2>
           <span id="weeklyStreakCount" class="weekly-streak-count">0/7 active days</span>
         </div>
         <div id="weeklyStreakDays" class="weekly-streak-days" aria-label="Weekly activity"></div>
@@ -1507,12 +1507,12 @@
         </div>
       </section>
       <div class="workout-subtabs" role="tablist" aria-label="Workout type">
-        <button id="strengthSubtab" class="workout-subtab" type="button" role="tab" aria-selected="true" aria-controls="strengthPanel" onclick="switchWorkoutSubview('strength')">Strength</button>
-        <button id="activitiesSubtab" class="workout-subtab" type="button" role="tab" aria-selected="false" aria-controls="activitiesPanel" onclick="switchWorkoutSubview('activities')">Other Activities</button>
+        <button id="strengthSubtab" class="workout-subtab" type="button" role="tab" aria-selected="true" aria-controls="strengthPanel" onclick="switchWorkoutSubview('strength')">Strength training</button>
+        <button id="activitiesSubtab" class="workout-subtab" type="button" role="tab" aria-selected="false" aria-controls="activitiesPanel" onclick="switchWorkoutSubview('activities')">Other activities</button>
       </div>
       <div id="strengthPanel" class="workout-subtab-panel" role="tabpanel" aria-labelledby="strengthSubtab">
       <div class="card">
-        <h2>Workout Routine</h2>
+        <h2>Workout routine</h2>
         <section class="warmup-section" aria-labelledby="warmupHeading">
           <div class="warmup-header">
             <h3 id="warmupHeading">Warm-up</h3>
@@ -1524,16 +1524,16 @@
         </section>
         <div class="routine-selector" id="routineSelector"></div>
         <div class="routine-actions">
-          <button class="btn-small" onclick="openRenameRoutineModal()"><i data-lucide="pencil" aria-hidden="true"></i> Rename Day</button>
-          <button class="btn-small" onclick="openAddRoutineModal()">+ Add New Day</button>
-          <button class="btn-small" onclick="deleteCurrentRoutine()" style="color:var(--danger)"><i data-lucide="trash-2" aria-hidden="true"></i> Delete Day</button>
-          <button class="btn-small routine-add-exercise" onclick="openAddExerciseModal()">+ Add Exercise</button>
+          <button class="btn-small" onclick="openRenameRoutineModal()"><i data-lucide="pencil" aria-hidden="true"></i> Rename day</button>
+          <button class="btn-small" onclick="openAddRoutineModal()">+ Add new day</button>
+          <button class="btn-small" onclick="deleteCurrentRoutine()" style="color:var(--danger)"><i data-lucide="trash-2" aria-hidden="true"></i> Delete day</button>
+          <button class="btn-small routine-add-exercise" onclick="openAddExerciseModal()">+ Add exercise</button>
         </div>
         <div id="routineContainer"></div>
       </div>
 
       <div class="card">
-        <h2>Workout Note</h2>
+        <h2>Workout note</h2>
         <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">
           Add or update a note for the selected workout date.
         </p>
@@ -1556,7 +1556,7 @@
       </div>
       <section id="activitiesPanel" class="workout-subtab-panel" role="tabpanel" aria-labelledby="activitiesSubtab" hidden>
         <div class="card">
-          <h2>Other Activities</h2>
+          <h2>Other activities</h2>
           <p style="font-size:.82rem;color:var(--text-muted);margin-bottom:12px;">Log movement outside your strength workouts.</p>
           <div id="activityTypeChips" class="activity-type-chips" aria-label="Choose activity type"></div>
           <div id="activityTypeManager" class="activity-type-manager" hidden>
@@ -1595,11 +1595,11 @@
             <label for="activityNoteInput">Note (optional)</label>
             <input id="activityNoteInput" class="activity-notes-input" type="text" maxlength="300" placeholder="A short note" />
           </div>
-          <button type="button" class="btn-primary activity-log-button" onclick="logActivity()">Log Activity</button>
+          <button type="button" class="btn-primary activity-log-button" onclick="logActivity()">Log activity</button>
           <p id="activityFormStatus" class="warmup-sync-status" role="status" aria-live="polite"></p>
         </div>
         <div class="card">
-          <h2>Recent Activities</h2>
+          <h2>Recent activities</h2>
           <div id="activityHistory"><p style="font-size:.82rem;color:var(--text-muted);">No activities logged yet.</p></div>
         </div>
       </section>
@@ -1625,7 +1625,7 @@
       </div>
 
       <div class="card">
-        <h2>Volume Progression (kg)</h2>
+        <h2>Volume progression (kg)</h2>
         <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">
           Total volume (Weight × Reps) per session. Tap legend items to toggle lines.
         </p>
@@ -1635,7 +1635,7 @@
       </div>
 
       <div class="card">
-        <h2>Max Weight Progression (kg)</h2>
+        <h2>Max weight progression (kg)</h2>
         <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">
           Heaviest single set weight lifted per session.
         </p>
@@ -1645,7 +1645,7 @@
       </div>
 
       <div class="card">
-        <h2>Estimated 1RM Progression (kg)</h2>
+        <h2>Estimated 1RM progression (kg)</h2>
         <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">
           Epley estimate from the strongest logged set of 1–10 reps per exercise and date. A logged single uses its actual weight; sets over 10 reps are excluded.
         </p>
@@ -1655,7 +1655,7 @@
       </div>
 
       <div class="card">
-        <h2>Workout Diary</h2>
+        <h2>Workout diary</h2>
         <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">
           Saved notes, newest first. Select a date to inspect its note.
         </p>
@@ -1668,7 +1668,7 @@
       <div class="card">
         <h2>
           Today's Macros
-          <button id="editNutritionGoalsButton" class="btn-small" onclick="editGoals()">Edit Goals</button>
+          <button id="editNutritionGoalsButton" class="btn-small" onclick="editGoals()">Edit goals</button>
         </h2>
         <div class="macro-summary">
           <div class="macro-box">
@@ -1694,9 +1694,9 @@
       </div>
 
       <div id="nutritionLogCard" class="card">
-        <h2>Log Food</h2>
+        <h2>Log food</h2>
         <div class="form-group">
-          <label for="foodName">Meal or Food</label>
+          <label for="foodName">Meal or food</label>
           <input type="text" id="foodName" placeholder="e.g. Tofu scramble & toast" style="text-align: left;" />
         </div>
         <div class="form-group">
@@ -1717,16 +1717,16 @@
             <input type="number" id="foodFat" step="0.5" inputmode="decimal" placeholder="15" />
           </div>
         </div>
-        <button class="btn-primary" onclick="addFood()">+ Add Food</button>
+        <button class="btn-primary" onclick="addFood()">+ Add food</button>
       </div>
 
       <div class="card">
-        <h2>Today's Meals</h2>
+        <h2>Today's meals</h2>
         <div id="foodList"></div>
       </div>
 
       <div class="card">
-        <h2>7-Day Macronutrients</h2>
+        <h2>7-day macronutrients</h2>
         <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">
           Daily calories from protein, carbohydrates, and fats over the last seven days.
         </p>
@@ -1757,7 +1757,7 @@
             <label for="ptNewClientDisplayName">Display name</label>
             <input type="text" id="ptNewClientDisplayName" placeholder="e.g. Alex" style="text-align:left; margin-bottom:12px;" />
           </div>
-          <button class="btn-primary" type="button" onclick="createPtClient()">+ Create Client Account</button>
+          <button class="btn-primary" type="button" onclick="createPtClient()">+ Create client account</button>
         </div>
         <div id="clientList" class="client-list"></div>
       </div>
@@ -1766,15 +1766,15 @@
     <!-- AI Tab -->
     <div id="tab-ai" class="tab-content">
       <div class="card">
-        <h2><i data-lucide="bot" aria-hidden="true"></i> AI Assistant Settings</h2>
+        <h2><i data-lucide="bot" aria-hidden="true"></i> AI assistant settings</h2>
         <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 10px;">
           Enter your personal Gemini API key so you can log workouts and meals by voice or chat without sharing quotas.
         </p>
         <div class="form-group" style="text-align: left;">
-          <label for="aiApiKeyInput">Gemini API Key</label>
+          <label for="aiApiKeyInput">Gemini API key</label>
           <input type="password" id="aiApiKeyInput" placeholder="AIzaSy..." style="text-align: left; margin-bottom: 8px;" />
         </div>
-        <button class="btn-small" onclick="saveApiKey()" style="width: 100%; padding: 10px; background: var(--accent); color: #fff; border: none; font-weight:600; margin-bottom: 12px;">Save API Key</button>
+        <button class="btn-small" onclick="saveApiKey()" style="width: 100%; padding: 10px; background: var(--accent); color: #fff; border: none; font-weight:600; margin-bottom: 12px;">Save API key</button>
 
         <div style="background: var(--surface-light); padding: 14px; border-radius: 12px; border: 1px solid var(--border); font-size: 0.85rem; color: var(--text);">
           <div style="font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
@@ -1786,14 +1786,14 @@
           <ol style="margin-left: 18px; display: flex; flex-direction: column; gap: 6px; color: var(--text);">
             <li>Open <a href="https://aistudio.google.com/" target="_blank" style="color: var(--primary); font-weight: 600; text-decoration: none;">Google AI Studio ↗</a> and sign in with any Google account.</li>
             <li>Click the <strong>"Create API key"</strong> button near the top right or on the sidebar.</li>
-            <li>Select <strong>"Create API key in new project"</strong>.</li>
-            <li>Copy the code that pops up (it starts with <code>AIzaSy...</code>), paste it in the box above, and tap <strong>Save API Key</strong>!</li>
+            <li>Select <strong>"Create API key in a new project"</strong>.</li>
+            <li>Copy the code that pops up (it starts with <code>AIzaSy...</code>), paste it in the box above, and tap <strong>Save API key</strong>!</li>
           </ol>
         </div>
       </div>
 
       <div class="card" style="display: flex; flex-direction: column; height: 480px;">
-        <h2><i data-lucide="sparkles" aria-hidden="true"></i> FitLog AI Logger</h2>
+        <h2><i data-lucide="sparkles" aria-hidden="true"></i> FitLog AI logger</h2>
         <p style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 8px;">
           Chat or tap the mic to estimate meals or discuss workouts. Review and confirm any proposed log before it is saved.
         </p>
@@ -1804,7 +1804,7 @@
         </div>
         <div style="display: flex; gap: 6px;">
           <button class="btn-small ai-speech-toggle" id="aiSpeakRepliesBtn" type="button" onclick="toggleAiSpeechPreference()" title="Turn spoken replies on" aria-label="Turn spoken replies on" aria-pressed="false" hidden><i data-lucide="volume-x" aria-hidden="true"></i></button>
-          <button class="btn-small" id="aiMicBtn" onclick="toggleVoiceRecording()" style="padding: 10px 14px; font-size: 1.1rem;" title="Voice Input" aria-label="Voice input"><i data-lucide="mic" aria-hidden="true"></i></button>
+          <button class="btn-small" id="aiMicBtn" onclick="toggleVoiceRecording()" style="padding: 10px 14px; font-size: 1.1rem;" title="Voice input" aria-label="Voice input"><i data-lucide="mic" aria-hidden="true"></i></button>
           <input type="text" id="aiUserInput" placeholder="e.g. Log 3 sets of 10kg bench press for 10 reps..." style="text-align: left; flex: 1;" onkeydown="if(event.key==='Enter') sendAiMessage()" />
           <button class="btn-small" onclick="sendAiMessage()" style="background: var(--accent); color: #fff; padding: 10px 14px; font-weight: 600;">Send</button>
         </div>
@@ -3232,7 +3232,10 @@
         button.type = 'button';
         button.className = 'activity-type-chip';
         button.setAttribute('aria-pressed', String(Number(type.id) === Number(selectedActivityTypeId)));
-        button.innerHTML = `<i data-lucide="${escapeHtml(type.icon || 'activity')}" aria-hidden="true"></i><span></span>`;
+        const iconName = Number(type.is_default) === 1 && type.name.toLowerCase() === 'climbing'
+          ? 'hand-grab'
+          : (type.icon || 'activity');
+        button.innerHTML = `<i data-lucide="${escapeHtml(iconName)}" aria-hidden="true"></i><span></span>`;
         button.querySelector('span').textContent = type.name;
         button.addEventListener('click', () => {
           selectedActivityTypeId = Number(type.id);
@@ -4591,7 +4594,7 @@
             scales: {
               x: { ticks: { color: '#6B6280', font: { size: 10 } }, grid: { color: '#E6E1F2' } },
               y: {
-                title: { display: true, text: 'Total Volume (kg)', color: '#6B6280' },
+                title: { display: true, text: 'Total volume (kg)', color: '#6B6280' },
                 ticks: { color: '#6B6280', font: { size: 10 } },
                 grid: { color: '#E6E1F2' }
               }
@@ -4652,7 +4655,7 @@
             scales: {
               x: { ticks: { color: '#6B6280', font: { size: 10 } }, grid: { color: '#E6E1F2' } },
               y: {
-                title: { display: true, text: 'Max Weight (kg)', color: '#6B6280' },
+                title: { display: true, text: 'Max weight (kg)', color: '#6B6280' },
                 ticks: { color: '#6B6280', font: { size: 10 } },
                 grid: { color: '#E6E1F2' }
               }
@@ -4912,10 +4915,10 @@
 
     async function editGoals() {
       if (isPtViewingClient()) return;
-      const cal = prompt('Daily Calorie Goal:', state.goals.cal);
-      const pro = prompt('Daily Protein Goal (g):', state.goals.pro);
-      const carb = prompt('Daily Carbs Goal (g):', state.goals.carb);
-      const fat = prompt('Daily Fat Goal (g):', state.goals.fat);
+      const cal = prompt('Daily calorie goal:', state.goals.cal);
+      const pro = prompt('Daily protein goal (g):', state.goals.pro);
+      const carb = prompt('Daily carbs goal (g):', state.goals.carb);
+      const fat = prompt('Daily fat goal (g):', state.goals.fat);
       if (cal && pro && carb && fat) {
         const goals = normalizeNutritionGoals({
           cal: Number(cal),
@@ -4967,7 +4970,7 @@
       }
 
       if (keys.length === 0) {
-        selectorEl.innerHTML = `<span style="font-size:0.8rem; color:var(--text-muted);">No routines defined. Tap "+ Add New Day" below.</span>`;
+        selectorEl.innerHTML = `<span style="font-size:0.8rem; color:var(--text-muted);">No routines defined. Tap "+ Add new day" below.</span>`;
         return;
       }
 
@@ -4987,13 +4990,13 @@
       const exercises = state.routines[activeRoutineDay] || [];
 
       if (Object.keys(state.routines).length === 0) {
-        container.innerHTML = '<div class="empty-state">No workout routines yet. Tap "+ Add New Day" above to create your first routine!</div>';
+        container.innerHTML = '<div class="empty-state">No workout routines yet. Tap "+ Add new day" above to create your first routine!</div>';
         refreshLucideIcons();
         return;
       }
 
       if (exercises.length === 0) {
-        container.innerHTML = '<div class="empty-state">No exercises in this routine yet. Tap "+ Add Exercise" above.</div>';
+        container.innerHTML = '<div class="empty-state">No exercises in this routine yet. Tap "+ Add exercise" above.</div>';
         refreshLucideIcons();
         return;
       }
@@ -5167,7 +5170,7 @@
       const repsInput = document.getElementById(`r_ex${exIndex}_s${setNum}`);
       if (!exercise || !weightInput || !repsInput) return;
       if (getTodaysExerciseSets(exercise.name).has(setNum)) {
-        alert("This set is already logged. Use Edit logged sets to change it.");
+        alert("This set is already logged. Use edit logged sets to change it.");
         renderRoutine();
         return;
       }
@@ -5370,7 +5373,7 @@
 
       const apiKey = localStorage.getItem(getApiKeyStorageKey());
       if (!apiKey) {
-        appendChatMessage("Please enter and save your Gemini API key in the AI Assistant Settings card above first.", 'assistant');
+        appendChatMessage("Please enter and save your Gemini API key in the AI assistant settings card above first.", 'assistant');
         return;
       }
 
