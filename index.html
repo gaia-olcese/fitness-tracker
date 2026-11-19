@@ -587,23 +587,14 @@
       outline-offset: 1px;
     }
 
-    .ai-speech-button {
-      display: grid;
-      width: 28px;
-      height: 28px;
-      flex: 0 0 28px;
-      padding: 0;
-      place-items: center;
-      border: 1px solid var(--border);
-      border-radius: 7px;
-      background: var(--surface-light);
-      color: var(--text-muted);
-      cursor: pointer;
-    }
-
-    .ai-speech-button:focus-visible {
+    .ai-speech-toggle:focus-visible {
       outline: 2px solid var(--primary);
       outline-offset: 1px;
+    }
+
+    .ai-speech-toggle[aria-pressed="true"] {
+      color: var(--accent);
+      border-color: var(--accent);
     }
 
     textarea {
@@ -1452,6 +1443,7 @@
           </div>
         </div>
         <div style="display: flex; gap: 6px;">
+          <button class="btn-small ai-speech-toggle" id="aiSpeakRepliesBtn" type="button" onclick="toggleAiSpeechPreference()" title="Turn spoken replies on" aria-label="Turn spoken replies on" aria-pressed="false" hidden><i data-lucide="volume-x" aria-hidden="true"></i></button>
           <button class="btn-small" id="aiMicBtn" onclick="toggleVoiceRecording()" style="padding: 10px 14px; font-size: 1.1rem;" title="Voice Input" aria-label="Voice input"><i data-lucide="mic" aria-hidden="true"></i></button>
           <input type="text" id="aiUserInput" placeholder="e.g. Log 3 sets of 10kg bench press for 10 reps..." style="text-align: left; flex: 1;" onkeydown="if(event.key==='Enter') sendAiMessage()" />
           <button class="btn-small" onclick="sendAiMessage()" style="background: var(--accent); color: #fff; padding: 10px 14px; font-weight: 600;">Send</button>
@@ -2052,6 +2044,7 @@
       if (aiNavBtn) {
         aiNavBtn.style.display = (currentUser && currentUser.toLowerCase() === 'gaia') ? 'flex' : 'none';
       }
+      renderAiSpeechToggle();
     }
 
     function openProfileModal() {
@@ -4630,6 +4623,7 @@
 
     let aiConversationHistory = [];
     let pendingAiAction = null;
+    let aiSpeakRepliesEnabled = false;
 
     async function sendAiMessage() {
       if (pendingAiAction) {
@@ -4643,6 +4637,7 @@
       if (!text) return;
 
       input.value = '';
+      stopAiSpeech();
       appendChatMessage(text, 'user');
 
       const apiKey = localStorage.getItem(getApiKeyStorageKey());
@@ -4735,7 +4730,9 @@ Your job is to help the user log their workouts and meals through conversation.
         const replyText = data.candidates?.[0]?.content?.parts?.[0]?.text || "I didn't catch that. Could you clarify?";
         aiConversationHistory.push({ role: "model", parts: [{ text: replyText }] });
 
-        appendChatMessage(getReadableAiReply(replyText), 'assistant');
+        const readableReply = getReadableAiReply(replyText);
+        appendChatMessage(readableReply, 'assistant');
+        if (aiSpeakRepliesEnabled) speakAiReply(readableReply);
 
         // Check for JSON action block
         const jsonMatch = replyText.match(/```json\s*([\s\S]*?)\s*```/);
@@ -4784,72 +4781,62 @@ Your job is to help the user log their workouts and meals through conversation.
       if (isThinking) div.id = 'aiThinkingBubble';
       div.style.cssText = sender === 'user'
         ? 'background: var(--primary); color: #fff; padding: 8px 12px; border-radius: 10px; max-width: 85%; align-self: flex-end; font-size: 0.85rem;'
-        : 'background: var(--surface); color: var(--text); padding: 8px 12px; border-radius: 10px; border: 1px solid var(--border); max-width: 85%; align-self: flex-start; font-size: 0.85rem; display: flex; align-items: flex-start; gap: 8px;';
+        : 'background: var(--surface); color: var(--text); padding: 8px 12px; border-radius: 10px; border: 1px solid var(--border); max-width: 85%; align-self: flex-start; font-size: 0.85rem;';
       if (iconName) {
         const icon = document.createElement('i');
         icon.dataset.lucide = iconName;
         icon.setAttribute('aria-hidden', 'true');
-        div.append(icon);
+        div.append(icon, document.createTextNode(' '));
       }
-      const messageText = document.createElement('span');
-      messageText.textContent = text;
-      messageText.style.whiteSpace = 'pre-wrap';
-      div.appendChild(messageText);
-      if (sender === 'assistant' && !isThinking && currentUser?.toLowerCase() === 'gaia' &&
-          'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window) {
-        const speakButton = document.createElement('button');
-        speakButton.type = 'button';
-        speakButton.className = 'ai-speech-button';
-        speakButton.title = 'Read reply aloud';
-        speakButton.setAttribute('aria-label', 'Read reply aloud');
-        speakButton.innerHTML = '<i data-lucide="volume-2" aria-hidden="true"></i>';
-        speakButton.addEventListener('click', () => speakAiReply(text, speakButton));
-        div.appendChild(speakButton);
-      }
+      div.append(document.createTextNode(text));
       logEl.appendChild(div);
       if (iconName || div.querySelector('[data-lucide]')) refreshLucideIcons();
       logEl.scrollTop = logEl.scrollHeight;
     }
 
     let activeAiSpeech = null;
-    let activeAiSpeechButton = null;
 
-    function setAiSpeechButton(button, speaking) {
+    function renderAiSpeechToggle() {
+      const button = document.getElementById('aiSpeakRepliesBtn');
       if (!button) return;
-      button.title = speaking ? 'Stop speaking' : 'Read reply aloud';
-      button.setAttribute('aria-label', button.title);
-      button.innerHTML = `<i data-lucide="${speaking ? 'volume-x' : 'volume-2'}" aria-hidden="true"></i>`;
+      const supported = 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
+      const isGaia = currentUser?.toLowerCase() === 'gaia';
+      button.hidden = !supported || !isGaia;
+      aiSpeakRepliesEnabled = isGaia &&
+        localStorage.getItem('fitlog_ai_speak_replies_gaia') === 'true';
+      const label = aiSpeakRepliesEnabled ? 'Turn spoken replies off' : 'Turn spoken replies on';
+      button.title = label;
+      button.setAttribute('aria-label', label);
+      button.setAttribute('aria-pressed', String(aiSpeakRepliesEnabled));
+      button.innerHTML = `<i data-lucide="${aiSpeakRepliesEnabled ? 'volume-2' : 'volume-x'}" aria-hidden="true"></i>`;
       refreshLucideIcons();
     }
 
-    function stopAiSpeech() {
-      const button = activeAiSpeechButton;
-      activeAiSpeech = null;
-      activeAiSpeechButton = null;
-      if (button) setAiSpeechButton(button, false);
-      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    function toggleAiSpeechPreference() {
+      if (currentUser?.toLowerCase() !== 'gaia') return;
+      aiSpeakRepliesEnabled = !aiSpeakRepliesEnabled;
+      localStorage.setItem('fitlog_ai_speak_replies_gaia', String(aiSpeakRepliesEnabled));
+      renderAiSpeechToggle();
+      if (!aiSpeakRepliesEnabled) stopAiSpeech();
     }
 
-    function speakAiReply(text, button) {
+    function stopAiSpeech() {
+      const wasSpeaking = activeAiSpeech !== null;
+      activeAiSpeech = null;
+      if (wasSpeaking && 'speechSynthesis' in window) window.speechSynthesis.cancel();
+    }
+
+    function speakAiReply(text) {
       const speechText = getReadableAiReply(text);
       if (!speechText || !('speechSynthesis' in window) ||
           !('SpeechSynthesisUtterance' in window)) return;
-      if (activeAiSpeechButton === button) {
-        stopAiSpeech();
-        return;
-      }
-
       stopAiSpeech();
       const utterance = new SpeechSynthesisUtterance(speechText);
       utterance.lang = document.documentElement.lang || navigator.language || 'en-US';
       activeAiSpeech = utterance;
-      activeAiSpeechButton = button;
-      setAiSpeechButton(button, true);
       const clearActiveSpeech = () => {
         if (activeAiSpeech !== utterance) return;
         activeAiSpeech = null;
-        activeAiSpeechButton = null;
-        setAiSpeechButton(button, false);
       };
       utterance.onend = clearActiveSpeech;
       utterance.onerror = clearActiveSpeech;
