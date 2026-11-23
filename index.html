@@ -799,7 +799,7 @@
       width: min(620px, calc(100vw - 24px));
       padding: 12px;
       margin: 0;
-      border: 1px solid var(--border);
+      border: 2px solid var(--primary);
       border-radius: 12px;
       background: var(--surface);
       box-shadow: 0 4px 16px rgba(15, 23, 42, 0.18);
@@ -823,7 +823,24 @@
 
     .rest-timer-controls {
       display: flex;
+      align-items: center;
+      flex-wrap: wrap;
       gap: 6px;
+    }
+
+    .rest-timer-option {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      white-space: nowrap;
+    }
+
+    .rest-timer-option input {
+      width: auto;
+      margin: 0;
+      accent-color: var(--primary);
     }
 
     input {
@@ -1725,6 +1742,8 @@
     </div>
     <div id="restTimerCountdown" class="rest-timer-countdown">00:00</div>
     <div class="rest-timer-controls">
+      <label class="rest-timer-option"><input id="restTimerKeepAwake" type="checkbox" aria-label="Keep the display awake while FitLog is visible" onchange="setRestTimerKeepAwake(this.checked)" /><span id="restTimerKeepAwakeLabel">Keep screen on</span></label>
+      <button id="restTimerNotificationButton" class="btn-small" type="button" onclick="enableRestTimerNotifications()">Enable alerts</button>
       <button class="btn-small" onclick="addRestTimerTime(15)">+15 sec</button>
       <button class="btn-small" onclick="restartRestTimer()">Restart</button>
       <button class="btn-small" onclick="skipRestTimer()">Skip</button>
@@ -2591,8 +2610,14 @@
       endAt: 0,
       duration: 0,
       label: "",
-      finishedReason: ""
+      finishedReason: "",
+      finishedNotified: false
     };
+    let restTimerWakeLock = null;
+    let restTimerWakeLockRequestPending = false;
+    let restTimerAudioContext = null;
+    let restTimerKeepAwakeEnabled = localStorage.getItem('fitlog_rest_timer_keep_awake') === 'true';
+    let restTimerNotificationsEnabled = localStorage.getItem('fitlog_rest_timer_notifications') === 'true';
     let editingSetExercise = null;
     let celebratedWorkoutKeys = new Set();
     let celebrationConfettiTimeout = null;
@@ -2947,13 +2972,31 @@
       renderRoleAccess();
       renderClientViewBanner();
       const syncWhenVisible = () => {
-        if (document.visibilityState === 'visible') syncWithCloud();
+        if (document.visibilityState === 'visible') {
+          updateRestTimer();
+          if (restTimer.visible && restTimer.endAt > Date.now()) requestRestTimerWakeLock();
+          syncWithCloud();
+        } else {
+          releaseRestTimerWakeLock();
+        }
       };
       document.addEventListener('visibilitychange', syncWhenVisible);
       window.addEventListener('focus', syncWhenVisible);
       window.setInterval(syncWhenVisible, 60_000);
       loadApiKeySetting();
       initializeNutritionDateControls();
+      const keepAwakeToggle = document.getElementById('restTimerKeepAwake');
+      if (keepAwakeToggle) keepAwakeToggle.checked = restTimerKeepAwakeEnabled;
+      if (!('wakeLock' in navigator) && keepAwakeToggle) {
+        keepAwakeToggle.disabled = true;
+        document.getElementById('restTimerKeepAwakeLabel').textContent = 'Keep screen on unavailable';
+      }
+      updateRestTimerNotificationButton();
+      if ('serviceWorker' in navigator && window.isSecureContext) {
+        navigator.serviceWorker.register('./sw.js').catch(error => {
+          console.warn('Rest timer notifications are unavailable:', error);
+        });
+      }
       renderAll();
       refreshLucideIcons();
     });
@@ -6252,25 +6295,166 @@
         endAt: Date.now() + seconds * 1000,
         duration: seconds,
         label: `${exerciseName} • Set ${setNum}`,
-        finishedReason: ""
+        finishedReason: "",
+        finishedNotified: false
       };
       document.body.classList.add('rest-timer-active');
+      prepareRestTimerAudio();
+      if (restTimerKeepAwakeEnabled) requestRestTimerWakeLock();
       updateRestTimer();
       restTimer.intervalId = setInterval(updateRestTimer, 250);
     }
 
     function hideRestTimer() {
       clearInterval(restTimer.intervalId);
+      releaseRestTimerWakeLock();
       restTimer = {
         intervalId: null,
         visible: false,
         endAt: 0,
         duration: 0,
         label: "",
-        finishedReason: ""
+        finishedReason: "",
+        finishedNotified: false
       };
       document.getElementById('restTimer').hidden = true;
       document.body.classList.remove('rest-timer-active');
+    }
+
+    function setRestTimerKeepAwake(enabled) {
+      restTimerKeepAwakeEnabled = Boolean(enabled);
+      localStorage.setItem('fitlog_rest_timer_keep_awake', String(restTimerKeepAwakeEnabled));
+      if (restTimerKeepAwakeEnabled && restTimer.visible) requestRestTimerWakeLock();
+      else releaseRestTimerWakeLock();
+    }
+
+    async function requestRestTimerWakeLock() {
+      if (!restTimerKeepAwakeEnabled || !restTimer.visible || document.visibilityState !== 'visible') return;
+      if (!('wakeLock' in navigator)) {
+        document.getElementById('restTimerStatus').textContent = 'Screen stay-on is not supported here';
+        return;
+      }
+      if (restTimerWakeLock || restTimerWakeLockRequestPending) return;
+      restTimerWakeLockRequestPending = true;
+      try {
+        const lock = await navigator.wakeLock.request('screen');
+        if (!restTimerKeepAwakeEnabled || !restTimer.visible || restTimer.endAt <= Date.now() || document.visibilityState !== 'visible') {
+          await lock.release();
+          return;
+        }
+        restTimerWakeLock = lock;
+        lock.addEventListener('release', () => {
+          if (restTimerWakeLock === lock) restTimerWakeLock = null;
+        }, { once: true });
+      } catch (error) {
+        console.info('Could not keep the screen awake:', error);
+        const status = document.getElementById('restTimerStatus');
+        if (status && restTimer.visible) status.textContent = 'Screen stay-on could not be enabled';
+      } finally {
+        restTimerWakeLockRequestPending = false;
+      }
+    }
+
+    function releaseRestTimerWakeLock() {
+      const lock = restTimerWakeLock;
+      restTimerWakeLock = null;
+      if (lock) lock.release().catch(() => {});
+    }
+
+    function updateRestTimerNotificationButton() {
+      const button = document.getElementById('restTimerNotificationButton');
+      if (!button) return;
+      if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+        button.textContent = 'Alerts unavailable';
+        button.disabled = true;
+      } else if (Notification.permission === 'denied') {
+        button.textContent = 'Alerts blocked';
+        button.disabled = true;
+      } else if (restTimerNotificationsEnabled && Notification.permission === 'granted') {
+        button.textContent = 'Alerts enabled';
+        button.disabled = true;
+      } else {
+        button.textContent = 'Enable alerts';
+        button.disabled = false;
+      }
+    }
+
+    async function enableRestTimerNotifications() {
+      if (!('Notification' in window) || !('serviceWorker' in navigator)) return;
+      try {
+        const permission = Notification.permission === 'granted'
+          ? 'granted'
+          : await Notification.requestPermission();
+        restTimerNotificationsEnabled = permission === 'granted';
+        localStorage.setItem('fitlog_rest_timer_notifications', String(restTimerNotificationsEnabled));
+        updateRestTimerNotificationButton();
+        if (!restTimerNotificationsEnabled) {
+          document.getElementById('restTimerStatus').textContent = 'Notifications were not enabled';
+        } else if (restTimer.visible) {
+          document.getElementById('restTimerStatus').textContent = 'Alerts enabled for this timer';
+        }
+      } catch (error) {
+        console.warn('Could not enable rest timer notifications:', error);
+      }
+    }
+
+    function prepareRestTimerAudio() {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextClass) return;
+      try {
+        if (!restTimerAudioContext) restTimerAudioContext = new AudioContextClass();
+        if (restTimerAudioContext.state === 'suspended') restTimerAudioContext.resume().catch(() => {});
+      } catch (error) {
+        console.info('Rest timer sound is unavailable:', error);
+      }
+    }
+
+    function playRestTimerAlert() {
+      try {
+        if (navigator.vibrate) navigator.vibrate([180, 100, 180, 100, 350]);
+      } catch (error) {
+        console.info('Rest timer vibration is unavailable:', error);
+      }
+      if (!restTimerAudioContext || restTimerAudioContext.state !== 'running') return;
+      try {
+        const oscillator = restTimerAudioContext.createOscillator();
+        const gain = restTimerAudioContext.createGain();
+        const now = restTimerAudioContext.currentTime;
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(880, now);
+        gain.gain.setValueAtTime(0.0001, now);
+        gain.gain.exponentialRampToValueAtTime(0.16, now + 0.025);
+        gain.gain.setValueAtTime(0.16, now + 0.24);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.5);
+        oscillator.connect(gain);
+        gain.connect(restTimerAudioContext.destination);
+        oscillator.start(now);
+        oscillator.stop(now + 0.51);
+      } catch (error) {
+        console.info('Rest timer sound could not be played:', error);
+      }
+    }
+
+    async function showRestTimerNotification() {
+      if (!restTimerNotificationsEnabled || !('Notification' in window) || Notification.permission !== 'granted') return;
+      try {
+        const registration = await navigator.serviceWorker.ready;
+        await registration.showNotification('Rest complete', {
+          body: `${restTimer.label} • Time for your next set.`,
+          icon: './gemini-icon-192-v2.png',
+          tag: 'fitlog-rest-timer',
+          renotify: true,
+          vibrate: [180, 100, 180, 100, 350]
+        });
+      } catch (error) {
+        console.warn('Could not show the rest timer notification:', error);
+      }
+    }
+
+    function finishRestTimer() {
+      releaseRestTimerWakeLock();
+      playRestTimerAlert();
+      showRestTimerNotification();
     }
 
     function updateRestTimer() {
@@ -6286,11 +6470,17 @@
         ? 'Resting'
         : (restTimer.finishedReason || 'Rest complete');
 
-      if (remaining === 0 && restTimer.intervalId) {
-        clearInterval(restTimer.intervalId);
-        restTimer.intervalId = null;
-        restTimer.finishedReason = 'Rest complete';
-        document.getElementById('restTimerStatus').textContent = restTimer.finishedReason;
+      if (remaining === 0) {
+        if (restTimer.intervalId) {
+          clearInterval(restTimer.intervalId);
+          restTimer.intervalId = null;
+        }
+        if (!restTimer.finishedNotified && restTimer.finishedReason !== 'Rest skipped') {
+          restTimer.finishedReason = 'Rest complete';
+          restTimer.finishedNotified = true;
+          document.getElementById('restTimerStatus').textContent = restTimer.finishedReason;
+          finishRestTimer();
+        }
       }
     }
 
@@ -6299,6 +6489,8 @@
       const remaining = Math.max(0, Math.ceil((restTimer.endAt - Date.now()) / 1000));
       restTimer.endAt = Date.now() + Math.min(3600, remaining + seconds) * 1000;
       restTimer.finishedReason = "";
+      restTimer.finishedNotified = false;
+      if (restTimerKeepAwakeEnabled) requestRestTimerWakeLock();
       if (!restTimer.intervalId) restTimer.intervalId = setInterval(updateRestTimer, 250);
       updateRestTimer();
     }
@@ -6307,6 +6499,8 @@
       if (!restTimer.visible) return;
       restTimer.endAt = Date.now() + restTimer.duration * 1000;
       restTimer.finishedReason = "";
+      restTimer.finishedNotified = false;
+      if (restTimerKeepAwakeEnabled) requestRestTimerWakeLock();
       if (!restTimer.intervalId) restTimer.intervalId = setInterval(updateRestTimer, 250);
       updateRestTimer();
     }
