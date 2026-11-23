@@ -931,6 +931,35 @@
       gap: 5px;
     }
 
+    .nutrition-chart-heading {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px 12px;
+      margin-bottom: 8px;
+    }
+
+    .nutrition-chart-heading h2 {
+      margin: 0;
+    }
+
+    .nutrition-average-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 5px 9px;
+      border-radius: 999px;
+      background: rgba(126, 71, 217, 0.1);
+      color: #5B28B0;
+      font-size: 0.75rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .nutrition-date-field {
+      max-width: 220px;
+    }
+
     .macro-legend-dot {
       width: 8px;
       height: 8px;
@@ -1278,6 +1307,10 @@
       padding: 4px 8px;
       cursor: pointer;
     }
+
+    .food-log-actions { display: flex; align-items: center; gap: 6px; }
+    .food-log-actions .btn-small { padding: 5px 8px; }
+    .food-form-actions { display: flex; align-items: center; gap: 8px; }
 
     .modal-overlay {
       position: fixed;
@@ -1704,10 +1737,10 @@
     <div id="tab-workouts" class="tab-content active">
       <section class="card weekly-streak-card" aria-labelledby="weeklyStreakHeading">
         <div class="weekly-streak-heading">
-          <h2 id="weeklyStreakHeading">This week</h2>
+          <h2 id="weeklyStreakHeading">Last 7 days</h2>
           <span id="weeklyStreakCount" class="weekly-streak-count">0/7 active days</span>
         </div>
-        <div id="weeklyStreakDays" class="weekly-streak-days" aria-label="Weekly activity"></div>
+        <div id="weeklyStreakDays" class="weekly-streak-days" aria-label="Activity over the last seven days"></div>
         <div class="weekly-streak-legend" aria-label="Activity legend">
           <span><i class="weekly-legend-dot" aria-hidden="true"></i> Strength</span>
           <span><i class="weekly-legend-dot activity" aria-hidden="true"></i> Other activity</span>
@@ -1976,6 +2009,11 @@
 
       <div id="nutritionLogCard" class="card">
         <h2>Log food</h2>
+        <div class="form-group nutrition-date-field">
+          <label for="nutritionLogDate">Meal date</label>
+          <input type="date" id="nutritionLogDate" onchange="handleNutritionLogDateChange(this)" />
+        </div>
+        <p id="nutritionDateStatus" class="warmup-sync-status" role="status" aria-live="polite" style="margin-top:-4px; margin-bottom:10px;">Choose today or a past date.</p>
         <div class="form-group">
           <label for="foodName">Meal or food</label>
           <input type="text" id="foodName" placeholder="e.g. Tofu scramble & toast" style="text-align: left;" />
@@ -1998,16 +2036,22 @@
             <input type="number" id="foodFat" step="0.5" inputmode="decimal" placeholder="15" />
           </div>
         </div>
-        <button class="btn-primary" onclick="addFood()">+ Add food</button>
+        <div class="food-form-actions">
+          <button id="foodSubmitButton" class="btn-primary" onclick="addFood()">+ Add food</button>
+          <button id="cancelFoodEditButton" class="btn-small" onclick="cancelFoodEdit()" hidden>Cancel</button>
+        </div>
       </div>
 
       <div class="card">
-        <h2>Today's meals</h2>
+        <h2 id="foodListTitle">Meals for selected date</h2>
         <div id="foodList"></div>
       </div>
 
       <div class="card">
-        <h2>7-day macronutrients</h2>
+        <div class="nutrition-chart-heading">
+          <h2>7-day macronutrients</h2>
+          <span id="nutritionLoggedAverage" class="nutrition-average-badge">7-day logged avg: —</span>
+        </div>
         <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">
           Daily calories from protein, carbohydrates, and fats over the last seven days.
         </p>
@@ -2078,6 +2122,11 @@
         <p style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 8px;">
           Chat or tap the mic to estimate meals or discuss workouts. Review and confirm any proposed log before it is saved.
         </p>
+        <div class="form-group nutrition-date-field" style="margin-bottom:8px;">
+          <label for="aiMealLogDate">Meal date for AI logs</label>
+          <input type="date" id="aiMealLogDate" onchange="handleNutritionLogDateChange(this)" />
+        </div>
+        <p id="aiNutritionDateHint" style="font-size:0.75rem;color:var(--text-muted);margin:-5px 0 8px;">AI meals use this date unless you specify another date in chat.</p>
         <div id="aiChatLog" style="flex: 1; overflow-y: auto; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 10px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 8px;">
           <div style="background: var(--surface); padding: 8px 12px; border-radius: 10px; border: 1px solid var(--border); max-width: 85%; align-self: flex-start; font-size: 0.85rem;">
             Hi there! What workout or meal would you like to log today?
@@ -2517,6 +2566,8 @@
     let bodyMeasurements = [];
     let selectedMeasurementKey = 'weight';
     let selectedWorkoutNoteDate = getTodayStr();
+    let selectedNutritionDate = getLocalDateString();
+    let editingFoodId = null;
     let workoutNoteDrafts = {};
     let workoutNoteSyncQueue = Promise.resolve();
 
@@ -2902,6 +2953,7 @@
       window.addEventListener('focus', syncWhenVisible);
       window.setInterval(syncWhenVisible, 60_000);
       loadApiKeySetting();
+      initializeNutritionDateControls();
       renderAll();
       refreshLucideIcons();
     });
@@ -3765,19 +3817,20 @@
       const root = document.getElementById('weeklyStreakDays');
       if (!root) return;
       const now = new Date();
-      const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const firstDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 6);
       const strengthDays = new Set(state.workouts.map(workout => workout.date).filter(Boolean));
       const activityDays = new Set(activityLogs.map(item => activityDateKey(item.logged_at)).filter(Boolean));
-      const labels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+      const weekdayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
       let activeCount = 0;
-      root.replaceChildren(...labels.map((label, index) => {
-        const day = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + index);
+      root.replaceChildren(...Array.from({ length: 7 }, (_, index) => {
+        const day = new Date(firstDay.getFullYear(), firstDay.getMonth(), firstDay.getDate() + index);
         const key = activityDateKey(day);
+        const label = weekdayLabels[day.getDay()];
         const strength = strengthDays.has(key);
         const other = activityDays.has(key);
         if (strength || other) activeCount++;
-        const cell = document.createElement('div'); cell.className = `weekly-streak-day${key === activityDateKey(now) ? ' today' : ''}`;
+        const cell = document.createElement('div'); cell.className = `weekly-streak-day${key === activityDateKey(today) ? ' today' : ''}`;
         const marker = document.createElement('span'); marker.className = `weekly-streak-marker${strength && other ? ' both' : strength ? ' strength' : other ? ' activity' : ''}`;
         marker.setAttribute('aria-label', `${label}: ${strength ? 'strength workout' : ''}${strength && other ? ' and ' : ''}${other ? 'other activity' : ''}${!strength && !other ? 'no activity' : ''}`);
         const letter = document.createElement('span'); letter.textContent = label;
@@ -4959,6 +5012,45 @@
       return new Date().toISOString().split('T')[0];
     }
 
+    function getLocalDateString(date = new Date()) {
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    }
+
+    function isValidDateOnly(value) {
+      if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+      const parsedDate = new Date(`${value}T00:00:00.000Z`);
+      return Number.isFinite(parsedDate.getTime()) && parsedDate.toISOString().slice(0, 10) === value;
+    }
+
+    function syncNutritionDateInputs() {
+      const maxDate = getLocalDateString();
+      ['nutritionLogDate', 'aiMealLogDate'].forEach(id => {
+        const input = document.getElementById(id);
+        if (!input) return;
+        input.max = maxDate;
+        input.value = selectedNutritionDate;
+      });
+    }
+
+    function initializeNutritionDateControls() {
+      selectedNutritionDate = getLocalDateString();
+      syncNutritionDateInputs();
+    }
+
+    function handleNutritionLogDateChange(input) {
+      const date = input?.value;
+      const status = document.getElementById('nutritionDateStatus');
+      if (!isValidDateOnly(date) || date > getLocalDateString()) {
+        if (input) input.value = selectedNutritionDate;
+        if (status) status.textContent = 'Choose today or a past date.';
+        return;
+      }
+      selectedNutritionDate = date;
+      syncNutritionDateInputs();
+      if (status) status.textContent = 'Choose today or a past date.';
+      renderNutritionFoodList();
+    }
+
     function renderWorkoutDiary() {
       const dateInput = document.getElementById('workoutNoteDate');
       const noteInput = document.getElementById('workoutNoteInput');
@@ -5624,26 +5716,41 @@
 
       const dailyTotals = new Map();
       for (const item of state.nutrition) {
-        if (typeof item.date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(item.date)) continue;
-        const totals = dailyTotals.get(item.date) || { pro: 0, carb: 0, fat: 0 };
+        if (!isValidDateOnly(item.date)) continue;
+        const totals = dailyTotals.get(item.date) || { cal: 0, pro: 0, carb: 0, fat: 0 };
+        totals.cal += Number(item.cal) || 0;
         totals.pro += Number(item.pro) || 0;
         totals.carb += Number(item.carb) || 0;
         totals.fat += Number(item.fat) || 0;
         dailyTotals.set(item.date, totals);
       }
 
-      // Use UTC date keys to match the date strings already stored in nutrition logs.
-      const today = new Date(`${getTodayStr()}T00:00:00.000Z`);
+      const todayString = getLocalDateString();
+      const loggedDays = Array.from(dailyTotals.entries())
+        .filter(([date]) => date <= todayString)
+        .sort(([dateA], [dateB]) => dateB.localeCompare(dateA))
+        .slice(0, 7);
+      const averageElement = document.getElementById('nutritionLoggedAverage');
+      if (averageElement) {
+        if (loggedDays.length) {
+          const average = loggedDays.reduce((sum, [, totals]) => sum + totals.cal, 0) / loggedDays.length;
+          averageElement.textContent = `7-day logged avg: ${Math.round(average).toLocaleString()} kcal`;
+        } else {
+          averageElement.textContent = '7-day logged avg: —';
+        }
+      }
+
+      const today = new Date(`${todayString}T12:00:00`);
       const dates = Array.from({ length: 7 }, (_, index) => {
         const date = new Date(today);
-        date.setUTCDate(today.getUTCDate() - (6 - index));
-        return date.toISOString().slice(0, 10);
+        date.setDate(today.getDate() - (6 - index));
+        return getLocalDateString(date);
       });
       const dayLabels = dates.map(date => {
-        const weekday = new Date(`${date}T00:00:00.000Z`).getUTCDay();
+        const weekday = new Date(`${date}T12:00:00`).getDay();
         return ['S', 'M', 'T', 'W', 'T', 'F', 'S'][weekday];
       });
-      const grams = dates.map(date => dailyTotals.get(date) || { pro: 0, carb: 0, fat: 0 });
+      const grams = dates.map(date => dailyTotals.get(date) || { cal: 0, pro: 0, carb: 0, fat: 0 });
       const proteinCalories = grams.map(day => Math.max(0, day.pro * 4));
       const carbsCalories = grams.map(day => Math.max(0, day.carb * 4));
       const fatCalories = grams.map(day => Math.max(0, day.fat * 9));
@@ -5737,8 +5844,8 @@
               callbacks: {
                 title: items => {
                   const date = dates[items[0]?.dataIndex];
-                  return date ? new Date(`${date}T00:00:00.000Z`).toLocaleDateString(undefined, {
-                    weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC'
+                  return date ? new Date(`${date}T12:00:00`).toLocaleDateString(undefined, {
+                    weekday: 'short', month: 'short', day: 'numeric'
                   }) : '';
                 },
                 label: context => {
@@ -5772,6 +5879,10 @@
 
     function addFood() {
       if (isPtViewingClient()) return;
+      if (!isValidDateOnly(selectedNutritionDate) || selectedNutritionDate > getLocalDateString()) {
+        document.getElementById('nutritionDateStatus').textContent = 'Choose today or a past date.';
+        return;
+      }
       const food = document.getElementById('foodName').value.trim();
       const cal = parseFloat(document.getElementById('foodCal').value) || 0;
       const pro = parseFloat(document.getElementById('foodPro').value) || 0;
@@ -5783,22 +5894,58 @@
         return;
       }
 
-      state.nutrition.unshift({
-        id: 'n_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
-        date: getTodayStr(),
-        food, cal, pro, carb, fat
-      });
-
-      document.getElementById('foodName').value = '';
-      document.getElementById('foodCal').value = '';
-      document.getElementById('foodPro').value = '';
-      document.getElementById('foodCarb').value = '';
-      document.getElementById('foodFat').value = '';
+      if (editingFoodId) {
+        const existing = state.nutrition.find(item => String(item.id) === String(editingFoodId));
+        if (!existing) { cancelFoodEdit(); return; }
+        queueCloudRecordChange('nutrition', existing.id, 'update');
+        Object.assign(existing, { date: selectedNutritionDate, food, cal, pro, carb, fat });
+        cancelFoodEdit();
+      } else {
+        state.nutrition.unshift({
+          id: 'n_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+          date: selectedNutritionDate,
+          food, cal, pro, carb, fat
+        });
+        ['foodName', 'foodCal', 'foodPro', 'foodCarb', 'foodFat'].forEach(id => { document.getElementById(id).value = ''; });
+      }
       saveLocalState();
+    }
+
+    function editFood(id) {
+      if (isPtViewingClient()) return;
+      const item = state.nutrition.find(food => String(food.id) === String(id));
+      if (!item) return;
+      editingFoodId = item.id;
+      selectedNutritionDate = item.date;
+      ['nutritionLogDate', 'aiMealLogDate'].forEach(inputId => {
+        const input = document.getElementById(inputId);
+        if (input) input.value = selectedNutritionDate;
+      });
+      document.getElementById('foodName').value = item.food || '';
+      document.getElementById('foodCal').value = item.cal ?? '';
+      document.getElementById('foodPro').value = item.pro ?? '';
+      document.getElementById('foodCarb').value = item.carb ?? '';
+      document.getElementById('foodFat').value = item.fat ?? '';
+      document.getElementById('foodSubmitButton').textContent = 'Save changes';
+      document.getElementById('cancelFoodEditButton').hidden = false;
+      document.getElementById('nutritionLogCard').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function cancelFoodEdit() {
+      editingFoodId = null;
+      ['foodName', 'foodCal', 'foodPro', 'foodCarb', 'foodFat'].forEach(id => {
+        const input = document.getElementById(id);
+        if (input) input.value = '';
+      });
+      const submit = document.getElementById('foodSubmitButton');
+      if (submit) submit.textContent = '+ Add food';
+      const cancel = document.getElementById('cancelFoodEditButton');
+      if (cancel) cancel.hidden = true;
     }
 
     function deleteFood(id) {
       if (isPtViewingClient()) return;
+      if (String(editingFoodId) === String(id)) cancelFoodEdit();
       queueCloudRecordChange('nutrition', id, 'delete');
       state.nutrition = state.nutrition.filter(f => f.id !== id);
       saveLocalState();
@@ -6182,7 +6329,7 @@
       renderNutritionHistoryChart();
       renderWeeklyStreak();
 
-      const today = getTodayStr();
+      const today = getLocalDateString();
       const todayFood = state.nutrition.filter(f => f.date === today);
       const totals = todayFood.reduce((acc, item) => ({
         cal: acc.cal + item.cal,
@@ -6204,24 +6351,35 @@
       const pct = Math.min(100, (totals.cal / state.goals.cal) * 100);
       document.getElementById('calProgress').style.width = pct + '%';
 
+      renderNutritionFoodList();
+      refreshLucideIcons();
+    }
+
+    function renderNutritionFoodList() {
       const foodListEl = document.getElementById('foodList');
-      if (todayFood.length === 0) {
-        foodListEl.innerHTML = '<div class="empty-state">No food logged today yet.</div>';
+      const title = document.getElementById('foodListTitle');
+      if (!foodListEl) return;
+      if (title) title.textContent = `Meals on ${selectedNutritionDate}`;
+      const selectedDateFood = state.nutrition.filter(food => food.date === selectedNutritionDate);
+      if (selectedDateFood.length === 0) {
+        foodListEl.innerHTML = `<div class="empty-state">No food logged on ${escapeHtml(selectedNutritionDate)} yet.</div>`;
       } else {
-        foodListEl.innerHTML = todayFood.map(f => `
+        foodListEl.innerHTML = selectedDateFood.map(f => `
           <div class="log-item">
             <div>
               <div style="font-weight:600; font-size:0.9rem;">${escapeHtml(f.food)}</div>
               <div style="font-size:0.8rem; color:var(--text-muted);">${f.cal} kcal • ${f.pro}g P • ${f.carb}g C • ${f.fat}g F</div>
             </div>
-            ${isPtViewingClient() ? '' : `<button class="delete-btn" data-delete-food-id="${escapeHtml(f.id)}" aria-label="Delete food log"><i data-lucide="x" aria-hidden="true"></i></button>`}
+            ${isPtViewingClient() ? '' : `<div class="food-log-actions"><button class="btn-small" type="button" data-edit-food-id="${escapeHtml(f.id)}">Edit</button><button class="delete-btn" data-delete-food-id="${escapeHtml(f.id)}" aria-label="Delete food log"><i data-lucide="x" aria-hidden="true"></i></button></div>`}
           </div>
         `).join('');
+        foodListEl.querySelectorAll('[data-edit-food-id]').forEach(button => {
+          button.addEventListener('click', () => editFood(button.dataset.editFoodId));
+        });
         foodListEl.querySelectorAll('[data-delete-food-id]').forEach(button => {
           button.addEventListener('click', () => deleteFood(button.dataset.deleteFoodId));
         });
       }
-      refreshLucideIcons();
     }
 
     // --- AI CHAT & API KEY LOGIC ---
@@ -6270,7 +6428,8 @@
       }
 
       // Build context
-      const todayStr = getTodayStr();
+      const todayStr = getLocalDateString();
+      const requestMealDate = selectedNutritionDate;
       const routinesStr = JSON.stringify(state.routines);
       const systemPrompt = `You are FitLog AI, a friendly and smart fitness & nutrition assistant. Today's date is ${todayStr}.
 The user's active workout routines are: ${routinesStr}.
@@ -6278,12 +6437,13 @@ Your job is to help the user log their workouts and meals through conversation.
 - If the user says something ambiguous (e.g. "I worked out"), ask clarifying questions (which exercise, sets, reps, weight?).
 - For workouts, use only details the user provided; ask about missing exercise, set, weight, or rep details instead of inventing them.
 - For meals, ask for portion or ingredient details when they are too vague to estimate responsibly. Present calories and macros as estimates, not exact measurements.
+- For meal dates, use the selected date ${requestMealDate} by default. If the user explicitly gives a different date or relative date, resolve it using today's local date ${todayStr}; do not invent a date when unclear. Include the resolved date in the meal action.
 - When you have enough details, propose the workout or meal and ask the user to confirm before it is logged. Include a JSON action block at the end of the response in this exact format. Never claim an item has been saved before the user confirms:
   For workouts: \`\`\`json
 {"action": "log_workout", "exercise": "...", "sets": [{"setNum": 1, "weight": 40, "reps": 10}, ...]}
 \`\`\`
   For nutrition: \`\`\`json
-{"action": "log_food", "food": "...", "cal": 450, "pro": 25, "carb": 40, "fat": 15}
+{"action": "log_food", "food": "...", "cal": 450, "pro": 25, "carb": 40, "fat": 15, "date": "YYYY-MM-DD"}
 \`\`\`
   If you need more info, just reply naturally with questions without the json block.`;
 
@@ -6357,7 +6517,7 @@ Your job is to help the user log their workouts and meals through conversation.
           .join('\n') || "I didn't catch that. Could you clarify?";
         aiConversationHistory.push({ role: "model", parts: [{ text: replyText }] });
 
-        const extractedReply = extractAiActionFromReply(replyText);
+        const extractedReply = extractAiActionFromReply(replyText, requestMealDate);
         const readableReply = getReadableAiReply(extractedReply.visibleText);
         const visibleReply = readableReply || (extractedReply.actionData
           ? 'Please review this proposed log before saving it.'
@@ -6383,7 +6543,7 @@ Your job is to help the user log their workouts and meals through conversation.
       }
     }
 
-    function extractAiActionFromReply(text) {
+    function extractAiActionFromReply(text, defaultMealDate = selectedNutritionDate) {
       const source = String(text || '');
       let objectStart = -1;
       let depth = 0;
@@ -6428,7 +6588,7 @@ Your job is to help the user log their workouts and meals through conversation.
           const isActionObject = actionObject &&
             ['log_workout', 'log_food'].includes(actionObject.action);
           if (isActionObject) {
-            const validatedAction = validateAiAction(actionObject);
+            const validatedAction = validateAiAction(actionObject, defaultMealDate);
             let removeStart = objectStart;
             let removeEnd = objectEnd;
             const prefix = source.slice(0, objectStart);
@@ -6536,7 +6696,7 @@ Your job is to help the user log their workouts and meals through conversation.
       if (bubble) bubble.remove();
     }
 
-    function validateAiAction(actionData) {
+    function validateAiAction(actionData, defaultMealDate = selectedNutritionDate) {
       if (actionData?.action === 'log_workout' &&
           typeof actionData.exercise === 'string' &&
           actionData.exercise.trim() &&
@@ -6577,14 +6737,17 @@ Your job is to help the user log their workouts and meals through conversation.
           if (typeof value !== 'number' && (typeof value !== 'string' || !value.trim())) return NaN;
           return Number(value);
         });
-        if (values.every(value => Number.isFinite(value) && value >= 0)) {
+        const mealDate = actionData.date === undefined ? defaultMealDate : actionData.date;
+        if (values.every(value => Number.isFinite(value) && value >= 0) &&
+            isValidDateOnly(mealDate) && mealDate <= getLocalDateString()) {
           return {
             action: 'log_food',
             food: actionData.food.trim(),
             cal: values[0],
             pro: values[1],
             carb: values[2],
-            fat: values[3]
+            fat: values[3],
+            date: mealDate
           };
         }
       }
@@ -6608,7 +6771,7 @@ Your job is to help the user log their workouts and meals through conversation.
       details.style.cssText = 'margin-bottom: 10px; white-space: pre-line;';
       details.textContent = actionData.action === 'log_workout'
         ? `${actionData.exercise}\n${actionData.sets.map(set => `Set ${set.setNum}: ${set.weight} kg × ${set.reps} reps`).join('\n')}`
-        : `${actionData.food}\n${actionData.cal} kcal · ${actionData.pro}g protein · ${actionData.carb}g carbs · ${actionData.fat}g fat\nAI-generated estimate; check the portions and macros.`;
+        : `${actionData.food}\nDate: ${actionData.date}\n${actionData.cal} kcal · ${actionData.pro}g protein · ${actionData.carb}g carbs · ${actionData.fat}g fat\nAI-generated estimate; check the portions and macros.`;
       preview.appendChild(details);
 
       const actions = document.createElement('div');
@@ -6692,9 +6855,11 @@ Your job is to help the user log their workouts and meals through conversation.
           if (!routineWasComplete) maybeCelebrateWorkoutCompletion(activeRoutineDay);
         }
       } else {
+        selectedNutritionDate = validatedAction.date;
+        syncNutritionDateInputs();
         state.nutrition.unshift({
           id: 'n_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
-          date: todayStr,
+          date: validatedAction.date,
           food: validatedAction.food,
           cal: validatedAction.cal,
           pro: validatedAction.pro,
